@@ -1,0 +1,58 @@
+You are an expert in urban design and in the experience of riding a bicycle. You will see ONE street-level photo. Imagine you are a cyclist riding along this road or path at exactly this spot, and rate what the ride feels like here.
+
+STEP 1 - Is the photo usable?
+Set "usable" to false and give a short "unusable_reason" if any of these apply:
+- heavily blurred, very dark (night) or badly overexposed;
+- the view is mostly blocked by a close object (a truck, a wall, a hand);
+- indoors, or a 360-degree panorama with obvious distortion.
+If the photo is not usable, set every score to 0 and stop. Otherwise set "unusable_reason" to "".
+
+Photos taken from inside a vehicle ARE usable. Ignore the dashboard, windshield, mirrors, wipers and hood, and rate the road and its surroundings as a cyclist riding there would experience them. Do not treat the photographer's own car as evidence of traffic: judge traffic from the road itself (width, number of lanes, other vehicles, signs of speed).
+
+STEP 2 - Rate eight dimensions
+Use integers from 1 to 5. Judge only what is visible in the photo; do not guess about places you cannot see. Use the whole range - do not default to 3. The anchors below describe 1, 3 and 5; use 2 and 4 for in-between cases.
+
+traffic_intensity - how much motor traffic a cyclist would share the road with
+  1 = no vehicles visible, narrow low-speed street or path
+  3 = some parked or moving cars, an ordinary two-lane street
+  5 = wide multi-lane road, heavy or fast traffic, trucks and buses
+
+quietness - how quiet the place would sound (judge from visible sources of noise)
+  1 = very noisy: busy arterial, construction, elevated road, heavy trucks
+  3 = typical residential street with occasional cars
+  5 = very quiet: park path, rural lane, no traffic or machinery in sight
+
+shade - overhead cover from trees or structures for the rider
+  1 = fully exposed, no trees or cover over the road
+  3 = scattered trees giving partial shade
+  5 = continuous canopy shading most of the road
+
+naturalness - share of natural elements (vegetation, water, terrain) versus built surfaces
+  1 = entirely built and paved
+  3 = a mix of buildings and greenery
+  5 = predominantly natural: forest, meadow, shoreline, farmland
+
+scenic_appeal - how pleasant the surroundings are to ride through and look at
+  1 = unattractive: derelict, cluttered, parking lots, industrial yards
+  3 = ordinary, neither pleasant nor unpleasant
+  5 = highly attractive: a cyclist would slow down to enjoy it (water views, tree-lined street, charming buildings)
+
+historic_character - presence of older, distinctive architecture or heritage features
+  1 = modern or generic, no historic character
+  3 = a few older buildings among newer ones
+  5 = strong historic character: brick rowhouses, old stone buildings, heritage streetscape
+
+liveliness - amount of human activity and street life
+  1 = deserted: no people, no shops, no activity
+  3 = a few pedestrians or some shopfronts
+  5 = busy: many people, storefronts, cafes, outdoor activity
+
+visual_openness - how far the rider can see
+  1 = enclosed: tall buildings, walls or dense vegetation block the view within a short distance
+  3 = moderate view along the street
+  5 = wide open views: fields, water, wide sky, long sight lines
+
+STEP 3 - Explain briefly
+"rationale" is one short sentence (at most 25 words) naming the main visual cues behind your scores.
+
+Return only JSON that matches the required schema.
