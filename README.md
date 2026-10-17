@@ -170,3 +170,16 @@ data/
 - 目前只覆盖波士顿一座城市，跨城泛化要等加入第二个城市后才能测。
 - 过滤条件（年份、月份、全景、质量分）都是可调参数，改动前先看 01 的漏斗和覆盖率图。
 - 全景图暂时排除；以后可以切成 4 个 90° 视角再加回来。
+
+## App (api-service + frontend)
+
+A local web app: type the scenery you want, get a heatmap of matching tiles.
+Full docs: [docs/app/README.md](docs/app/README.md)
+
+Quick start (key file goes in `../secrets/`, outside the repo):
+
+    docker compose up --build
+
+- Page: http://localhost:3000
+- API docs: http://localhost:9000/docs
+- No key? `LLM_PROVIDER=mock docker compose up --build`

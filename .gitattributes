@@ -1,0 +1,7 @@
+# Newly added. Line ending rules: tell git which line ending each file type uses when it's checked out on anyone's computer.
+# Background: Windows line endings are CRLF (\r\n), Mac/Linux use LF (\n).
+#       The container is Linux; if a .sh script turns into CRLF, every line ends with an extra \r,
+#       and the container throws errors like "bad interpreter" at startup and won't start at all.
+
+# .sh scripts: always use LF, whether the code is pulled on Windows or Mac
+*.sh text eol=lf
