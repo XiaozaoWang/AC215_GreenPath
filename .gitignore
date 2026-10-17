@@ -4,3 +4,14 @@ data/
 cache/
 __pycache__/
 .ipynb_checkpoints/
+
+# app (api-service + frontend)
+.DS_Store
+node_modules/
+.next/
+.pytest_cache/
+.ruff_cache/
+secrets/
+docker-volumes/
+# the rule "data/" above would also hide the fake model scores the app needs
+!/api-service/data/

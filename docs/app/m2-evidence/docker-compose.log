@@ -1,0 +1,91 @@
+smartpath-api-service  | Container is running!!!
+smartpath-api-service  | [92m
+smartpath-api-service  | The following commands are available:
+smartpath-api-service  |     uvicorn_server
+smartpath-api-service  |         Run the Uvicorn Server
+smartpath-api-service  | [0m
+smartpath-api-service  | INFO:     Started server process [8]
+smartpath-api-service  | INFO:     Waiting for application startup.
+smartpath-api-service  | INFO:     Application startup complete.
+smartpath-api-service  | INFO:     Uvicorn running on http://0.0.0.0:9000 (Press CTRL+C to quit)
+smartpath-api-service  | INFO:     172.20.0.1:57702 - "GET / HTTP/1.1" 200 OK
+smartpath-api-service  | INFO:     172.20.0.1:57708 - "GET / HTTP/1.1" 200 OK
+smartpath-frontend     | 
+smartpath-frontend     | up to date, audited 774 packages in 25s
+smartpath-frontend     | 
+smartpath-frontend     | 264 packages are looking for funding
+smartpath-frontend     |   run `npm fund` for details
+smartpath-frontend     | 
+smartpath-frontend     | 37 vulnerabilities (1 low, 10 moderate, 24 high, 2 critical)
+smartpath-frontend     | 
+smartpath-frontend     | To address issues that do not require attention, run:
+smartpath-frontend     |   npm audit fix
+smartpath-frontend     | 
+smartpath-frontend     | To address all issues possible (including breaking changes), run:
+smartpath-frontend     |   npm audit fix --force
+smartpath-frontend     | 
+smartpath-frontend     | Some issues need review, and may require choosing
+smartpath-frontend     | a different dependency.
+smartpath-frontend     | 
+smartpath-frontend     | Run `npm audit` for details.
+smartpath-frontend     | npm notice
+smartpath-frontend     | npm notice New major version of npm available! 10.8.2 -> 12.2.0
+smartpath-frontend     | npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+smartpath-frontend     | npm notice To update run: npm install -g npm@12.2.0
+smartpath-frontend     | npm notice
+smartpath-frontend     | 
+smartpath-frontend     | > frontend-app-nextjs@5.0.0 dev
+smartpath-frontend     | > WATCHPACK_POLLING=true next dev
+smartpath-frontend     | 
+smartpath-api-service  | INFO:     172.20.0.1:56446 - "GET / HTTP/1.1" 200 OK
+smartpath-api-service  | INFO:     172.20.0.1:56462 - "GET / HTTP/1.1" 200 OK
+smartpath-api-service  | INFO:     172.20.0.1:56476 - "GET / HTTP/1.1" 200 OK
+smartpath-api-service  | INFO:     172.20.0.1:56492 - "GET / HTTP/1.1" 200 OK
+smartpath-api-service  | INFO:     172.20.0.1:56500 - "GET / HTTP/1.1" 200 OK
+smartpath-frontend     |   ▲ Next.js 14.2.4
+smartpath-frontend     |   - Local:        http://localhost:3000
+smartpath-frontend     |   - Environments: .env.development
+smartpath-frontend     | 
+smartpath-frontend     |  ✓ Starting...
+smartpath-frontend     |  ✓ Ready in 1280ms
+smartpath-frontend     |  ○ Compiling / ...
+smartpath-frontend     | Browserslist: caniuse-lite is outdated. Please run:
+smartpath-frontend     |   npx update-browserslist-db@latest
+smartpath-frontend     |   Why you should do it regularly: https://github.com/browserslist/update-db#readme
+smartpath-frontend     |  ✓ Compiled / in 2.3s (670 modules)
+smartpath-frontend     |  GET / 200 in 2373ms
+smartpath-frontend     |  GET / 200 in 27ms
+smartpath-frontend     |  ✓ Compiled in 381ms (323 modules)
+smartpath-api-service  | INFO:     172.20.0.1:64482 - "GET / HTTP/1.1" 200 OK
+smartpath-api-service  | INFO:     172.20.0.1:64496 - "GET / HTTP/1.1" 200 OK
+smartpath-api-service  | INFO:     172.20.0.1:64500 - "GET / HTTP/1.1" 200 OK
+smartpath-api-service  | INFO:     172.20.0.1:58294 - "GET / HTTP/1.1" 200 OK
+smartpath-api-service  | INFO:     172.20.0.1:58304 - "GET / HTTP/1.1" 200 OK
+smartpath-api-service  | INFO:     172.20.0.1:58306 - "GET / HTTP/1.1" 200 OK
+smartpath-api-service  | INFO:     172.20.0.1:58320 - "GET / HTTP/1.1" 200 OK
+smartpath-api-service  | INFO:     172.20.0.1:62562 - "GET / HTTP/1.1" 200 OK
+smartpath-api-service  | INFO:     172.20.0.1:58934 - "GET / HTTP/1.1" 200 OK
+smartpath-api-service  | INFO:     172.20.0.1:58938 - "GET / HTTP/1.1" 200 OK
+smartpath-api-service  | INFO:     172.20.0.1:59638 - "GET / HTTP/1.1" 200 OK
+smartpath-api-service  | [agent] attempt 1/3 raw='{\n  "weights": [\n    {\n      "dimension": "water",\n      "reason": "Ride along the river",\n      "weight": 1.0\n    },\n    {\n      "dimension": "tree_canopy",\n      "reason": "Shade if possible",\n      "weight": 0.6\n    },\n    {\n      "dimension": "traffic",\n      "reason": "Avoid traffic",\n      "weight": -1.0\n    },\n    {\n      "dimension": "quiet_residential",\n      "reason": "Associated with avoiding traffic",\n      "weight": 0.4\n    }\n  ],\n  "must_have": []\n}'
+smartpath-api-service  | INFO:     172.20.0.1:58938 - "POST /score HTTP/1.1" 200 OK
+smartpath-frontend     |  GET / 200 in 24ms
+smartpath-frontend     |  ✓ Compiled in 114ms (347 modules)
+smartpath-frontend     |  ✓ Compiled in 306ms (323 modules)
+smartpath-frontend     |  ✓ Compiled in 82ms (347 modules)
+smartpath-frontend     |  GET / 200 in 92ms
+smartpath-frontend     |  GET / 200 in 22ms
+smartpath-frontend     |  GET / 200 in 18ms
+smartpath-api-service  | INFO:     172.20.0.1:62160 - "GET / HTTP/1.1" 200 OK
+smartpath-api-service  | INFO:     172.20.0.1:62172 - "GET / HTTP/1.1" 200 OK
+smartpath-api-service  | INFO:     172.20.0.1:62160 - "GET /source HTTP/1.1" 200 OK
+smartpath-api-service  | INFO:     172.20.0.1:62160 - "GET /source/routers/score.py HTTP/1.1" 200 OK
+smartpath-api-service  | INFO:     172.20.0.1:62398 - "GET / HTTP/1.1" 200 OK
+smartpath-api-service  | INFO:     172.20.0.1:63504 - "GET / HTTP/1.1" 200 OK
+smartpath-api-service  | INFO:     172.20.0.1:63518 - "GET / HTTP/1.1" 200 OK
+smartpath-api-service  | INFO:     172.20.0.1:57046 - "GET / HTTP/1.1" 200 OK
+smartpath-api-service  | INFO:     172.20.0.1:60262 - "GET / HTTP/1.1" 200 OK
+smartpath-api-service  | INFO:     172.20.0.1:61860 - "GET / HTTP/1.1" 200 OK
+smartpath-api-service  | [agent] attempt 1/3 raw='{\n  "weights": [\n    {\n      "dimension": "water",\n      "reason": "沿着河骑",\n      "weight": 1.0\n    },\n    {\n      "dimension": "tree_canopy",\n      "reason": "最好有树荫",\n      "weight": 0.6\n    },\n    {\n      "dimension": "traffic",\n      "reason": "别有太多车",\n      "weight": -1.0\n    },\n    {\n      "dimension": "quiet_residential",\n      "reason": "安静骑行环境",\n      "weight": 0.4\n    },\n    {\n      "dimension": "cleanliness",\n      "reason": "舒适骑行环境",\n      "weight": 0.3\n    }\n  ],\n  "must_have": []\n}'
+smartpath-api-service  | INFO:     172.20.0.1:61868 - "POST /score HTTP/1.1" 200 OK
+smartpath-api-service  | INFO:     172.20.0.1:61874 - "GET / HTTP/1.1" 200 OK

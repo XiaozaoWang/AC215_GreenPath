@@ -1,0 +1,51 @@
+#  Page:     http://localhost:3000
+#  API docs: http://localhost:9000/docs
+#  My key is outside the repo at ../secrets/llm-service-account.json
+
+# The network that holds these two containers
+networks:
+  default:
+    name: smartpath-network
+
+services:
+  api-service:
+    build: ./api-service
+    image: smartpath-api-service
+    container_name: smartpath-api-service
+    ports:
+      - "127.0.0.1:9000:9000" # only open to this machine
+    volumes:
+      - ./api-service:/app # mount the code for convenience; after editing, docker compose restart api-service makes it take effect, no rebuild needed
+      - ../secrets:/secrets:ro # key
+    environment:
+      GCP_PROJECT: ${GCP_PROJECT:-ac215-507902} #my project name, everyone can change it to their own
+      GOOGLE_APPLICATION_CREDENTIALS: /secrets/llm-service-account.json
+      # Which LLM to use: gemini needs a key; mock is the local keyword stand-in, no key, no cost
+      # Usage: LLM_PROVIDER=mock docker compose up, or write it into .env (see .env.example)
+      LLM_PROVIDER: ${LLM_PROVIDER:-gemini}
+
+    # Every 10 seconds Docker visits http://localhost:9000/ inside the container (get_index in service.py);
+    # if it opens, it's healthy; 5 failures in a row means unhealthy. docker compose ps shows the status directly.
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:9000/', timeout=3)"]
+      interval: 10s # check every 10 seconds
+      timeout: 5s # wait at most 5 seconds per check
+      retries: 5 # only marked unhealthy after 5 failures in a row
+      start_period: 15s # failures in the first 15 seconds after start don't count, to give uvicorn time to start
+
+  # Frontend: Next.js dev server (the JS in the browser calls localhost:9000 directly)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    image: smartpath-frontend
+    container_name: smartpath-frontend
+    entrypoint: ["/bin/bash", "-c", "npm install && npm run dev"]
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - ./frontend:/app # mount the code in: the page refreshes automatically after edits
+    # Only start the frontend after the backend is "healthy"; the old version only waited for the backend container to "start", not for it to accept requests
+    depends_on:
+      api-service:
+        condition: service_healthy

@@ -1,0 +1,19 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.15, pytest-9.1.1, pluggy-1.6.0 -- /.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /app
+configfile: pyproject.toml
+testpaths: tests
+plugins: anyio-4.15.1
+collecting ... collected 8 items
+
+tests/test_score_math.py::test_zero_weights_give_flat_map PASSED         [ 12%]
+tests/test_score_math.py::test_wanted_dimension_ranks_highest PASSED     [ 25%]
+tests/test_score_math.py::test_negative_weight_flips_ranking PASSED      [ 37%]
+tests/test_score_math.py::test_mean_shift_does_not_change_result PASSED  [ 50%]
+tests/test_score_math.py::test_sigma_floor_stops_noise_amplification PASSED [ 62%]
+tests/test_score_math.py::test_z_is_clipped PASSED                       [ 75%]
+tests/test_score_math.py::test_must_have_excludes_tiles PASSED           [ 87%]
+tests/test_score_math.py::test_heatmap_follows_row_col PASSED            [100%]
+
+============================== 8 passed in 0.08s ===============================
