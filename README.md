@@ -177,3 +177,10 @@ Collection notebooks 01-03 do not require GCP. Labeling uses paid Vertex AI call
 - Export reloadable model/preprocessing artifacts, then connect real inference.
 - Containerize the data, encoding, training and prediction jobs; provide a reproducible ML command and complete data snapshot.
 - Fine-tuning, remote-sensing encoders, winter-filter ablations and a second city are possible research extensions, not requirements already completed.
+
+## Optional upstream acquisition and teacher labeling
+
+Notebook 01-04 logic is available as four explicit container commands. See
+[the upstream guide](docs/SOURCE_PIPELINE.md) before acquiring new data or making paid
+Vertex AI requests. These jobs do not run as part of `make run`. Original notebooks,
+historical GCS inputs and the default training workflow are preserved.

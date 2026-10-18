@@ -10,7 +10,7 @@ services:
       - ${PIPELINE_RUNS_DIR:?Set PIPELINE_RUNS_DIR}:/runs
     environment:
       PIPELINE_OFFLINE: ${PIPELINE_OFFLINE:-0}
-    command: ["ingest", "--source-uri", "${PIPELINE_SOURCE_URI:-gs://ac215-greenpath/pipeline-inputs/boston-processed-v1}", "--encoder-uri", "${PIPELINE_ENCODER_URI:-gs://ac215-greenpath/encoders/clip-b16-laion2b-v1}", "--source-version", "boston-processed-v1", "--encoder-version", "clip-b16-laion2b-v1", "--cache", "/cache", "--contract", "/contracts/schema.json", "--output", "/runs/${PIPELINE_RUN_ID:?Set PIPELINE_RUN_ID}/prepared", "--artifact-version", "prepared-${PIPELINE_RUN_ID}", "--mode", "${PIPELINE_MODE:-smoke}"]
+    command: ["ingest", "--source-uri", "${PIPELINE_SOURCE_URI:-gs://ac215-greenpath/pipeline-inputs/boston-processed-v1}", "--encoder-uri", "${PIPELINE_ENCODER_URI:-gs://ac215-greenpath/encoders/clip-b16-laion2b-v1}", "--source-version", "${PIPELINE_SOURCE_VERSION:-boston-processed-v1}", "--encoder-version", "clip-b16-laion2b-v1", "--cache", "/cache", "--contract", "/contracts/schema.json", "--output", "/runs/${PIPELINE_RUN_ID:?Set PIPELINE_RUN_ID}/prepared", "--artifact-version", "prepared-${PIPELINE_RUN_ID}", "--mode", "${PIPELINE_MODE:-smoke}"]
     mem_limit: 2g
 
   feature-encoder:
@@ -26,7 +26,7 @@ services:
     depends_on:
       data-processor:
         condition: service_completed_successfully
-    command: ["encode", "--encoder-dir", "/cache/encoders/clip-b16-laion2b-v1", "--input", "/runs/${PIPELINE_RUN_ID}/prepared/images.json", "--data-root", "/cache/images/boston-processed-v1", "--output", "/runs/${PIPELINE_RUN_ID}/embeddings", "--artifact-version", "embeddings-${PIPELINE_RUN_ID}", "--device", "cpu", "--batch-size", "${PIPELINE_BATCH_SIZE:-8}"]
+    command: ["encode", "--encoder-dir", "/cache/encoders/clip-b16-laion2b-v1", "--input", "/runs/${PIPELINE_RUN_ID}/prepared/images.json", "--data-root", "/cache/images/${PIPELINE_SOURCE_VERSION:-boston-processed-v1}", "--output", "/runs/${PIPELINE_RUN_ID}/embeddings", "--artifact-version", "embeddings-${PIPELINE_RUN_ID}", "--device", "cpu", "--batch-size", "${PIPELINE_BATCH_SIZE:-8}"]
     cpus: ${PIPELINE_CPUS:-4}
     mem_limit: 4g
 

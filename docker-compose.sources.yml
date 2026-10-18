@@ -1,0 +1,62 @@
+# Explicit one-shot upstream jobs. These are not dependencies of docker-compose.ml.yml.
+x-source: &source
+  user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
+  volumes:
+    - ${SOURCE_DATA_DIR:-./.artifacts/sources/boston-source-local-v1}:/data
+    - type: bind
+      source: ${SOURCE_CONFIG:-./configs/source-boston.example.json}
+      target: /config/source.json
+      read_only: true
+      bind:
+        create_host_path: false
+  init: true
+  environment:
+    MPLCONFIGDIR: /tmp/matplotlib
+services:
+  source-streetview:
+    <<: *source
+    image: greenpath-source-streetview:ml
+    build:
+      context: .
+      dockerfile: src/data-source/Dockerfile
+      args:
+        SOURCE_STAGE: streetview
+    environment:
+      MPLCONFIGDIR: /tmp/matplotlib
+      MAPILLARY_TOKEN: ${MAPILLARY_TOKEN:-}
+    command: ["streetview", "--config", "/config/source.json", "--data-root", "/data"]
+    mem_limit: 2g
+  source-tiles:
+    <<: *source
+    image: greenpath-source-tiles:ml
+    build:
+      context: .
+      dockerfile: src/data-source/Dockerfile
+      args:
+        SOURCE_STAGE: tiles
+    command: ["tiles", "--config", "/config/source.json", "--data-root", "/data"]
+    mem_limit: 3g
+  source-features:
+    <<: *source
+    image: greenpath-source-features:ml
+    build:
+      context: .
+      dockerfile: src/data-source/Dockerfile
+      args:
+        SOURCE_STAGE: features
+    command: ["features", "--config", "/config/source.json", "--data-root", "/data"]
+    mem_limit: 4g
+  source-labeling:
+    <<: *source
+    image: greenpath-source-labeling:ml
+    build:
+      context: .
+      dockerfile: src/data-source/Dockerfile
+      args:
+        SOURCE_STAGE: labeling
+    environment:
+      MPLCONFIGDIR: /tmp/matplotlib
+      GOOGLE_CLOUD_PROJECT: ${GOOGLE_CLOUD_PROJECT:-}
+      GOOGLE_CLOUD_LOCATION: ${GOOGLE_CLOUD_LOCATION:-us-central1}
+    command: ["labeling", "--config", "/config/source.json", "--data-root", "/data"]
+    mem_limit: 2g

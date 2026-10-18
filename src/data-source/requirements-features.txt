@@ -1,0 +1,6 @@
+-r requirements-tiles.txt
+requests==2.34.2
+geopandas==1.2.0
+pyrosm==0.19.1
+cykhash==2.0.1
+protobuf==6.33.6

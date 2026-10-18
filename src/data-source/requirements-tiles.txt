@@ -1,0 +1,6 @@
+-r requirements-common.txt
+pystac-client==0.9.0
+planetary-computer==1.0.0
+rasterio==1.4.4
+pyproj==3.7.2
+shapely==2.2.0

@@ -50,3 +50,25 @@ run:
 pipeline-test: ml-test
 	cd src/data-processor && uv run --frozen --python 3.11 pytest -q
 	python3 -m unittest discover -s tools/tests -v
+
+# Explicit upstream jobs. None of these targets is called by make run.
+SOURCE_MAX_IMAGES ?= 8
+SOURCE_COMPOSE = docker compose -p greenpath-sources -f docker-compose.sources.yml
+.PHONY: source-build collect-streetview collect-tiles collect-features label-images label-report
+source-build:
+	$(SOURCE_COMPOSE) build
+
+collect-streetview:
+	LOCAL_UID="$$(id -u)" LOCAL_GID="$$(id -g)" $(SOURCE_COMPOSE) run --rm --build source-streetview
+
+collect-tiles:
+	LOCAL_UID="$$(id -u)" LOCAL_GID="$$(id -g)" $(SOURCE_COMPOSE) run --rm --build source-tiles
+
+collect-features:
+	LOCAL_UID="$$(id -u)" LOCAL_GID="$$(id -g)" $(SOURCE_COMPOSE) run --rm --build source-features
+
+label-images:
+	LOCAL_UID="$$(id -u)" LOCAL_GID="$$(id -g)" ADC_FILE="$${ADC_FILE:-$$HOME/.config/gcloud/application_default_credentials.json}" $(SOURCE_COMPOSE) -f docker-compose.sources.gcp.yml run --rm --build source-labeling labeling --config /config/source.json --data-root /data --max-images "$(SOURCE_MAX_IMAGES)"
+
+label-report:
+	LOCAL_UID="$$(id -u)" LOCAL_GID="$$(id -g)" $(SOURCE_COMPOSE) run --rm --build source-labeling labeling --config /config/source.json --data-root /data --max-images 0

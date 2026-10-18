@@ -27,6 +27,15 @@ def export_sources(data_root, config_file, output, version):
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(safe_path(data_root, name), target)
         shutil.copyfile(config_file, staging / "selected-config.json")
+        # Preserve the optional upstream extraction provenance with a frozen training snapshot.
+        if (data_root / "source-workspace.json").is_file():
+            upstream = staging / "upstream"
+            upstream.mkdir()
+            shutil.copyfile(data_root / "source-workspace.json", upstream / "source-workspace.json")
+            for record in sorted((data_root / "runs").glob("*/0*_manifest.json")):
+                target = upstream / "runs" / record.parent.name / record.name
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(record, target)
         with tarfile.open(staging / "tiles.tar", "w") as archive:
             for name in paths:
                 path = safe_path(data_root, name)

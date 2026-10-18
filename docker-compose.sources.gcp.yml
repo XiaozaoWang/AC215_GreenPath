@@ -1,0 +1,12 @@
+# Add only for Vertex AI labeling. No credentials are mounted into acquisition jobs.
+services:
+  source-labeling:
+    volumes:
+      - type: bind
+        source: ${ADC_FILE:?Set ADC_FILE to your authorized ADC JSON file}
+        target: /gcp/adc.json
+        read_only: true
+        bind:
+          create_host_path: false
+    environment:
+      GOOGLE_APPLICATION_CREDENTIALS: /gcp/adc.json

@@ -1,0 +1,5 @@
+-r requirements-common.txt
+h3==4.5.0
+requests==2.34.2
+mercantile==1.2.1
+mapbox-vector-tile==2.2.0
