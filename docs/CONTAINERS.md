@@ -37,3 +37,9 @@ For a newly prepared dataset, provide `--embeddings PATH` pointing to a checksum
 encoder artifact and `--reference-policy none`. This still verifies split separation,
 encoder identity and saved-versus-reloaded predictions. New data is not claimed to
 reproduce an old experiment. Metrics report the new run's held-out split.
+
+## Dependency convention across the project
+
+The four upstream images and the API now use the same pinned uv, frozen lock installation
+and `/opt/venv` location as these ML components. Python and dependency versions remain
+component-specific. See [DEPENDENCIES.md](DEPENDENCIES.md) for the full matrix.

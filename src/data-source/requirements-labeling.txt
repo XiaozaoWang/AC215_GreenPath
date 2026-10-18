@@ -1,4 +1,0 @@
--r requirements-common.txt
-google-genai==2.29.0
-pydantic==2.14.0
-scipy==1.17.1

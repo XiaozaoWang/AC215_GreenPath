@@ -1,18 +1,16 @@
 FROM python:3.11-slim-bookworm
 ARG SOURCE_STAGE=streetview
-ENV PYTHONUNBUFFERED=1 MPLCONFIGDIR=/tmp/matplotlib
-# Geospatial dependencies may need a compiler when no architecture-specific wheel exists.
-RUN apt-get update && apt-get install -y --no-install-recommends build-essential \
+RUN pip install --no-cache-dir uv==0.12.12
+ENV UV_PROJECT_ENVIRONMENT=/opt/venv UV_LINK_MODE=copy UV_PYTHON_DOWNLOADS=never PYTHONUNBUFFERED=1 MPLCONFIGDIR=/tmp/matplotlib
+# Geospatial packages may require a compiler; Rasterio/GDAL also needs Expat at runtime.
+RUN apt-get update && apt-get install -y --no-install-recommends build-essential libexpat1 \
     && rm -rf /var/lib/apt/lists/*
-WORKDIR /app
-COPY src/data-source/requirements-*.txt ./
-RUN pip install --no-cache-dir -r requirements-${SOURCE_STAGE}.txt
-COPY src/data-source /app
-COPY prompts /app/prompts
-RUN pip install --no-cache-dir --no-deps . \
-    && useradd -m -u 1000 app && mkdir -p /data && chown app:app /data
-# Use the source copy, including repository prompts, consistently for CLI and runpy modules.
-ENV PYTHONPATH=/app
+COPY src/data-source /app/src/data-source
+COPY prompts /app/src/data-source/prompts
+WORKDIR /app/src/data-source
+RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-dev --extra "${SOURCE_STAGE}"
+RUN useradd -m -u 1000 app && mkdir /data && chown app:app /data
+ENV PATH="/opt/venv/bin:$PATH" HOME=/tmp
 USER app
 ENTRYPOINT ["greenpath-source"]
 CMD ["--help"]

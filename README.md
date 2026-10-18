@@ -184,3 +184,6 @@ Notebook 01-04 logic is available as four explicit container commands. See
 [the upstream guide](docs/SOURCE_PIPELINE.md) before acquiring new data or making paid
 Vertex AI requests. These jobs do not run as part of `make run`. Original notebooks,
 historical GCS inputs and the default training workflow are preserved.
+
+Python containers share a [dependency-management convention](docs/DEPENDENCIES.md):
+`pyproject.toml`, committed `uv.lock`, pinned uv and frozen runtime installation.

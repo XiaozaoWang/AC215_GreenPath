@@ -1,53 +1,12 @@
-# Use the official Debian-hosted Python image
 FROM python:3.12-slim-bookworm
-
-ARG DEBIAN_PACKAGES="build-essential git screen vim"
-
-# Prevent apt from showing prompts
-ENV DEBIAN_FRONTEND=noninteractive
-
-# Python wants UTF-8 locale
-ENV LANG=C.UTF-8
-
-# Tell Python to disable buffering so we don't lose any logs.
-ENV PYTHONUNBUFFERED=1
-
-# uv settings: install packages in copy mode; put the virtual env in /.venv (not in /app, so the -v .:/app mount during development doesn't cover it)
-ENV UV_LINK_MODE=copy
-ENV UV_PROJECT_ENVIRONMENT=/.venv
-
-# Ensure we have an up to date baseline, install dependencies and
-# create a user so we don't run the app as root
-RUN set -ex; \
-    for i in $(seq 1 8); do mkdir -p "/usr/share/man/man${i}"; done && \
-    apt-get update && \
-    apt-get upgrade -y && \
-    apt-get install -y --no-install-recommends $DEBIAN_PACKAGES && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/* && \
-    pip install --no-cache-dir --upgrade pip && \
-    pip install uv && \
-    useradd -ms /bin/bash app -d /home/app -u 1000 -p "$(openssl passwd -1 Passw0rd)" && \
-    mkdir -p /app && \
-    mkdir -p /persistent && \
-    chown app:app /persistent && \
-    chown app:app /app && \
-    mkdir -p /.venv && \
-    chown app:app /.venv
-
-
-# Switch to the new user
-USER app
+RUN pip install --no-cache-dir uv==0.12.12
+ENV UV_PROJECT_ENVIRONMENT=/opt/venv UV_LINK_MODE=copy UV_PYTHON_DOWNLOADS=never PYTHONUNBUFFERED=1 LANG=C.UTF-8
 WORKDIR /app
-
-# Install Python packages at the exact versions locked in uv.lock
-ADD --chown=app:app pyproject.toml uv.lock /app/
-
-RUN uv sync --frozen
-
-# Add the rest of the source code. This is done last so we don't invalidate all
-# layers when we change a line of code.
-ADD --chown=app:app . /app
-
-# Entry point
-ENTRYPOINT ["/bin/bash","./docker-entrypoint.sh"]
+# Keep dependencies outside /app so the development bind mount cannot hide them.
+COPY pyproject.toml uv.lock ./
+RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-dev
+RUN useradd -m -u 1000 app && mkdir /persistent && chown app:app /persistent /app
+COPY --chown=app:app . /app
+ENV PATH="/opt/venv/bin:$PATH" HOME=/tmp
+USER app
+ENTRYPOINT ["/bin/bash", "./docker-entrypoint.sh"]

@@ -2,9 +2,8 @@
 
 echo "Container is running!!!"
 
-# Activate uv's virtual env (installed in /.venv when building the image)
-#The tutorial didn't have this because it didn't use uv back then, but I see ml2 asks for uv, so we need to activate it here
-source /.venv/bin/activate
+# Activate the same external uv environment used by all Python containers.
+source /opt/venv/bin/activate
 
 #There's a branch at the end of the entrypoint: if DEV!=1, run uvicorn_server_production directly
 #The difference between production and not: the dev version restarts the server automatically after files change and prints very detailed logs; the production version has lifespan, which forces the startup/shutdown events to run and fails right away if they're not supported

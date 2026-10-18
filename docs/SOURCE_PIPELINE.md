@@ -6,10 +6,15 @@ These commands extract the upstream notebook logic without redesigning the appli
 or the existing four-job training workflow. Each stage is an independent Python command
 inside a stage-specific Docker image. Runtime does not load `.ipynb` files.
 
-**Implementation status:** code and container configuration are provided for user-run
-verification. No new images were built, no tests or acquisition jobs were run, and no
-VLM calls were made during this change. External availability, credentials, Linux/ARM
-builds and output quality still need to be checked by running the commands below.
+**Verification status:** the user ran all four stages before the uv dependency migration:
+50 cells, 192 street images, 50 usable aerial tiles, 50 geographic feature rows and 9
+labeled images. Labeling remains partial. Those output checks predate the new locked
+image builds; rebuilding and runtime verification of the migration remain user tasks.
+No acquisition, VLM calls or tests were run during the dependency change.
+
+All Python images now follow the same `pyproject.toml` + `uv.lock` convention. Upstream
+images select one stage extra with `uv sync --frozen --no-dev --extra STAGE`. See
+[DEPENDENCIES.md](DEPENDENCIES.md) for shared rules and the component matrix.
 
 `make run` continues to use the published historical input snapshot. It does not start
 any of these jobs. New source outputs are not automatically published or adopted by the app.
@@ -246,5 +251,4 @@ application UI is introduced by this extraction.
    an explicit source URI/version and a new run ID.
 
 Run manifests capture configuration, input/output hashes and extraction source hashes;
-they are provenance records, not signatures or proof of model/label quality. Runtime
-validation is pending the user's execution.
+they are provenance records, not signatures or proof of model/label quality. Validation of the uv-built images is pending the user's execution.
