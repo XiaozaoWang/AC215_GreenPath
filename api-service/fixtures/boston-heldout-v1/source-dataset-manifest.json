@@ -1,0 +1,56 @@
+{
+  "dataset_version": "v1",
+  "created_at": "2026-10-13T00:59:50Z",
+  "seed": 42,
+  "inputs": {
+    "processed/cells.parquet": "cae9cd7e37e7c9cc",
+    "processed/osm_features.parquet": "5031342e8f62c3d8",
+    "processed/labels_cell.parquet": "ec388c9bdd8042c7"
+  },
+  "labels": {
+    "model": "gemini-2.5-flash",
+    "prompt_version": "v2",
+    "prompt_sha": "f8e50b7d0a03",
+    "thinking_budget": 0,
+    "temperature": 0.0,
+    "images_scored": 4421,
+    "est_cost_usd": 4.5458
+  },
+  "osm_snapshot": {
+    "url": "https://download.geofabrik.de/north-america/us/massachusetts-latest.osm.pbf",
+    "last_modified": "Mon, 12 Oct 2026 03:52:24 GMT",
+    "downloaded_at": "2026-10-12T20:27:00Z",
+    "size_bytes": 310967666,
+    "note": "downloaded manually with curl by the assistant before notebook 03 was switched to the local snapshot"
+  },
+  "params": {
+    "block_res": 8,
+    "split_ratios": [
+      0.7,
+      0.15,
+      0.15
+    ],
+    "buffer_rings": 1,
+    "n_folds": 5,
+    "max_year_gap": 3,
+    "min_labeled_dims": 1,
+    "test_cities": []
+  },
+  "funnel": {
+    "合并后的格子": 1126,
+    "卫星图可用": 1126,
+    "至少 1 个维度有标签": 1116,
+    "卫星图与街景年份相差 ≤ 3 年": 1091,
+    "OSM 特征齐全": 1091,
+    "缓冲区：丢掉紧挨测试集的 1 圈格子": 1012
+  },
+  "counts": {
+    "train": 651,
+    "val": 173,
+    "test": 188
+  },
+  "cities": [
+    "boston"
+  ],
+  "label_validation": "pending (E1: human annotation not yet done)"
+}

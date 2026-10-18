@@ -1,0 +1,31 @@
+# Opt in to host ADC for real Gemini calls or GCS artifact commands.
+# docker compose -f docker-compose.yml -f docker-compose.gcp.yml up --build
+services:
+  api-service:
+    volumes:
+      - type: bind
+        source: ${ADC_FILE:-${HOME}/.config/gcloud/application_default_credentials.json}
+        target: /gcp/adc.json
+        read_only: true
+        bind:
+          create_host_path: false
+    environment:
+      GOOGLE_APPLICATION_CREDENTIALS: /gcp/adc.json
+  artifact-tools:
+    profiles: ["tools"]
+    image: greenpath-api-service
+    build: ./api-service
+    # One-shot download job; the API itself keeps a read-only artifact mount.
+    user: "0:0"
+    entrypoint: ["/.venv/bin/python", "-m", "api.artifacts"]
+    volumes:
+      - ./api-service:/app:ro
+      - ./.artifacts:/artifacts
+      - type: bind
+        source: ${ADC_FILE:-${HOME}/.config/gcloud/application_default_credentials.json}
+        target: /gcp/adc.json
+        read_only: true
+        bind:
+          create_host_path: false
+    environment:
+      GOOGLE_APPLICATION_CREDENTIALS: /gcp/adc.json

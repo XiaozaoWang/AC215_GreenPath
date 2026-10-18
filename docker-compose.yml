@@ -1,51 +1,42 @@
-#  Page:     http://localhost:3000
-#  API docs: http://localhost:9000/docs
-#  My key is outside the repo at ../secrets/llm-service-account.json
-
-# The network that holds these two containers
+# Step 1: application + real saved baseline fixture. Batch training comes later.
 networks:
   default:
-    name: smartpath-network
-
+    name: greenpath-network
 services:
   api-service:
     build: ./api-service
-    image: smartpath-api-service
-    container_name: smartpath-api-service
+    image: greenpath-api-service
     ports:
-      - "127.0.0.1:9000:9000" # only open to this machine
+      - "127.0.0.1:${API_PORT:-9000}:9000"
     volumes:
-      - ./api-service:/app # mount the code for convenience; after editing, docker compose restart api-service makes it take effect, no rebuild needed
-      - ../secrets:/secrets:ro # key
+      - ./api-service:/app
+      - ./.artifacts:/artifacts:ro
     environment:
-      GCP_PROJECT: ${GCP_PROJECT:-ac215-507902} #my project name, everyone can change it to their own
-      GOOGLE_APPLICATION_CREDENTIALS: /secrets/llm-service-account.json
-      # Which LLM to use: gemini needs a key; mock is the local keyword stand-in, no key, no cost
-      # Usage: LLM_PROVIDER=mock docker compose up, or write it into .env (see .env.example)
-      LLM_PROVIDER: ${LLM_PROVIDER:-gemini}
-
-    # Every 10 seconds Docker visits http://localhost:9000/ inside the container (get_index in service.py);
-    # if it opens, it's healthy; 5 failures in a row means unhealthy. docker compose ps shows the status directly.
+      GCP_PROJECT: ${GCP_PROJECT:-organic-victory-508017-v9}
+      LLM_PROVIDER: ${LLM_PROVIDER:-mock}
+      MODEL_PROVIDER: ${MODEL_PROVIDER:-bundle}
+      MODEL_BUNDLE_DIR: ${MODEL_BUNDLE_DIR:-/app/fixtures/boston-heldout-v1}
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:9000/', timeout=3)"]
-      interval: 10s # check every 10 seconds
-      timeout: 5s # wait at most 5 seconds per check
-      retries: 5 # only marked unhealthy after 5 failures in a row
-      start_period: 15s # failures in the first 15 seconds after start don't count, to give uvicorn time to start
-
-  # Frontend: Next.js dev server (the JS in the browser calls localhost:9000 directly)
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile.dev
-    image: smartpath-frontend
-    container_name: smartpath-frontend
-    entrypoint: ["/bin/bash", "-c", "npm install && npm run dev"]
+    image: greenpath-frontend
+    entrypoint: ["/bin/bash", "-c", "npm ci && npm run dev"]
     ports:
-      - "127.0.0.1:3000:3000"
+      - "127.0.0.1:${FRONTEND_PORT:-3000}:3000"
     volumes:
-      - ./frontend:/app # mount the code in: the page refreshes automatically after edits
-    # Only start the frontend after the backend is "healthy"; the old version only waited for the backend container to "start", not for it to accept requests
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+    environment:
+      NEXT_PUBLIC_BASE_API_URL: http://localhost:${API_PORT:-9000}
     depends_on:
       api-service:
         condition: service_healthy
+volumes:
+  frontend_node_modules:

@@ -1,0 +1,182 @@
+#0 building with "desktop-linux" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 690B done
+#1 DONE 0.0s
+
+#2 [auth] library/node:pull token for registry-1.docker.io
+#2 DONE 0.0s
+
+#3 [internal] load metadata for docker.io/library/node:18-alpine
+#3 DONE 0.7s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 91B done
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 522.57kB done
+#5 DONE 0.0s
+
+#6 [build 1/6] FROM docker.io/library/node:18-alpine@sha256:8d6421d663b4c28fd3ebc498332f249011d118945588d0a35cb9bc4b8ca09d9e
+#6 resolve docker.io/library/node:18-alpine@sha256:8d6421d663b4c28fd3ebc498332f249011d118945588d0a35cb9bc4b8ca09d9e 0.0s done
+#6 sha256:02bb84e9f3412827f177bc6c020812249b32a8425d2c1858e9d71bd4c015f031 443B / 443B 0.0s done
+#6 sha256:8bfa36aa66ce614f6da68a16fb71f875da8d623310f0cb80ae1ecfa092f587f6 1.26MB / 1.26MB 0.1s done
+#6 sha256:d84c815451acbca96b6e6bdb479929222bec57121dfe10cc5b128c5c2dbaf10a 2.10MB / 39.66MB 0.3s
+#6 sha256:6e771e15690e2fabf2332d3a3b744495411d6e0b00b2aea64419b58b0066cf81 0B / 3.99MB 0.2s
+#6 sha256:6e771e15690e2fabf2332d3a3b744495411d6e0b00b2aea64419b58b0066cf81 3.99MB / 3.99MB 0.4s done
+#6 extracting sha256:6e771e15690e2fabf2332d3a3b744495411d6e0b00b2aea64419b58b0066cf81 0.1s done
+#6 sha256:d84c815451acbca96b6e6bdb479929222bec57121dfe10cc5b128c5c2dbaf10a 12.58MB / 39.66MB 0.6s
+#6 sha256:d84c815451acbca96b6e6bdb479929222bec57121dfe10cc5b128c5c2dbaf10a 17.83MB / 39.66MB 0.8s
+#6 sha256:d84c815451acbca96b6e6bdb479929222bec57121dfe10cc5b128c5c2dbaf10a 24.12MB / 39.66MB 0.9s
+#6 sha256:d84c815451acbca96b6e6bdb479929222bec57121dfe10cc5b128c5c2dbaf10a 30.41MB / 39.66MB 1.1s
+#6 sha256:d84c815451acbca96b6e6bdb479929222bec57121dfe10cc5b128c5c2dbaf10a 35.65MB / 39.66MB 1.2s
+#6 sha256:d84c815451acbca96b6e6bdb479929222bec57121dfe10cc5b128c5c2dbaf10a 39.66MB / 39.66MB 1.3s done
+#6 extracting sha256:d84c815451acbca96b6e6bdb479929222bec57121dfe10cc5b128c5c2dbaf10a
+#6 extracting sha256:d84c815451acbca96b6e6bdb479929222bec57121dfe10cc5b128c5c2dbaf10a 0.5s done
+#6 DONE 1.8s
+
+#6 [build 1/6] FROM docker.io/library/node:18-alpine@sha256:8d6421d663b4c28fd3ebc498332f249011d118945588d0a35cb9bc4b8ca09d9e
+#6 extracting sha256:8bfa36aa66ce614f6da68a16fb71f875da8d623310f0cb80ae1ecfa092f587f6 0.0s done
+#6 extracting sha256:02bb84e9f3412827f177bc6c020812249b32a8425d2c1858e9d71bd4c015f031 done
+#6 DONE 1.8s
+
+#7 [build 2/6] WORKDIR /app
+#7 DONE 0.1s
+
+#8 [build 3/6] COPY package.json package-lock.json ./
+#8 DONE 0.0s
+
+#9 [build 4/6] RUN npm ci
+#9 1.480 npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+#9 2.298 npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+#9 3.526 npm warn deprecated @humanwhocodes/object-schema@2.0.3: Use @eslint/object-schema instead
+#9 3.530 npm warn deprecated @humanwhocodes/config-array@0.11.14: Use @eslint/config-array instead
+#9 4.822 npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+#9 37.39 
+#9 37.39 added 773 packages, and audited 774 packages in 37s
+#9 37.39 
+#9 37.39 264 packages are looking for funding
+#9 37.39   run `npm fund` for details
+#9 37.56 
+#9 37.56 37 vulnerabilities (1 low, 10 moderate, 24 high, 2 critical)
+#9 37.56 
+#9 37.56 To address issues that do not require attention, run:
+#9 37.56   npm audit fix
+#9 37.56 
+#9 37.56 To address all issues possible (including breaking changes), run:
+#9 37.56   npm audit fix --force
+#9 37.56 
+#9 37.56 Some issues need review, and may require choosing
+#9 37.56 a different dependency.
+#9 37.56 
+#9 37.56 Run `npm audit` for details.
+#9 37.56 npm notice
+#9 37.56 npm notice New major version of npm available! 10.8.2 -> 12.2.0
+#9 37.56 npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+#9 37.56 npm notice To update run: npm install -g npm@12.2.0
+#9 37.56 npm notice
+#9 DONE 37.8s
+
+#10 [build 5/6] COPY . .
+#10 DONE 0.3s
+
+#11 [build 6/6] RUN npm run build
+#11 0.154 
+#11 0.154 > frontend-app-nextjs@5.0.0 build
+#11 0.154 > next build
+#11 0.154 
+#11 0.433 Attention: Next.js now collects completely anonymous telemetry regarding usage.
+#11 0.433 This information is used to shape Next.js' roadmap and prioritize features.
+#11 0.433 You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+#11 0.433 https://nextjs.org/telemetry
+#11 0.433 
+#11 0.455   ▲ Next.js 14.2.4
+#11 0.455   - Environments: .env.production
+#11 0.455 
+#11 0.479    Creating an optimized production build ...
+#11 2.279 Browserslist: caniuse-lite is outdated. Please run:
+#11 2.279   npx update-browserslist-db@latest
+#11 2.279   Why you should do it regularly: https://github.com/browserslist/update-db#readme
+#11 3.469 Browserslist: caniuse-lite is outdated. Please run:
+#11 3.469   npx update-browserslist-db@latest
+#11 3.469   Why you should do it regularly: https://github.com/browserslist/update-db#readme
+#11 4.308  ✓ Compiled successfully
+#11 4.309    Linting and checking validity of types ...
+#11 4.350    Collecting page data ...
+#11 4.710    Generating static pages (0/4) ...
+#11 4.851    Generating static pages (1/4) 
+#11 4.851    Generating static pages (2/4) 
+#11 4.864    Generating static pages (3/4) 
+#11 4.890  ✓ Generating static pages (4/4)
+#11 5.035    Finalizing page optimization ...
+#11 5.035    Collecting build traces ...
+#11 6.829 
+#11 6.830 Route (app)                              Size     First Load JS
+#11 6.830 ┌ ○ /                                    27.5 kB         115 kB
+#11 6.830 └ ○ /_not-found                          137 B          87.2 kB
+#11 6.830 + First Load JS shared by all            87 kB
+#11 6.830   ├ chunks/23-5bd044151a22e715.js        31.5 kB
+#11 6.830   ├ chunks/fd9d1056-95542c12c8153870.js  53.6 kB
+#11 6.830   └ other shared chunks (total)          1.87 kB
+#11 6.830 
+#11 6.830 
+#11 6.830 ○  (Static)  prerendered as static content
+#11 6.830 
+#11 DONE 6.9s
+
+#12 [production 3/7] COPY --from=build /app/package.json ./package.json
+#12 DONE 0.0s
+
+#13 [production 4/7] COPY --from=build /app/package-lock.json ./package-lock.json
+#13 DONE 0.0s
+
+#14 [production 5/7] COPY --from=build /app/.next ./.next
+#14 DONE 0.0s
+
+#15 [production 6/7] COPY --from=build /app/public ./public
+#15 DONE 0.0s
+
+#16 [production 7/7] RUN npm ci --only=production
+#16 0.112 npm warn config only Use `--omit=dev` to omit dev dependencies from the install.
+#16 1.421 npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+#16 2.628 npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+#16 3.976 npm warn deprecated @humanwhocodes/object-schema@2.0.3: Use @eslint/object-schema instead
+#16 3.985 npm warn deprecated @humanwhocodes/config-array@0.11.14: Use @eslint/config-array instead
+#16 4.939 npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+#16 34.24 
+#16 34.24 added 736 packages, and audited 737 packages in 34s
+#16 34.24 
+#16 34.24 256 packages are looking for funding
+#16 34.24   run `npm fund` for details
+#16 34.40 
+#16 34.40 34 vulnerabilities (1 low, 9 moderate, 22 high, 2 critical)
+#16 34.40 
+#16 34.40 To address issues that do not require attention, run:
+#16 34.40   npm audit fix
+#16 34.40 
+#16 34.40 To address all issues possible (including breaking changes), run:
+#16 34.40   npm audit fix --force
+#16 34.40 
+#16 34.40 Some issues need review, and may require choosing
+#16 34.40 a different dependency.
+#16 34.40 
+#16 34.40 Run `npm audit` for details.
+#16 34.40 npm notice
+#16 34.40 npm notice New major version of npm available! 10.8.2 -> 12.2.0
+#16 34.40 npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+#16 34.40 npm notice To update run: npm install -g npm@12.2.0
+#16 34.40 npm notice
+#16 DONE 34.6s
+
+#17 exporting to image
+#17 exporting layers
+#17 exporting layers 12.8s done
+#17 exporting manifest sha256:9a0a2959f65e4e7f798bc002a2e178c0d2416e6d0aa5dbb644847ba37ea3bcc5 done
+#17 exporting config sha256:9e4d9bb2d2c743f18f57582c23fc74d9e0a6c83076e0a56aa552b4324d737fd5 done
+#17 exporting attestation manifest sha256:4bb8b7346b9c2d41d6db6657913534f9fea6c9ef21ef5ace2195ddea767d7ed0 done
+#17 exporting manifest list sha256:ddf2f632be5086846e213cc343fb5d12e15ad68bb60bc82d7d36edde9ca069da done
+#17 naming to docker.io/library/greenpath-frontend-step1-check:latest done
+#17 unpacking to docker.io/library/greenpath-frontend-step1-check:latest
+#17 unpacking to docker.io/library/greenpath-frontend-step1-check:latest 5.9s done
+#17 DONE 18.8s

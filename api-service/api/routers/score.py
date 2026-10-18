@@ -21,3 +21,5 @@ def post_score(request: ScoreRequest) -> ScoreResponse:
         return pipeline.run_score(request.text, request.region_id)
     except pipeline.UnknownRegionError as e:
         raise HTTPException(status_code=404, detail=str(e))
+    except (ValueError, FileNotFoundError) as e:
+        raise HTTPException(status_code=503, detail=f"Model artifact unavailable or invalid: {e}")

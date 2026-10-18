@@ -1,3 +1,5 @@
+> **Milestone 2 integration branch — step 1 implemented.** The app now uses a model-owned eight-dimension schema and real Boston H3 baseline test predictions. GCS artifacts are versioned and checksummed in `gs://ac215-greenpath`. Start with [the current integration guide](docs/STEP1.md). This step is an interface/storage foundation, not yet the complete containerized training pipeline. The notebook/data descriptions below remain the research workflow.
+
 # GreenPath · 数据管道（notebook 阶段）
 
 GreenPath 的核心思路是"老师教学生"：老师（VLM，如 Gemini）看**街景**给出"骑过这里感觉如何"的分数（标签 Y），学生（我们的模型）只看**卫星图 + OSM 特征**（输入 X）去学这些分数。街景只在训练时用来生成 Y，推理时不需要。

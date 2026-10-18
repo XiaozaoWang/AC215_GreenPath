@@ -1,4 +1,4 @@
-# Build the client and let Gemini translate the prompt once into preference weights for the 20 dimensions (at this point it doesn't know what the scenery looks like)
+# Build the client and let Gemini translate the prompt once into preference weights for the active model dimensions (at this point it doesn't know what the scenery looks like)
 # If we switch models later (e.g. a fine-tuned endpoint), only change this file.
 # I also set up a switch: env variable LLM_PROVIDER=gemini (default, the real Gemini) or = mock (local stand-in fake_llm.py, no key needed)
 import os

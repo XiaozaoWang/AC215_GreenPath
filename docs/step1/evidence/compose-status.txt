@@ -1,0 +1,3 @@
+NAME                               IMAGE                   COMMAND                  SERVICE       CREATED              STATUS                        PORTS
+greenpath-m2-step1-api-service-1   greenpath-api-service   "/bin/bash ./docker-…"   api-service   About a minute ago   Up About a minute (healthy)   127.0.0.1:9001->9000/tcp
+greenpath-m2-step1-frontend-1      greenpath-frontend      "/bin/bash -c 'npm c…"   frontend      8 minutes ago        Up 8 minutes                  127.0.0.1:3001->3000/tcp

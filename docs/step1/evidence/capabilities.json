@@ -1,0 +1,125 @@
+{
+  "schema_version": "greenpath-experience-v1",
+  "dimensions": {
+    "traffic_intensity": {
+      "label": "Traffic intensity",
+      "label_zh": "交通强度",
+      "description": "Higher means heavier perceived motor traffic.",
+      "keywords": [
+        "traffic",
+        "cars",
+        "car traffic",
+        "车流",
+        "汽车",
+        "交通",
+        "太多车"
+      ]
+    },
+    "quietness": {
+      "label": "Quietness",
+      "label_zh": "安静程度",
+      "description": "Higher means a quieter perceived street environment.",
+      "keywords": [
+        "quiet",
+        "quietness",
+        "calm",
+        "peaceful",
+        "安静",
+        "宁静"
+      ]
+    },
+    "shade": {
+      "label": "Shade",
+      "label_zh": "树荫",
+      "description": "Higher means more perceived shade at street level.",
+      "keywords": [
+        "shade",
+        "shady",
+        "tree shade",
+        "树荫",
+        "林荫"
+      ]
+    },
+    "naturalness": {
+      "label": "Naturalness",
+      "label_zh": "自然感",
+      "description": "Higher means a more natural-looking street environment; this does not specifically measure water or parks.",
+      "keywords": [
+        "natural",
+        "nature",
+        "naturalness",
+        "自然"
+      ]
+    },
+    "scenic_appeal": {
+      "label": "Scenic appeal",
+      "label_zh": "景观吸引力",
+      "description": "Higher means more visually appealing scenery.",
+      "keywords": [
+        "scenic",
+        "beautiful",
+        "scenery",
+        "景色",
+        "好看",
+        "风景"
+      ]
+    },
+    "historic_character": {
+      "label": "Historic character",
+      "label_zh": "历史风貌",
+      "description": "Higher means a stronger perceived historic character.",
+      "keywords": [
+        "historic",
+        "history",
+        "old buildings",
+        "历史",
+        "古建筑"
+      ]
+    },
+    "liveliness": {
+      "label": "Liveliness",
+      "label_zh": "活力",
+      "description": "Higher means more perceived street activity and liveliness.",
+      "keywords": [
+        "lively",
+        "liveliness",
+        "vibrant",
+        "活力",
+        "热闹"
+      ]
+    },
+    "visual_openness": {
+      "label": "Visual openness",
+      "label_zh": "视野开阔度",
+      "description": "Higher means a more open visual field at street level.",
+      "keywords": [
+        "open views",
+        "openness",
+        "open view",
+        "开阔",
+        "视野"
+      ]
+    }
+  },
+  "score_range": [
+    0,
+    1
+  ],
+  "examples": [
+    "A quiet ride with shade, avoid traffic",
+    "Historic streets with open views",
+    "Natural, beautiful scenery"
+  ],
+  "regions": [
+    {
+      "id": "boston-heldout-v1",
+      "label": "Boston · held-out H3 cells"
+    }
+  ],
+  "default_region_id": "boston-heldout-v1",
+  "model_version": "m1-clip-baseline-20261013T0242",
+  "dataset_version": "v1",
+  "prediction_source": "saved_heldout_baseline",
+  "description": "Real M1 baseline test predictions; fixed-region fixture, not live inference.",
+  "rmse_source": "placeholder: 0.05 (5% of score range, not measured error)"
+}

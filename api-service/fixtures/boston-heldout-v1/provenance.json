@@ -1,0 +1,30 @@
+{
+  "experiment": "baselines-first-run-20261013T0242",
+  "dataset_version": "v1",
+  "model": "M1",
+  "prediction_role": "held_out_test",
+  "n_cells": 188,
+  "source_files": {
+    "datasets/v1/dataset.parquet": "62fab48fbb976b5e735abca3732e47941d011d81ebe278594cc1db9f565fac35",
+    "results/baselines-first-run-20261013T0242/predictions.parquet": "0cb421ac4f98ef4ff526eb6a40e8de19521d99a4454374d378d2faef762997ca",
+    "results/baselines-first-run-20261013T0242/config.json": "73cce8130a2b2f17df3cfd2ae52f018648c6ff4653f75f41c455cdc42d43f069"
+  },
+  "upstream_input_audit": {
+    "processed/cells.parquet": {
+      "recorded_sha256_prefix": "cae9cd7e37e7c9cc",
+      "current_sha256": "81d38dfd2261a2302455070e2e76f5d485c5bf12fe80e77ff93c34ec4c6ae2bc",
+      "matches_recorded": false
+    },
+    "processed/osm_features.parquet": {
+      "recorded_sha256_prefix": "5031342e8f62c3d8",
+      "current_sha256": "7c534153a3ad66b30a363afc82f542c14b33dceb00e3c36278efab058e86e443",
+      "matches_recorded": false
+    },
+    "processed/labels_cell.parquet": {
+      "recorded_sha256_prefix": "ec388c9bdd8042c7",
+      "current_sha256": "ec388c9bdd8042c7aa4a2879572b69fd7aafa42cc96e176e2bb0bc752a53e883",
+      "matches_recorded": true
+    }
+  },
+  "limitation": "Saved predictions from an existing frozen baseline experiment. No model weights are included and no new-area inference is provided. Current processed tables with mismatching hashes are not published as original v1 inputs. Labels remain VLM-generated, not human-validated."
+}
