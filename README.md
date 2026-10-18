@@ -1,4 +1,4 @@
-> **Milestone 2 integration branch.** Run the four-job container pipeline with `make run`: ingest versioned cached sources, prepare data, encode images, train/reload M1 and feed the app. Start with [the pipeline guide](docs/PIPELINE.md). The verified smoke run uses 48 images; live source collection and teacher labeling remain upstream research tasks.
+> **Milestone 2 integration branch.** `make run` trains from a frozen source snapshot. `make run-all` adds explicit upstream acquisition and bounded teacher labeling before training. `make app-versions` opens historical and successful local results without training. See [the complete workflow guide](docs/END_TO_END.md) and [data/version rules](docs/DATA_LIFECYCLE.md). New orchestration and version selection await user runtime verification; earlier successful runs are retained.
 
 > Earlier work: [step 1](docs/STEP1.md) established the geographic model contract; [step 2](docs/STEP2.md) exported the original M1 model. [Container builds](docs/CONTAINERS.md) and [app wireframe](docs/APP_DESIGN.md) document the current integration.
 
@@ -18,6 +18,21 @@ The research notebooks turn raw inputs into a training table with one row per H3
 ```
 
 Collection starts with street-view coverage. Those locations determine which H3 cells receive aerial imagery and geographic features, avoiding unnecessary downloads for cells without labels.
+
+## Select saved results or collect a new pilot
+
+```sh
+# No training or teacher calls: inspect registered results in the version selector.
+make app-versions
+
+# Explicit paid-labeling permission; finishes the selected pilot and runs through the app.
+make run-all WORKFLOW_ARGS="--run-id pilot-e2e-001 --allow-labeling"
+```
+
+The default pilot config reuses the existing 50-cell workspace where outputs match,
+then uses its own new frozen source snapshot. It never falls back to historical inputs
+if the new pilot is incomplete. See [END_TO_END.md](docs/END_TO_END.md) for limits,
+resuming, snapshot selection and explicit GCS publication.
 
 ## Run the container pipeline
 

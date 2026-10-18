@@ -1,5 +1,9 @@
 # Reproducible four-container Vision pipeline
 
+For the new 01-07 source-to-app entry point and application result selector, see
+[END_TO_END.md](END_TO_END.md). This guide describes the four-job frozen-input path.
+Historical execution evidence below predates the catalog/local-snapshot extension.
+
 ## Run from a clean checkout
 
 Prerequisites: Docker Desktop/Engine with Compose v2+, Python 3.9+ and make on the host.
@@ -101,7 +105,7 @@ to an English offline keyword parser; this is independent of the real visual mod
 
 | Container | Inputs | Output / version |
 | --- | --- | --- |
-| Data processor | `pipeline-inputs/boston-processed-v1`; encoder `clip-b16-laion2b-v1`; contract `greenpath-experience-en-v2` | `prepared-<run-id>`; dataset `pipeline-smoke-v1` or `pipeline-full-v1` |
+| Data processor | `pipeline-inputs/boston-processed-v1`; encoder `clip-b16-laion2b-v1`; contract `greenpath-experience-en-v2` | `prepared-<run-id>`; content-derived dataset `dataset-MODE-HASH` (historical IDs remain valid) |
 | Feature encoder | The prepared image list; checked source images; `clip-b16-laion2b-v1` | `embeddings-<run-id>` with image and checkpoint hashes |
 | Model training | Newly encoded features, prepared labels/splits; fixed prior alpha 1000 | `model-<run-id>` with scaler/Ridge state, metrics and reload checks |
 | Model deploy | The same run's model, embeddings and H3 region | `predictions-<run-id>` and `serving-<run-id>` |
@@ -166,7 +170,9 @@ STEP2 retain their stricter comparison against old predictions.
 The launcher checks all five artifact manifests, dataset counts and model identities.
 It then checks API response IDs/count/model version and frontend HTTP readiness. A failed
 run records its error but does not replace the pointer to the last successful run.
-The source-code hashes in the run summary identify the implementation used at execution.
+The source-code hashes and Git commit in new run summaries identify the implementation used at execution.
+Successful results are registered in `.artifacts/catalog/serving.json`; the frontend can
+select older results without replacing their files. See [DATA_LIFECYCLE.md](DATA_LIFECYCLE.md).
 
 Hashes detect inconsistency with a manifest; they are not digital signatures. Inputs
 are expected from the team's authorized bucket and trusted checkout.

@@ -1,5 +1,7 @@
 """Freeze existing notebook 01-04 outputs and NAIP tiles as a new input version."""
 import json
+from contextlib import nullcontext
+import fcntl
 from pathlib import Path
 import shutil
 import tarfile
@@ -9,8 +11,23 @@ from greenpath_model.artifact import digest, prepared_directory, safe_path, seal
 
 def export_sources(data_root, config_file, output, version):
     data_root = Path(data_root)
+    stream = (data_root / ".source.lock").open("r") if (data_root / ".source.lock").exists() else None
+    with (stream if stream is not None else nullcontext()):
+        if stream is not None:
+            fcntl.flock(stream, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        if (data_root / "source-workspace.json").exists():
+            meta = json.loads((data_root / "processed/labels_meta.json").read_text())
+            if not meta.get("complete") or meta.get("images_pending") != 0:
+                raise ValueError("Finish labeling this selected workspace before freezing a training snapshot")
+        return _export_sources(data_root, config_file, output, version)
+
+
+def _export_sources(data_root, config_file, output, version):
+    data_root = Path(data_root)
     names = ["cells", "osm_features", "labels_cell", "streetview"]
     source_files = [f"processed/{name}.parquet" for name in names] + ["processed/labels_meta.json"]
+    if (data_root / "processed/labels_image.parquet").is_file():
+        source_files.append("processed/labels_image.parquet")
     cells = pd.read_parquet(data_root / "processed/cells.parquet")
     if cells.cell_id.duplicated().any() or cells.h3_index.duplicated().any():
         raise ValueError("Duplicate source cell identity")
@@ -45,7 +62,8 @@ def export_sources(data_root, config_file, output, version):
         write_json(staging / "source.json", {"artifact_version": version, "n_cells": len(cells), "n_images": len(paths),
             "source_files": {name: digest(data_root / name) for name in source_files},
             "selected_config_sha256": digest(config_file), "historical_v1_audit": source_audit,
-            "scope": "Cached notebook 01 street-view selection, 02 NAIP tiles, 03 geographic features and 04 teacher labels; no live collection or teacher invocation.",
+            "source_workspace_version": json.loads((data_root / "source-workspace.json").read_text())["source_version"] if (data_root / "source-workspace.json").exists() else None,
+            "scope": "Frozen notebook 01-04 outputs. Export itself performs no collection or teacher invocation.",
             "label_validation": "Teacher-generated labels; human annotation agreement remains pending.",
             "image_source": "USDA NAIP via Microsoft Planetary Computer; aerial imagery only. Street-view photos are not redistributed."})
         seal(staging, version, "greenpath-processed-snapshot-v1")
@@ -82,3 +100,34 @@ def extract_tiles(source_dir, destination):
         write_json(staging / "source.json", {"archive_sha256": source_hash, "n_images": len(seen)})
         seal(staging, "tiles-" + source_hash[:16], "greenpath-tile-cache-v1")
     return destination
+
+
+def archive_workspace(data_root, output, version, snapshot_dir=None):
+    """Archive raw acquisition and paid label caches separately from training inputs."""
+    import fcntl
+    data_root = Path(data_root).resolve()
+    workspace = json.loads((data_root / "source-workspace.json").read_text())
+    with (data_root / ".source.lock").open("r") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        if snapshot_dir is not None:
+            snapshot_dir = Path(snapshot_dir)
+            verify(snapshot_dir, "greenpath-processed-snapshot-v1")
+            inputs = json.loads((snapshot_dir / "source.json").read_text())["source_files"]
+            for relative, checksum in inputs.items():
+                if digest(safe_path(data_root, relative)) != checksum:
+                    raise ValueError("Workspace no longer matches the frozen training snapshot")
+        with prepared_directory(output) as staging:
+            with tarfile.open(staging / "workspace.tar", "w") as archive:
+                for file in sorted(data_root.rglob("*")):
+                    if file.is_symlink():
+                        raise ValueError("Source archives may not contain symbolic links")
+                    if file.is_file() and file.name != ".source.lock":
+                        if file.name.endswith(".part") or file.name.startswith("."):
+                            raise ValueError("Unfinished workspace file; finish or review acquisition before archiving")
+                        archive.add(file, arcname=file.relative_to(data_root).as_posix(), recursive=False)
+            write_json(staging / "archive.json", {"source_version": workspace["source_version"],
+                "config_sha256": workspace["config_sha256"], "snapshot_version": version,
+                "snapshot_manifest_sha256": digest(snapshot_dir / "manifest.json") if snapshot_dir is not None else None,
+                "scope": "Raw images, OSM PBF, processed tables, paid label journal and stage records; no credentials."})
+            seal(staging, version, "greenpath-source-archive-v1")
+    return {"artifact_version": version, "source_version": workspace["source_version"]}

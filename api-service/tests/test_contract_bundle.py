@@ -154,6 +154,7 @@ def test_new_bundle_can_change_target_count_without_app_code_changes(bundle_copy
     schema['dimensions'] = {k: v for k, v in schema['dimensions'].items() if k in ['shade', 'quietness']}
     schema_path.write_text(json.dumps(schema))
     m['schema_version'] = schema['schema_version']
+    m['artifact_version'] = 'two-targets-fixture'
     rehash(bundle_copy, m, 'schema.json')
     p = bundle_copy / 'scores.json'
     rows = json.loads(p.read_text())

@@ -1,5 +1,6 @@
 """Extract notebook 05 joins, filtering, spatial splits, buffering and fold assignment."""
 import json
+import hashlib
 from pathlib import Path
 import h3
 import numpy as np
@@ -110,7 +111,7 @@ def prepare(source_dir, image_root, contract_file, output, artifact_version, mod
         frame = pd.concat(selected, ignore_index=True)
     counts = {s: int((frame.split == s).sum()) for s in ["train", "val", "test"]}
     if min(counts.values()) < 2 or frame.groupby("block_id").split.nunique().max() != 1:
-        raise ValueError("Insufficient or leaking spatial splits")
+        raise ValueError(f"Insufficient or leaking spatial splits after filtering/buffering: {counts}. Collect more spatially separated labeled cells; do not weaken the test boundary to make a demo pass.")
     fit = frame[frame.split.isin(["train", "val"])]
     if (fit[dimensions].notna().sum() < 2).any():
         raise ValueError("Too few fitting labels for a target")
@@ -124,7 +125,10 @@ def prepare(source_dir, image_root, contract_file, output, artifact_version, mod
                 raise ValueError("Expected RGB 256x256 NAIP tiles")
         image_records.append({"cell_id": row.cell_id, "tile_path": row.tile_path})
         image_hashes[row.cell_id] = digest(path)
-    dataset_version = f"pipeline-{mode}-v1"
+    identity = {"source_manifest_sha256": digest(source_dir / "manifest.json"),
+                "contract_sha256": digest(contract_file), "recipe_sha256": digest(__file__), "mode": mode}
+    dataset_version = "dataset-" + mode + "-" + hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest()[:16]
+    source_info = json.loads((source_dir / "source.json").read_text()) if (source_dir / "source.json").exists() else {}
     frame["dataset_version"] = dataset_version
     id_cols = ["cell_id", "h3_index", "city", "lat", "lon"]
     split_cols = ["split", "block_id", "fold"]
@@ -157,7 +161,8 @@ def prepare(source_dir, image_root, contract_file, output, artifact_version, mod
         write_json(staging / "region.geojson", {"type": "FeatureCollection", "features": geometry})
         write_json(staging / "training-config.json", config)
         report = {"dataset_version": dataset_version, "mode": mode, "counts": counts, "full_filtered_counts": full_counts,
-            "funnel": funnel, "source_version": source_manifest["artifact_version"], "source_manifest_sha256": digest(source_dir / "manifest.json"),
+            "funnel": funnel, "source_version": source_manifest["artifact_version"], "snapshot_version": source_manifest["artifact_version"],
+            "source_workspace_version": source_info.get("source_workspace_version"), "identity": identity, "source_manifest_sha256": digest(source_dir / "manifest.json"),
             "image_sha256": image_hashes, "parameters": {"block_resolution": 8, "seed": 42, "buffer_rings": 1, "folds": 5, "max_year_gap": 3},
             "scope": "Notebook-05-equivalent joins, filtering and spatial splits over cached notebook-01-04 products. No fresh collection, OSM extraction or teacher calls.",
             "metrics_scope": "Smoke mode is a pipeline check, not a replacement for the historical 188-cell evaluation.",

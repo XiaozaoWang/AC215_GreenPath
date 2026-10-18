@@ -1,0 +1,12 @@
+# Local frozen source input; CLIP weights still use the verified encoder cache/GCS path.
+services:
+  data-processor:
+    volumes:
+      - type: bind
+        source: ${PIPELINE_LOCAL_SOURCE:?Set PIPELINE_LOCAL_SOURCE}
+        target: /local-source
+        read_only: true
+        bind:
+          create_host_path: false
+    environment:
+      PIPELINE_SOURCE_DIR: /local-source

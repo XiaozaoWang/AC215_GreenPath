@@ -26,3 +26,16 @@ All images are checked as RGB 256x256 tiles. CLIP crop/normalization is executed
 next component. Unsafe archives, broken hashes and ambiguous IDs fail before publication.
 Build the image from the repository root following [CONTAINERS.md](../../docs/CONTAINERS.md),
 so the shared sibling model package is included.
+
+## New source snapshots and archives
+
+A new source workspace can be frozen after its selected-image labeling is complete.
+The snapshot preserves aggregate/image labels, source configuration and run records.
+`archive` separately backs up raw images, OSM PBF and paid label journals; `--snapshot-dir`
+binds that archive to the frozen source files under an exclusive source lock.
+
+The training launcher now accepts `--source-dir` to prepare a local immutable snapshot
+without requiring an intermediate GCS upload. Encoder weights still use their verified
+cache/GCS source. Dataset identity derives from the source manifest, contract, preparation
+recipe and mode rather than a universal `pipeline-full-v1` label. See
+[DATA_LIFECYCLE.md](../../docs/DATA_LIFECYCLE.md) for the version chain.

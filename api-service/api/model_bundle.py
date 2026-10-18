@@ -57,6 +57,11 @@ def validate_geometry(geometry):
 class ModelBundle:
     def __init__(self, root: Path):
         self.manifest = verify(root)
+        if (root / "provenance.json").is_file() and "provenance.json" not in self.manifest["files"]:
+            raise ValueError("Bundle provenance must be checksummed")
+        self.provenance = json.loads((root / "provenance.json").read_text()) if (root / "provenance.json").is_file() else {}
+        if not isinstance(self.provenance, dict):
+            raise ValueError("Bundle provenance must be an object")
         m = self.manifest
         if m.get('format_version') != 'greenpath-region-v1':
             raise ValueError('unsupported region bundle format')
@@ -95,6 +100,16 @@ class ModelBundle:
             raise ValueError('RMSE must be finite, nonnegative and cover every dimension')
 
 
-@lru_cache(maxsize=1)
-def get_bundle():
-    return ModelBundle(BUNDLE_DIR)
+@lru_cache(maxsize=16)
+def _load_bundle(directory, manifest_sha256):
+    return ModelBundle(Path(directory))
+
+
+def get_bundle(version_id=None):
+    from api.versions import resolve
+    entry, checksum = resolve(version_id)
+    return _load_bundle(str(entry['directory']), checksum)
+
+
+# Preserve the previous cache-reset interface for local development and tests.
+get_bundle.cache_clear = _load_bundle.cache_clear

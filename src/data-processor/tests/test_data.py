@@ -47,7 +47,7 @@ def test_smoke_prepare_runs_joins_spatial_splits_and_image_validation(source, tm
     result = prepare(root, images, contract, out, "smoke-test")
     assert result["counts"] == {"train": 32, "val": 8, "test": 8}
     verify(out, "greenpath-prepared-data-v1")
-    data = pd.read_parquet(out / "datasets/pipeline-smoke-v1/dataset.parquet")
+    data = pd.read_parquet(out / "datasets" / result["dataset_version"] / "dataset.parquet")
     assert data.groupby("block_id").split.nunique().max() == 1
     assert data[data.split == "test"].fold.isna().all()
     assert len(json.loads((out / "images.json").read_text())) == 48
@@ -102,3 +102,15 @@ def test_archive_extraction_rejects_unsafe_members(tmp_path, kind):
     seal(source, "unsafe", "greenpath-processed-snapshot-v1")
     with pytest.raises(ValueError): extract_tiles(source, tmp_path / "cache")
     assert not (tmp_path / "cache").exists() and not (tmp_path / "escape.png").exists()
+
+
+def test_dataset_identity_reused_across_runs_but_changes_with_contract(source, tmp_path):
+    root, images, contract = source
+    a = prepare(root, images, contract, tmp_path / 'a', 'prepared-a')
+    b = prepare(root, images, contract, tmp_path / 'b', 'prepared-b')
+    assert a['dataset_version'] == b['dataset_version']
+    value = json.loads(contract.read_text())
+    value['dimensions']['shade']['description'] = 'Changed contract identity'
+    contract.write_text(json.dumps(value))
+    changed = prepare(root, images, contract, tmp_path / 'c', 'prepared-c')
+    assert changed['dataset_version'] != a['dataset_version']

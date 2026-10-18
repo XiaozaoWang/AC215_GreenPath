@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 from greenpath_model.artifact import verify
 from greenpath_data.dataset import prepare
-from greenpath_data.snapshot import export_sources, extract_tiles
+from greenpath_data.snapshot import export_sources, extract_tiles, archive_workspace
 from greenpath_data.storage import fetch
 
 
@@ -16,6 +16,11 @@ def main():
     for key in ["data-root", "config", "output"]:
         export.add_argument(f"--{key}", type=Path, required=True)
     export.add_argument("--artifact-version", required=True)
+    archive = commands.add_parser("archive")
+    for key in ["data-root", "output"]:
+        archive.add_argument(f"--{key}", type=Path, required=True)
+    archive.add_argument("--artifact-version", required=True)
+    archive.add_argument("--snapshot-dir", type=Path)
     process = commands.add_parser("prepare")
     for key in ["source-dir", "image-cache", "contract", "output"]:
         process.add_argument(f"--{key}", type=Path, required=True)
@@ -31,22 +36,25 @@ def main():
     args = parser.parse_args()
     if args.command == "snapshot":
         result = export_sources(args.data_root, args.config, args.output, args.artifact_version)
+    elif args.command == "archive":
+        result = archive_workspace(args.data_root, args.output, args.artifact_version, args.snapshot_dir)
     elif args.command == "prepare":
         images = extract_tiles(args.source_dir, args.image_cache)
         result = prepare(args.source_dir, images, args.contract, args.output, args.artifact_version, args.mode)
     else:
-        source = args.cache / "sources" / args.source_version
+        local_source = os.environ.get("PIPELINE_SOURCE_DIR")
+        source = Path(local_source) if local_source else args.cache / "sources" / args.source_version
         encoder = args.cache / "encoders" / args.encoder_version
         for uri, destination, expected, version in [(args.source_uri, source, "greenpath-processed-snapshot-v1", args.source_version),
                    (args.encoder_uri, encoder, "greenpath-clip-encoder-v1", args.encoder_version)]:
-            if not args.offline:
+            if not args.offline and not (destination == source and local_source):
                 fetch(uri, destination)
             manifest = verify(destination, expected)
             if manifest["artifact_version"] != version:
                 raise ValueError("Selected artifact version differs from the manifest")
         images = extract_tiles(source, args.cache / "images" / args.source_version)
         result = prepare(source, images, args.contract, args.output, args.artifact_version, args.mode)
-        result["ingestion"] = "verified_local_cache" if args.offline else "gcs_manifest_verified"
+        result["ingestion"] = "local_frozen_snapshot_verified" if local_source else ("verified_local_cache" if args.offline else "gcs_manifest_verified")
     print(json.dumps(result), flush=True)
 
 

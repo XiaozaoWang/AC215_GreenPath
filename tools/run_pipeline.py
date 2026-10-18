@@ -19,7 +19,10 @@ import uuid
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src/model-deploy"))
+sys.path.insert(0, str(ROOT / "tools"))
 from greenpath_model.artifact import digest, verify, write_json
+from artifact_catalog import atomic_json, refresh_runs, register_bundle
+from runtime_environment import environment
 
 
 def parse_status(text):
@@ -86,9 +89,9 @@ def verify_outputs(run_dir):
 
 def check_api(port, run_dir, expected):
     base = "http://127.0.0.1:%d" % port
-    with urllib.request.urlopen(base + "/capabilities", timeout=15) as response:
+    with urllib.request.urlopen(base + "/capabilities?version_id=" + expected["serving_version"], timeout=15) as response:
         meta = json.load(response)
-    request = {"text": "A quiet ride with shade, avoid traffic", "region_id": meta["default_region_id"]}
+    request = {"text": "A quiet ride with shade, avoid traffic", "region_id": meta["default_region_id"], "version_id": expected["serving_version"]}
     req = urllib.request.Request(base + "/score", data=json.dumps(request).encode(), headers={"Content-Type": "application/json"})
     with urllib.request.urlopen(req, timeout=30) as response:
         result = json.load(response)
@@ -110,6 +113,10 @@ def main():
     parser.add_argument("--offline", action="store_true")
     parser.add_argument("--no-app", action="store_true")
     parser.add_argument("--no-build", action="store_true")
+    parser.add_argument("--source-dir", type=Path, help="Use a local immutable source snapshot instead of fetching the source from GCS")
+    parser.add_argument("--source-version")
+    parser.add_argument("--source-uri")
+    parser.add_argument("--catalog-label")
     parser.add_argument("--api-port", type=int, default=9030)
     parser.add_argument("--frontend-port", type=int, default=3030)
     args = parser.parse_args()
@@ -119,17 +126,30 @@ def main():
     run_dir = runs / run_id
     if run_dir.exists():
         raise ValueError("Run directory exists; choose a new run ID")
-    env = os.environ.copy()
+    env = environment(ROOT)
     env.update({"PIPELINE_RUN_ID": run_id, "PIPELINE_MODE": args.mode, "PIPELINE_OFFLINE": "1" if args.offline else "0",
                 "PIPELINE_RUNS_DIR": str(runs), "PIPELINE_CACHE_DIR": str(cache),
                 "LOCAL_UID": str(os.getuid()) if hasattr(os, "getuid") else "1000",
                 "LOCAL_GID": str(os.getgid()) if hasattr(os, "getgid") else "1000"})
+    if args.source_dir:
+        source = args.source_dir.resolve()
+        manifest = verify(source, "greenpath-processed-snapshot-v1")
+        if args.source_version and args.source_version != manifest["artifact_version"]:
+            raise ValueError("Local source identity differs from --source-version")
+        env["PIPELINE_SOURCE_VERSION"] = manifest["artifact_version"]
+        env["PIPELINE_LOCAL_SOURCE"] = str(source)
+    elif args.source_version:
+        env["PIPELINE_SOURCE_VERSION"] = args.source_version
+    if args.source_uri:
+        env["PIPELINE_SOURCE_URI"] = args.source_uri
     if not args.no_app:
         check_ports([args.api_port, args.frontend_port], env)
     project = "gp-ml-" + run_id
     command = ["docker", "compose", "-p", project, "-f", "docker-compose.ml.yml"]
+    if args.source_dir:
+        command += ["-f", "docker-compose.ml.local.yml"]
     if not args.offline:
-        adc = Path(env.get("ADC_FILE", str(Path.home() / ".config/gcloud/application_default_credentials.json"))).expanduser()
+        adc = Path(env.get("ADC_FILE") or str(Path.home() / ".config/gcloud/application_default_credentials.json")).expanduser()
         if not adc.is_file():
             raise ValueError("Authorized ADC is required. Set ADC_FILE or use --offline after caches have been prepared.")
         env["ADC_FILE"] = str(adc.resolve())
@@ -139,7 +159,9 @@ def main():
     logs = run_dir / "logs"; logs.mkdir()
     started = time.time()
     summary = {"run_id": run_id, "mode": args.mode, "ml_compose_project": project, "success": False,
-               "started_at": datetime.now(timezone.utc).isoformat(), "offline": args.offline}
+               "started_at": datetime.now(timezone.utc).isoformat(), "offline": args.offline,
+               "source_input": {"kind": "local_snapshot" if args.source_dir else "gcs_snapshot", "version": env.get("PIPELINE_SOURCE_VERSION", "boston-processed-v1")}}
+    summary["git_commit"] = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
     code_paths = ["src/data-processor/greenpath_data/dataset.py", "src/feature-encoder/greenpath_encoder/encode.py",
                   "src/model-training/greenpath_training/train.py", "src/model-deploy/greenpath_model/region.py", "docker-compose.ml.yml", "tools/run_pipeline.py"]
     summary["code_sha256"] = {name: digest(ROOT / name) for name in code_paths}
@@ -154,6 +176,8 @@ def main():
             raise ValueError("All four ML jobs must exit successfully")
         write_json(run_dir / "containers.json", statuses)
         summary["ml"] = verify_outputs(run_dir)
+        refresh_runs()
+        register_bundle(run_dir / "serving", label=args.catalog_label, make_default=True, run_id=run_id)
         if not args.no_app:
             app_env = dict(env, API_PORT=str(args.api_port), FRONTEND_PORT=str(args.frontend_port),
                 MODEL_PROVIDER="bundle", MODEL_BUNDLE_DIR="/artifacts/pipeline/runs/" + run_id + "/serving", LLM_PROVIDER="mock")
@@ -177,9 +201,7 @@ def main():
         write_json(run_dir / "run-summary.json", summary)
         print(json.dumps(summary, indent=2), flush=True)
     latest = runs.parent / "latest.json"
-    tmp = latest.with_suffix(".tmp")
-    write_json(tmp, {"run_id": run_id, "run_directory": str(run_dir), "summary": summary})
-    tmp.replace(latest)
+    atomic_json(latest, {"run_id": run_id, "run_directory": str(run_dir), "summary": summary})
 
 
 if __name__ == "__main__":

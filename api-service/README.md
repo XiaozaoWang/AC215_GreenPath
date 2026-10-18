@@ -29,3 +29,12 @@ See [the shared dependency convention](../docs/DEPENDENCIES.md) and
 
 The updated image has not been built or run during this dependency change; user-run
 verification is still needed. Previously recorded API results predate this Dockerfile.
+
+## Saved result versions
+
+`GET /versions` lists registered serving bundles and their provenance. Requests can pass
+`version_id` to `/capabilities`, `/preview` and `/score`. Preview is a saved score-dimension
+view and never calls the preference provider. Catalog entries are pinned to manifest
+hashes; selection is per request, not a mutable global model. Invalid/unknown versions
+never fall back to fake scores or another model. See [DATA_LIFECYCLE.md](../docs/DATA_LIFECYCLE.md)
+and [END_TO_END.md](../docs/END_TO_END.md).

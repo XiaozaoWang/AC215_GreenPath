@@ -1,0 +1,11 @@
+{
+  "format_version": "greenpath-workflow-v1",
+  "source_config": "configs/source-boston.example.json",
+  "source_directory": ".artifacts/sources/boston-source-local-v1",
+  "snapshot_version": "boston-source-local-v1-frozen-v1",
+  "training_config": "configs/training-clip-ridge.json",
+  "mode": "full",
+  "max_new_label_images": 200,
+  "result_label": "New collection: 50-cell pilot, fresh model",
+  "scope_note": "Use all qualifying cells from the 50-cell acquisition pilot. Full means all prepared pilot rows, not city-wide collection."
+}

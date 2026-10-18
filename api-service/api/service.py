@@ -1,7 +1,7 @@
 # The front door of FastAPI: build the app, turn on CORS, attach each group of endpoints. What uvicorn starts is the app here.
 # When uvicorn looks for the app object, it runs this whole python file
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from api import pipeline
 from starlette.middleware.cors import CORSMiddleware
 
@@ -40,5 +40,31 @@ app.include_router(source.router)
 
 
 @app.get("/capabilities")
-def get_capabilities():
-    return pipeline.capabilities()
+def get_capabilities(version_id: str | None = None):
+    from api.versions import UnknownVersionError
+    try:
+        return pipeline.capabilities(version_id)
+    except UnknownVersionError as error:
+        raise HTTPException(status_code=404, detail=str(error))
+    except (ValueError, FileNotFoundError) as error:
+        raise HTTPException(status_code=503, detail=str(error))
+
+
+@app.get("/versions")
+def get_versions():
+    from api.versions import list_versions
+    try:
+        return list_versions()
+    except (ValueError, FileNotFoundError) as error:
+        raise HTTPException(status_code=503, detail=str(error))
+
+
+@app.get("/preview")
+def get_preview(version_id: str | None = None):
+    from api.versions import UnknownVersionError
+    try:
+        return pipeline.preview(version_id)
+    except UnknownVersionError as error:
+        raise HTTPException(status_code=404, detail=str(error))
+    except (ValueError, FileNotFoundError) as error:
+        raise HTTPException(status_code=503, detail=str(error))

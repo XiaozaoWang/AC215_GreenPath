@@ -1,5 +1,9 @@
 # Notebook 01-04 as explicit container jobs
 
+For the one-command source-to-app workflow, use [END_TO_END.md](END_TO_END.md).
+The individual commands here remain available. Freezing a new source workspace now
+requires its selected-image labeling to be complete; partial batches are not full datasets.
+
 ## Scope and status
 
 These commands extract the upstream notebook logic without redesigning the application

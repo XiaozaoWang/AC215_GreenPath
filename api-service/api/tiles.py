@@ -5,10 +5,10 @@ from api.schemas import Tile
 FAKE_REGIONS = {'demo': (100, 100)}
 
 
-def get_tiles(region_id: str) -> list[Tile]:
+def get_tiles(region_id: str, version_id: str | None = None) -> list[Tile]:
     if PROVIDER == 'bundle':
         from api.model_bundle import get_bundle
-        bundle = get_bundle()
+        bundle = get_bundle(version_id)
         if region_id != bundle.manifest['region_id']:
             raise ValueError(f'unknown region_id: {region_id}')
         return bundle.tiles

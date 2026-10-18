@@ -8,12 +8,12 @@ class TileMismatchError(ValueError):
     pass
 
 
-def predict(tiles: list[Tile]) -> list[TileScore]:
+def predict(tiles: list[Tile], version_id: str | None = None) -> list[TileScore]:
     if not tiles:
         raise TileMismatchError('cannot predict an empty region')
     if PROVIDER == 'bundle':
         from api.model_bundle import get_bundle
-        scores = get_bundle().scores
+        scores = get_bundle(version_id).scores
         try:
             result = [scores[t.tile_id] for t in tiles]
         except KeyError as error:

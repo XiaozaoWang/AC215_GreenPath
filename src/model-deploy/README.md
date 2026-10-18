@@ -25,3 +25,8 @@ H3 geometry and provenance for the API. `make run` selects the generated bundle;
 standalone app can still use its historical fixture. See [PIPELINE.md](../../docs/PIPELINE.md).
 The Dockerfile builds a separate lightweight inference image. Build instructions are in
 [CONTAINERS.md](../../docs/CONTAINERS.md).
+
+Each new serving bundle records source workspace/snapshot, dataset, model, encoder and
+run identity in checksummed provenance. Applications can retain several such bundles
+and select one per request without loading training code or generating new predictions.
+See [the version lifecycle](../../docs/DATA_LIFECYCLE.md).

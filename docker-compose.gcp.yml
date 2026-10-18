@@ -17,7 +17,7 @@ services:
     build: ./api-service
     # One-shot download job; the API itself keeps a read-only artifact mount.
     user: "0:0"
-    entrypoint: ["/.venv/bin/python", "-m", "api.artifacts"]
+    entrypoint: ["/opt/venv/bin/python", "-m", "api.artifacts"]
     volumes:
       - ./api-service:/app:ro
       - ./.artifacts:/artifacts

@@ -89,9 +89,16 @@ class PreferenceRequest(BaseModel):
 
 class ScoreRequest(PreferenceRequest):
     region_id: str | None = None
+    version_id: str | None = None
 
 
 class ScoreResponse(BaseModel):
+    preview: bool = False
+    version_id: str | None = None
+    dataset_version: str | None = None
+    source_version: str | None = None
+    snapshot_version: str | None = None
+    run_id: str | None = None
     region_id: str
     agent: AgentResult
     weights: dict[str, float]

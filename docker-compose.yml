@@ -1,4 +1,4 @@
-# Step 1: application + real saved baseline fixture. Batch training comes later.
+# Application reads the configured bundle and optional version catalog; training is separate.
 networks:
   default: {}
 services:
@@ -14,6 +14,8 @@ services:
       GCP_PROJECT: ${GCP_PROJECT:-organic-victory-508017-v9}
       LLM_PROVIDER: ${LLM_PROVIDER:-mock}
       MODEL_PROVIDER: ${MODEL_PROVIDER:-bundle}
+      MODEL_ARTIFACTS_ROOT: /artifacts
+      MODEL_CATALOG_PATH: /artifacts/catalog/serving.json
       MODEL_BUNDLE_DIR: ${MODEL_BUNDLE_DIR:-/app/fixtures/boston-heldout-en-v2}
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:9000/', timeout=3)"]

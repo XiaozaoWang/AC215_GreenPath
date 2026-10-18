@@ -72,3 +72,24 @@ label-images:
 
 label-report:
 	LOCAL_UID="$$(id -u)" LOCAL_GID="$$(id -g)" $(SOURCE_COMPOSE) run --rm --build source-labeling labeling --config /config/source.json --data-root /data --max-images 0
+
+# New collection to app. Labeling calls require an explicit workflow flag.
+WORKFLOW_CONFIG ?= configs/workflow-boston-small.json
+WORKFLOW_ARGS ?=
+APP_ARGS ?=
+RUN_ID ?=
+GCS_ROOT ?= gs://ac215-greenpath
+PUBLISH_ARGS ?=
+.PHONY: run-all catalog-refresh app-versions publish-run
+run-all:
+	python3 tools/run_all.py --config "$(WORKFLOW_CONFIG)" $(WORKFLOW_ARGS)
+
+catalog-refresh:
+	python3 tools/manage_artifacts.py refresh
+
+app-versions:
+	python3 tools/manage_artifacts.py serve $(APP_ARGS)
+
+publish-run:
+	@test -n "$(RUN_ID)" || (echo "Set RUN_ID to a reviewed successful training run."; exit 1)
+	python3 tools/manage_artifacts.py publish-run --run-id "$(RUN_ID)" --gcs-root "$(GCS_ROOT)" $(PUBLISH_ARGS)
