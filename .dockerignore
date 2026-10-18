@@ -1,0 +1,17 @@
+.git
+.artifacts
+data
+docs
+**/.venv
+**/__pycache__
+**/.pytest_cache
+**/*.egg-info
+**/node_modules
+**/.next
+**/*.ipynb
+.env
+.env.*
+!.env.example
+secrets
+build
+dist

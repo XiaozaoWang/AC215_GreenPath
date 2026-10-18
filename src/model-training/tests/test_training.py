@@ -85,3 +85,21 @@ def test_minimal_training_snapshot_preserves_tables_and_can_be_refit(inputs, tmp
     assert result["fresh_process_verified"]
     with pytest.raises(ValueError, match="overwrite"):
         prepare(root, "selected", out, "test-inputs")
+
+
+def test_fresh_pipeline_embeddings_need_matching_provenance_but_no_old_predictions(inputs, tmp_path):
+    import shutil
+    root, config, contract, encoder = inputs
+    fresh = tmp_path / "fresh-embeddings"; fresh.mkdir()
+    shutil.copyfile(root / "embeddings/v1/clip_b16_tta.parquet", fresh / "embeddings.parquet")
+    write_json(fresh / "embedding.json", {"encoder_manifest_sha256": digest(encoder / "manifest.json")})
+    seal(fresh, "fresh-test-embeddings", "greenpath-embeddings-v1")
+    config.with_name("predictions.parquet").unlink()
+    result = train(root, config, contract, encoder, tmp_path / "fresh-model", "fresh-model",
+                   embedding_file=fresh / "embeddings.parquet", reference_policy="none")
+    assert result["reference_max_abs_error"] is None and result["fresh_process_verified"]
+    write_json(fresh / "embedding.json", {"encoder_manifest_sha256": "wrong-encoder"})
+    seal(fresh, "different-embeddings", "greenpath-embeddings-v1")
+    with pytest.raises(ValueError, match="another encoder"):
+        train(root, config, contract, encoder, tmp_path / "bad-model", "bad-model",
+              embedding_file=fresh / "embeddings.parquet", reference_policy="none")

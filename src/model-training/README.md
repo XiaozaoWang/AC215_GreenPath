@@ -19,5 +19,8 @@ uv run --frozen pytest -q
 ```
 
 See [the step-2 guide](../../docs/STEP2.md) for exact data paths, artifact commands,
-GCS distribution and limitations. This directory does not yet include a Dockerfile;
-container build and complete orchestration belong to the next pipeline stage.
+GCS distribution and limitations. A Dockerfile is now provided; build from the repository
+root as explained in [CONTAINERS.md](../../docs/CONTAINERS.md).
+
+New pipeline datasets use a verified `--embeddings` artifact and `--reference-policy none`.
+The default remains strict historical reproduction. Neither mode fits on test rows.

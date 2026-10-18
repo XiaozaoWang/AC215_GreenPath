@@ -10,6 +10,13 @@ greenpath-encode = "greenpath_encoder.encode:main"
 
 [tool.uv.sources]
 greenpath-model = { path = "../model-deploy", editable = true }
+torch = { index = "pytorch-cpu", marker = "sys_platform == 'linux'" }
+torchvision = { index = "pytorch-cpu", marker = "sys_platform == 'linux'" }
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
 
 [build-system]
 requires = ["setuptools>=84"]

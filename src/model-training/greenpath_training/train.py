@@ -16,7 +16,7 @@ from greenpath_model.artifact import digest, prepared_directory, safe_path, seal
 from greenpath_model.bundle import RegressionBundle
 
 
-def load_inputs(data_root, config_file, contract_file):
+def load_inputs(data_root, config_file, contract_file, embedding_file=None):
     data_root = Path(data_root)
     config = json.loads(Path(config_file).read_text())
     contract = json.loads(Path(contract_file).read_text())
@@ -43,7 +43,7 @@ def load_inputs(data_root, config_file, contract_file):
     alpha = config["chosen"][f"M1_{backbone}"]["alpha"]
     if not np.isfinite(alpha) or alpha <= 0:
         raise ValueError("Ridge alpha must be positive")
-    embedding_file = data_root / "embeddings" / version / f"{backbone}_tta.parquet"
+    embedding_file = Path(embedding_file) if embedding_file is not None else data_root / "embeddings" / version / f"{backbone}_tta.parquet"
     embeddings = pd.read_parquet(embedding_file)
     if embeddings.cell_id.duplicated().any() or set(embeddings.cell_id) != set(dataset.cell_id):
         raise ValueError("Embeddings and dataset IDs must match exactly")
@@ -87,10 +87,12 @@ def evaluate(y, prediction, targets):
     return result
 
 
-def train(data_root, config_file, contract_file, encoder_dir, output, artifact_version, tolerance=1e-5):
+def train(data_root, config_file, contract_file, encoder_dir, output, artifact_version, tolerance=1e-5, embedding_file=None, reference_policy="required"):
     if not np.isfinite(tolerance) or tolerance < 0:
         raise ValueError("Validation tolerance must be finite and nonnegative")
-    config, contract, ds, x, y, pool, test, features, inputs = load_inputs(data_root, config_file, contract_file)
+    if reference_policy not in ["required", "none"]:
+        raise ValueError("Reference policy must be required or none")
+    config, contract, ds, x, y, pool, test, features, inputs = load_inputs(data_root, config_file, contract_file, embedding_file)
     encoder_dir = Path(encoder_dir)
     enc_manifest = verify(encoder_dir, "greenpath-clip-encoder-v1")
     if "encoder.json" not in enc_manifest["files"]:
@@ -101,21 +103,32 @@ def train(data_root, config_file, contract_file, encoder_dir, output, artifact_v
         raise ValueError("Encoder weights and metadata do not agree")
     if encoder["source"] != config["embedding_meta"]["clip_b16"]["source"] or encoder["output_dim"] != len(features) or not encoder["tta"]:
         raise ValueError("Encoder does not match the historical embedding specification")
+    if embedding_file is not None:
+        embedding_root = Path(embedding_file).parent
+        embedding_manifest = verify(embedding_root, "greenpath-embeddings-v1")
+        if not {Path(embedding_file).name, "embedding.json"}.issubset(embedding_manifest["files"]):
+            raise ValueError("Fresh embedding data and provenance must be checksummed")
+        embedding_info = json.loads((embedding_root / "embedding.json").read_text())
+        if embedding_info["encoder_manifest_sha256"] != digest(encoder_dir / "manifest.json"):
+            raise ValueError("Training embeddings belong to another encoder")
     alpha = config["chosen"]["M1_clip_b16"]["alpha"]
     scaler, heads = fit_heads(x, y, pool, alpha)
     test_x = scaler.transform(x[test])
     before = np.clip(np.column_stack([head.predict(test_x) for head in heads]), 0, 1)
-    source_predictions = Path(config_file).with_name("predictions.parquet")
-    ref = pd.read_parquet(source_predictions)
-    ref = ref[ref.split == "test"]
-    if ref.cell_id.duplicated().any() or set(ref.cell_id) != set(ds.loc[test, "cell_id"]):
-        raise ValueError("Reference test IDs differ from the frozen dataset")
-    ref = ref.set_index("cell_id").loc[ds.loc[test, "cell_id"], [f"M1__{d}" for d in contract["dimensions"]]].to_numpy()
-    if not np.isfinite(ref).all():
-        raise ValueError("Reference predictions contain nonfinite values")
-    reference_error = float(np.max(np.abs(before - ref)))
-    if reference_error > tolerance:
-        raise ValueError(f"Refit differs from historical predictions: max_abs={reference_error:g}, tolerance={tolerance:g}; investigate before publishing")
+    reference_error = None
+    if reference_policy == "required":
+        source_predictions = Path(config_file).with_name("predictions.parquet")
+        ref = pd.read_parquet(source_predictions)
+        ref = ref[ref.split == "test"]
+        if ref.cell_id.duplicated().any() or set(ref.cell_id) != set(ds.loc[test, "cell_id"]):
+            raise ValueError("Reference test IDs differ from the frozen dataset")
+        ref = ref.set_index("cell_id").loc[ds.loc[test, "cell_id"], [f"M1__{d}" for d in contract["dimensions"]]].to_numpy()
+        if not np.isfinite(ref).all():
+            raise ValueError("Reference predictions contain nonfinite values")
+        reference_error = float(np.max(np.abs(before - ref)))
+        if reference_error > tolerance:
+            raise ValueError(f"Refit differs from historical predictions: max_abs={reference_error:g}, tolerance={tolerance:g}; investigate before publishing")
+        inputs.append(source_predictions)
     targets = list(contract["dimensions"])
     metadata = {"model_version": artifact_version, "model_type": "standard_scaler_independent_ridge",
         "dataset_version": config["dataset_version"], "schema_version": contract["schema_version"],
@@ -125,10 +138,10 @@ def train(data_root, config_file, contract_file, encoder_dir, output, artifact_v
             "weights_sha256": encoder["weights_sha256"], "source_revision": encoder["source_revision"]},
         "training": {"alpha": alpha, "fit_splits": ["train", "val"], "n_fit": int(pool.sum()),
             "n_test": int(test.sum()), "selection": "Reuse the prior spatial-CV choice; no retuning or test-driven selection.",
-            "source_experiment": config["run_id"]},
+            "source_experiment": config.get("selection_source_experiment", config["run_id"]), "reference_policy": reference_policy},
         "versions": {name: importlib.metadata.version(name) for name in ["numpy", "pandas", "scikit-learn", "scipy"]},
         "python": platform.python_version(), "label_validation": "Teacher-generated labels; human validation pending.",
-        "source_files": {str(p.relative_to(data_root)) if p.is_relative_to(data_root) else p.name: digest(p) for p in [*inputs, source_predictions]},
+        "source_files": {str(p.relative_to(data_root)) if p.is_relative_to(data_root) else p.name: digest(p) for p in inputs},
         "scope": "Reloadable M1 regression state; image encoding uses the separately versioned CLIP artifact."}
     with prepared_directory(output) as staging:
         write_json(staging / "model.json", metadata)
@@ -137,7 +150,8 @@ def train(data_root, config_file, contract_file, encoder_dir, output, artifact_v
         write_json(staging / "split-ids.json", {"fit": ds.loc[pool, "cell_id"].tolist(), "test": ds.loc[test, "cell_id"].tolist()})
         write_json(staging / "metrics.json", {"split": "held_out_test", "use": "Reproduction report only, not hyperparameter selection or serving error calibration.",
             "per_dimension": evaluate(y[test], before, targets)})
-        validation = {"reference_max_abs_error": reference_error, "reference_tolerance": tolerance,
+        validation = {"reference_max_abs_error": reference_error, "reference_tolerance": tolerance if reference_policy == "required" else None,
+            "reference_policy": reference_policy,
             "n_test": int(test.sum()), "no_test_rows_used_for_fit": True}
         write_json(staging / "validation.json", validation)
         seal(staging, artifact_version, "greenpath-ridge-v1")
@@ -170,8 +184,11 @@ def main():
     for name in ["data-root", "config", "contract", "encoder-dir", "output"]:
         p.add_argument(f"--{name}", type=Path, required=True)
     p.add_argument("--artifact-version", required=True)
+    p.add_argument("--embeddings", type=Path)
+    p.add_argument("--reference-policy", choices=["required", "none"], default="required")
     a = p.parse_args()
-    print(json.dumps(train(a.data_root.resolve(), a.config.resolve(), a.contract.resolve(), a.encoder_dir.resolve(), a.output.resolve(), a.artifact_version)))
+    print(json.dumps(train(a.data_root.resolve(), a.config.resolve(), a.contract.resolve(), a.encoder_dir.resolve(), a.output.resolve(), a.artifact_version,
+        embedding_file=a.embeddings.resolve() if a.embeddings else None, reference_policy=a.reference_policy)))
 
 
 if __name__ == "__main__":

@@ -24,3 +24,5 @@ parameters, image provenance and teacher-label limitations. Original v1 is never
 
 All images are checked as RGB 256x256 tiles. CLIP crop/normalization is executed by the
 next component. Unsafe archives, broken hashes and ambiguous IDs fail before publication.
+Build the image from the repository root following [CONTAINERS.md](../../docs/CONTAINERS.md),
+so the shared sibling model package is included.

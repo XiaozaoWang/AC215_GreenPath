@@ -1,0 +1,2 @@
+{"stage": "encoding", "completed": 3, "total": 3}
+{"artifact_version": "docker-embeddings-v1", "n_images": 3, "cache_comparison": {"reference_sha256": "ae3cbd53aa0022d98507092d7d630aad46312cdd106b8e7bf7a85586808661c1", "max_abs_error": 4.887580871582031e-06, "absolute_tolerance": 0.002, "relative_tolerance": 0.002, "n_images": 3}}

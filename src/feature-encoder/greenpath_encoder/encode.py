@@ -4,6 +4,8 @@ import importlib.metadata
 import json
 from pathlib import Path
 import shutil
+import sys
+import platform
 import numpy as np
 import pandas as pd
 from PIL import Image
@@ -88,6 +90,7 @@ def encode(encoder_dir, input_file, data_root, output, artifact_version, device=
             x = (x - mean) / std
             views = [torch.rot90(x, k, (2, 3)) for k in range(4)] + [torch.rot90(torch.flip(x, (3,)), k, (2, 3)) for k in range(4)]
             outputs.append(torch.stack([model.encode_image(v) for v in views]).mean(0).float().cpu().numpy())
+            print(json.dumps({"stage": "encoding", "completed": min(i + batch_size, len(pixels)), "total": len(pixels)}), file=sys.stderr, flush=True)
     values = np.concatenate(outputs)
     if values.shape != (len(rows), 512) or not np.isfinite(values).all():
         raise ValueError("Invalid encoder output shape or values")
@@ -111,6 +114,7 @@ def encode(encoder_dir, input_file, data_root, output, artifact_version, device=
         write_json(staging / "embedding.json", {"encoder_version": manifest["artifact_version"],
             "encoder_manifest_sha256": digest(encoder_dir / "manifest.json"), "weights_sha256": spec["weights_sha256"],
             "device": device, "batch_size": batch_size, "n_cells": len(rows), "features": columns,
+            "runtime_versions": {name: importlib.metadata.version(name) for name in ["torch", "open_clip_torch", "numpy"]}, "platform": platform.platform(),
             "images": sources, "cache_comparison": validation})
         seal(staging, artifact_version, "greenpath-embeddings-v1")
     return {"artifact_version": artifact_version, "n_images": len(rows), "cache_comparison": validation}

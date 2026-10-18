@@ -22,3 +22,5 @@ Their shape and columns alone cannot establish which encoder produced them.
 
 This is batch inference, not a hosted endpoint. The existing API still uses its
 step-1 geographic fixture. See [STEP2.md](../../docs/STEP2.md).
+The Dockerfile builds a separate lightweight inference image. Build instructions are in
+[CONTAINERS.md](../../docs/CONTAINERS.md).
