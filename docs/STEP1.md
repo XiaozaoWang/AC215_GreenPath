@@ -22,7 +22,7 @@ read by the serving adapter. Full future inference needs the encoder/preprocessi
 regression bundle from step 2. Existing notebook GCS_ROOT values are still research
 examples; they are not used by the new artifact CLI or proof of a complete upload.
 
-The target schema is `greenpath-experience-v1`. `api/dimensions.json` is the authoring
+The target schema is `greenpath-experience-en-v2`. `api/dimensions.json` is the authoring
 copy; `tools/build_contract_fixture.py` copies it into the release. The API reads the
 selected **bundle's** checksummed `schema.json` as its runtime source of truth.
 To publish a changed model contract, produce a **new bundle/version**, then restart.
@@ -62,14 +62,15 @@ Published artifact scopes:
 
 | Prefix | Scope |
 |---|---|
-| `serving/boston-heldout-v1` | 188 H3 polygons, eight-dimensional saved test predictions, contract and provenance |
+| `serving/boston-heldout-en-v2` | 188 H3 polygons, eight-dimensional saved test predictions, contract and provenance |
 | `datasets/v1-tabular-export-v1` | Frozen dataset/train/val/test tables, original schema/card/manifest and provenance audit; **no image files or raw inputs** |
 
 This is not yet a complete shared training dataset. Raw imagery, encoder weights and
 trained regression artifacts still need versioned publication in later steps.
 
 The v1 original manifest's hashes do not match current `processed/cells.parquet` and
-`processed/osm_features.parquet`. The original manifest remains intact and the mismatch
+`processed/osm_features.parquet`. The original cloud manifest remains intact; the new English-only serving bundle includes
+an explicitly translated audit view with its original SHA-256 recorded in provenance. The mismatch
 is recorded in `provenance.json`; these current processed files are not passed off as
 original v1 inputs. A future complete snapshot must resolve or explicitly version them.
 
@@ -79,14 +80,14 @@ original v1 inputs. A future complete snapshot must resolve or explicitly versio
 cd api-service
 uv sync --frozen --python 3.12
 uv run --frozen python -m api.artifacts fetch \
-  gs://ac215-greenpath/serving/boston-heldout-v1 ../.artifacts/boston-heldout-v1
-uv run --frozen python -m api.artifacts verify ../.artifacts/boston-heldout-v1
+  gs://ac215-greenpath/serving/boston-heldout-en-v2 ../.artifacts/boston-heldout-en-v2
+uv run --frozen python -m api.artifacts verify ../.artifacts/boston-heldout-en-v2
 ```
 
 Run the app against that downloaded cache:
 
 ```sh
-MODEL_BUNDLE_DIR=/artifacts/boston-heldout-v1 docker compose up --build
+MODEL_BUNDLE_DIR=/artifacts/boston-heldout-en-v2 docker compose up --build
 ```
 
 Set `MODEL_BUNDLE_DIR` to the host cache path for direct, non-Docker Python execution;
@@ -108,7 +109,7 @@ For an authenticated one-shot container artifact command (writable cache; API st
 
 ```sh
 docker compose -f docker-compose.yml -f docker-compose.gcp.yml run --rm artifact-tools \
-  fetch gs://ac215-greenpath/serving/boston-heldout-v1 /artifacts/boston-heldout-v1
+  fetch gs://ac215-greenpath/serving/boston-heldout-en-v2 /artifacts/boston-heldout-en-v2
 ```
 
 ### Publish a new prepared version
@@ -182,6 +183,30 @@ The current `docker compose up` runs the application, **not** the full data-to-t
 - API and frontend containers started on isolated ports **9001 / 3001**.
 - Final frontend production Docker build passed.
 - Real browser confirmed H3 placement, dynamic dimensions and unsupported-water notice.
-- Host and authenticated one-shot container both fetched and verified the GCS serving bundle.
-- The running API uses the GCS-downloaded cache; the mount is read-only.
+- Host and authenticated one-shot container previously fetched and verified the original `boston-heldout-v1` GCS bundle.
+- Those original cloud checks do not establish publication or container download of the new English-only revision.
+- API artifact mounts are read-only.
 - Evidence: `docs/step1/evidence/verification-summary.json`, API request/response, test/build logs and screenshot.
+
+## English-only revision
+
+The active contract is `greenpath-experience-en-v2`; the serving artifact is
+`boston-heldout-en-v2`. Labels, offline keywords, examples and documentation are English.
+The offline parser now recognizes English keywords only. Predictive scores, geographic
+boundaries and model version are unchanged. No notebook was run or translated.
+
+The original GCS `serving/boston-heldout-v1` and `datasets/v1-tabular-export-v1` objects
+are historical artifacts and remain unchanged, including their original metadata language.
+Never overwrite those prefixes to translate their content. The translated source dataset
+manifest in the new bundle changes funnel key labels only; provenance retains the original
+file SHA-256. Its source keys are recognized with Unicode escapes in the exporter so
+historical datasets can be read without changing their files.
+
+The English-only serving revision has been published to its new GCS prefix and fetched
+and verified on the host. See `step1/evidence/english-revision.json` for validation status. Earlier build logs and the screenshot describe the original step-1 verification;
+they are retained as historical evidence rather than presented as fresh runs.
+
+The local validation instance now reads `/artifacts/boston-heldout-en-v2`. Its live
+`/capabilities` reports the English schema and all 59 tests passed again inside Docker.
+The new bundle was fetched with host ADC; a separate container-ADC download was not
+repeated for this revision.

@@ -1,11 +1,11 @@
 {
   "project": "organic-victory-508017-v9",
   "bucket": "ac215-greenpath",
-  "serving_uri": "gs://ac215-greenpath/serving/boston-heldout-v1",
+  "serving_uri": "gs://ac215-greenpath/serving/boston-heldout-en-v2",
   "dataset_uri": "gs://ac215-greenpath/datasets/v1-tabular-export-v1",
   "host_download_verified": true,
-  "container_adc_download_verified": true,
-  "active_container_cache": "/artifacts/boston-heldout-v1",
+  "container_adc_download_verified": false,
+  "active_container_cache": "/artifacts/boston-heldout-en-v2",
   "sample_cells": 188,
   "dimensions": [
     "traffic_intensity",
@@ -25,5 +25,10 @@
     "Table snapshot excludes images/raw inputs",
     "Per-dimension RMSE remains an explicit placeholder",
     "Full ML pipeline containerization is a later step"
-  ]
+  ],
+  "english_revision": {
+    "previous_verified_serving_uri": "gs://ac215-greenpath/serving/boston-heldout-v1",
+    "new_serving_publication": "Published and host download verified; see english-revision.json for current validation.",
+    "note": "The original container ADC download check applies to v1. The new version was published, fetched on the host, and loaded by the API container; 59 Docker tests passed."
+  }
 }

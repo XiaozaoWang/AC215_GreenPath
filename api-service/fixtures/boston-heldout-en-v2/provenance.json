@@ -26,5 +26,12 @@
       "matches_recorded": true
     }
   },
-  "limitation": "Saved predictions from an existing frozen baseline experiment. No model weights are included and no new-area inference is provided. Current processed tables with mismatching hashes are not published as original v1 inputs. Labels remain VLM-generated, not human-validated."
+  "limitation": "Saved predictions from an existing frozen baseline experiment. No model weights are included and no new-area inference is provided. Current processed tables with mismatching hashes are not published as original v1 inputs. Labels remain VLM-generated, not human-validated.",
+  "documentation_revision": "English-only metadata; model scores and geographic boundaries are unchanged.",
+  "source_manifest_translation": {
+    "file": "source-dataset-manifest.json",
+    "scope": "English funnel key translations only; original values are unchanged. This is a translated audit view, not a byte-for-byte source copy.",
+    "original_sha256": "2f6acadfd4f6419b45426932291257c3ef8d5c02db8357dbb902c2005d499d43",
+    "original_serving_uri": "gs://ac215-greenpath/serving/boston-heldout-v1"
+  }
 }

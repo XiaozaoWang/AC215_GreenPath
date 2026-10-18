@@ -15,7 +15,7 @@ services:
       GCP_PROJECT: ${GCP_PROJECT:-organic-victory-508017-v9}
       LLM_PROVIDER: ${LLM_PROVIDER:-mock}
       MODEL_PROVIDER: ${MODEL_PROVIDER:-bundle}
-      MODEL_BUNDLE_DIR: ${MODEL_BUNDLE_DIR:-/app/fixtures/boston-heldout-v1}
+      MODEL_BUNDLE_DIR: ${MODEL_BUNDLE_DIR:-/app/fixtures/boston-heldout-en-v2}
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:9000/', timeout=3)"]
       interval: 10s

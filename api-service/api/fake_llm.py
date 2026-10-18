@@ -14,10 +14,10 @@ def fake_ask(user_prompt: str, system_instruction: str = '', response_schema=Non
         return legacy(user_prompt, system_instruction, response_schema)
     text = user_prompt.split('User description:\n', 1)[-1].split('\n\nYour previous answer was rejected', 1)[0].lower()
     weights, required = {}, []
-    for clause in re.split(r'[,，.。;；!！?？]|\bbut\b|但是|但', text):
-        negative = any(_has(clause, w) for w in ['avoid', 'no', 'not', 'without', 'less', '不要', '避开', '别', '不想', '少点'])
-        soft = any(_has(clause, w) for w in ['if possible', 'ideally', 'prefer', '最好', '尽量', '有点'])
-        must = any(_has(clause, w) for w in ['must', 'required', 'have to', '必须', '一定要'])
+    for clause in re.split(r'[,.;!?]|\bbut\b', text):
+        negative = any(_has(clause, w) for w in ['avoid', 'no', 'not', 'without', 'less'])
+        soft = any(_has(clause, w) for w in ['if possible', 'ideally', 'prefer'])
+        must = any(_has(clause, w) for w in ['must', 'required', 'have to'])
         for name, detail in SPEC['dimensions'].items():
             hit = next((w for w in detail.get('keywords', []) if _has(clause, w)), None)
             if hit is None or name in weights:

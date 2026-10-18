@@ -24,7 +24,7 @@ def load_spec(path: Path) -> dict:
 PROVIDER = os.environ.get("MODEL_PROVIDER", "bundle")
 if PROVIDER not in {"bundle", "legacy"}:
     raise ValueError("MODEL_PROVIDER must be bundle or legacy")
-BUNDLE_DIR = Path(os.environ.get("MODEL_BUNDLE_DIR", str(Path(__file__).parent.parent / "fixtures" / "boston-heldout-v1")))
+BUNDLE_DIR = Path(os.environ.get("MODEL_BUNDLE_DIR", str(Path(__file__).parent.parent / "fixtures" / "boston-heldout-en-v2")))
 default_schema = Path(__file__).with_name("dimensions.legacy.json" if PROVIDER == "legacy" else "dimensions.json")
 if PROVIDER == "bundle" and (BUNDLE_DIR / "schema.json").exists():
     default_schema = BUNDLE_DIR / "schema.json"

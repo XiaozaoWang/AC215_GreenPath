@@ -30,7 +30,7 @@ class ScriptedLLM:
 # Valid on the first try: ask only once, no fallback
 def test_valid_first_try():
     fake = ScriptedLLM(reply("shade", 1.0))
-    result = agent.get_preference("想看水", ask=fake)
+    result = agent.get_preference("I would like shade", ask=fake)
     assert len(result.attempts) == 1 and not result.used_fallback
     assert result.preference.as_vector()["shade"] == 1.0
 
@@ -38,7 +38,7 @@ def test_valid_first_try():
 # Not valid the first time: when asking again, the prompt must include the error message, then it's valid
 def test_retry_carries_error():
     fake = ScriptedLLM(reply("beach", 1.0), reply("shade", 1.0))
-    result = agent.get_preference("想看海", ask=fake)
+    result = agent.get_preference("I would like shade", ask=fake)
     assert len(result.attempts) == 2 and not result.used_fallback
     assert result.attempts[0].error is not None and result.attempts[1].error is None
     assert "rejected" in fake.prompts[1] and "rejected" not in fake.prompts[0]
@@ -47,7 +47,7 @@ def test_retry_carries_error():
 # Still not valid after MAX_ATTEMPTS tries: stop and fall back to all 0 (no endless retries)
 def test_fallback_after_max_attempts():
     fake = ScriptedLLM(*["not json"] * agent.MAX_ATTEMPTS)
-    result = agent.get_preference("随便", ask=fake)
+    result = agent.get_preference("Any scenery", ask=fake)
     assert len(result.attempts) == agent.MAX_ATTEMPTS and result.used_fallback
     assert not any(result.preference.as_vector().values())
 
@@ -56,7 +56,7 @@ def test_fallback_after_max_attempts():
 def test_llm_exception_counts_as_failed_attempt():
     def broken(*args):
         raise RuntimeError("quota exceeded")
-    result = agent.get_preference("随便", ask=broken)
+    result = agent.get_preference("Any scenery", ask=broken)
     assert result.used_fallback
     assert all("LLM call failed" in a.error for a in result.attempts)
 
@@ -81,9 +81,9 @@ def test_invalid_replies_rejected(raw):
 # ---------- offline stand-in fake_llm ----------
 # The stand-in's output must pass the same checks, and get positive/negative and soft/hard right
 @pytest.mark.parametrize("text, expected", [
-    ("最好有树荫，别有太多车", {"shade": 0.6, "traffic_intensity": -1.0}),
+    ("Ideally shade, avoid cars", {"shade": 0.6, "traffic_intensity": -1.0}),
     ("Shade if possible, avoid traffic", {"shade": 0.6, "traffic_intensity": -1.0}),
-    ("我想走自行车道", {}),   # "自行车道" (bike lane) must not be taken as traffic
+    ("I want a bike lane", {}),   # "bike lane" must not be taken as traffic
 ])
 def test_fake_llm_rules(text, expected):
     preference = Preference.model_validate_json(fake_llm.fake_ask(f"User description:\n{text}"))
@@ -91,15 +91,15 @@ def test_fake_llm_rules(text, expected):
     assert {k: v for k, v in vector.items() if v} == expected
 
 
-# Words like "一定要" (must) → go into must_have
+# Words like "required" → go into must_have
 def test_fake_llm_must_have():
-    preference = Preference.model_validate_json(fake_llm.fake_ask("User description:\n一定要有树荫"))
+    preference = Preference.model_validate_json(fake_llm.fake_ask("User description:\nShade is required"))
     assert preference.must_have == ["shade"]
 
 
 # Switch: when LLM_PROVIDER=mock, llm.ask() uses the stand-in and doesn't build a Gemini client
 def test_llm_switch_to_mock(monkeypatch):
     monkeypatch.setenv("LLM_PROVIDER", "mock")
-    raw = llm.ask("User description:\n想要树荫", "", Preference)
+    raw = llm.ask("User description:\nI want shade", "", Preference)
     assert Preference.model_validate_json(raw).as_vector()["shade"] == 1.0
     assert llm._client is None

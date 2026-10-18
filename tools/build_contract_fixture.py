@@ -8,6 +8,9 @@ from pathlib import Path
 import shutil
 
 
+# Historical source keys are decoded only to produce an English audit view.
+FUNNEL_KEYS = {'\u5408\u5e76\u540e\u7684\u683c\u5b50': 'merged_cells', '\u536b\u661f\u56fe\u53ef\u7528': 'valid_satellite_tiles', '\u81f3\u5c11 1 \u4e2a\u7ef4\u5ea6\u6709\u6807\u7b7e': 'at_least_one_labeled_dimension', '\u536b\u661f\u56fe\u4e0e\u8857\u666f\u5e74\u4efd\u76f8\u5dee \u2264 3 \u5e74': 'satellite_streetview_year_gap_at_most_3', 'OSM \u7279\u5f81\u9f50\u5168': 'complete_osm_features', '\u7f13\u51b2\u533a\uff1a\u4e22\u6389\u7d27\u6328\u6d4b\u8bd5\u96c6\u7684 1 \u5708\u683c\u5b50': 'after_removing_one_ring_test_buffer'}
+
 def digest(p):
     return hashlib.sha256(p.read_bytes()).hexdigest()
 
@@ -63,7 +66,9 @@ def main():
         scores.append({'cell_id': row['cell_id'], 'scores': {d: float(row[f'M1__{d}']) for d in dims}})
     write_json(out / 'region.geojson', {'type': 'FeatureCollection', 'features': features})
     write_json(out / 'scores.json', scores)
-    shutil.copyfile(dataset / 'manifest.json', out / 'source-dataset-manifest.json')
+    source_manifest_english = json.loads(json.dumps(ds_manifest))
+    source_manifest_english['funnel'] = {FUNNEL_KEYS.get(key, key): value for key, value in ds_manifest.get('funnel', {}).items()}
+    write_json(out / 'source-dataset-manifest.json', source_manifest_english)
     shutil.copyfile(results / 'config.json', out / 'source-experiment-config.json')
     current_inputs = {}
     for name, recorded in ds_manifest['inputs'].items():
@@ -71,15 +76,17 @@ def main():
         current_inputs[name] = {'recorded_sha256_prefix': recorded, 'current_sha256': current, 'matches_recorded': current.startswith(recorded)}
     write_json(out / 'provenance.json', {
         'experiment': experiment, 'dataset_version': 'v1', 'model': 'M1',
+        'documentation_revision': 'English-only metadata; model scores and geographic boundaries are unchanged.',
+        'source_manifest_translation': {'file': 'source-dataset-manifest.json', 'scope': 'English funnel key translations only; original values are unchanged. This is a translated audit view, not a byte-for-byte source copy.', 'original_sha256': digest(dataset / 'manifest.json'), 'original_serving_uri': 'gs://ac215-greenpath/serving/boston-heldout-v1'},
         'prediction_role': 'held_out_test', 'n_cells': len(scores),
         'source_files': {str(p.relative_to(data)): digest(p) for p in [dataset / 'dataset.parquet', results / 'predictions.parquet', results / 'config.json']},
         'upstream_input_audit': current_inputs,
         'limitation': 'Saved predictions from an existing frozen baseline experiment. No model weights are included and no new-area inference is provided. Current processed tables with mismatching hashes are not published as original v1 inputs. Labels remain VLM-generated, not human-validated.'})
     manifest = {
-        'artifact_version': 'boston-heldout-v1', 'format_version': 'greenpath-region-v1',
+        'artifact_version': 'boston-heldout-en-v2', 'format_version': 'greenpath-region-v1',
         'schema_version': active_schema['schema_version'], 'schema_file': 'schema.json',
         'dataset_version': 'v1', 'model_version': 'm1-clip-baseline-20261013T0242',
-        'region_id': 'boston-heldout-v1', 'region_name': 'Boston · held-out H3 cells',
+        'region_id': 'boston-heldout-en-v2', 'region_name': 'Boston · held-out H3 cells',
         'prediction_source': 'saved_heldout_baseline',
         'description': 'Real M1 baseline test predictions; fixed-region fixture, not live inference.',
         'geometry_file': 'region.geojson', 'scores_file': 'scores.json',

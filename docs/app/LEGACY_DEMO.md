@@ -168,9 +168,9 @@ LLM_PROVIDER=mock docker compose up --build
 
 Or copy `.env.example` to `.env` and set `LLM_PROVIDER=mock` there (`.env` is not committed).
 
-- `api/fake_llm.py` reads keywords (English and Chinese) and returns the same JSON format as Gemini, so the harness,
+- `api/fake_llm.py` reads English keywords and returns the same JSON format as Gemini, so the harness,
   validation, heatmap and page all run normally.
-- It only matches keywords: "想沿着河骑，最好有树荫，别有太多车" gives `water +1`, `tree_canopy +0.6`, `traffic −1`,
+- It only matches keywords: "Ride along the river, shade if possible, avoid traffic" gives `water +1`, `tree_canopy +0.6`, `traffic −1`,
   but it has no associations or real understanding. Use Gemini (`LLM_PROVIDER=gemini`, the default) for demos.
 - The Gemini client is only created on the first real Gemini call, so mock mode needs no `GCP_PROJECT` and no key.
 
@@ -218,7 +218,7 @@ Example:
 
 ```bash
 curl -X POST localhost:9000/score -H 'Content-Type: application/json' \
-  -d '{"text": "周末想沿着河骑，最好有树荫，别有太多车", "region_id": "demo"}'
+  -d '{"text": "Ride along the river, shade if possible, avoid traffic", "region_id": "demo"}'
 ```
 
 Response (shortened, full file in `docs/m2-evidence/sample_score_response.json`):
@@ -229,15 +229,15 @@ Response (shortened, full file in `docs/m2-evidence/sample_score_response.json`)
   "agent": {
     "preference": {
       "weights": [
-        {"dimension": "water", "reason": "沿着河骑", "weight": 1.0},
-        {"dimension": "tree_canopy", "reason": "最好有树荫", "weight": 0.6},
-        {"dimension": "traffic", "reason": "别有太多车", "weight": -1.0},
-        {"dimension": "quiet_residential", "reason": "安静骑行环境", "weight": 0.4},
-        {"dimension": "cleanliness", "reason": "舒适骑行环境", "weight": 0.3}
+        {"dimension": "water", "reason": "ride along the river", "weight": 1.0},
+        {"dimension": "tree_canopy", "reason": "shade if possible", "weight": 0.6},
+        {"dimension": "traffic", "reason": "avoid traffic", "weight": -1.0},
+        {"dimension": "quiet_residential", "reason": "quiet cycling environment", "weight": 0.4},
+        {"dimension": "cleanliness", "reason": "comfortable cycling environment", "weight": 0.3}
       ],
       "must_have": []
     },
-    "attempts": [{"prompt": "User description:\n周末想沿着河骑…", "raw": "{…}", "error": null}],
+    "attempts": [{"prompt": "User description:\nRide along the river…", "raw": "{…}", "error": null}],
     "used_fallback": false
   },
   "weights": {"water": 1.0, "tree_canopy": 0.6, "park": 0.0, "...": "20 dims"},

@@ -15,7 +15,7 @@ Rules:
 - Omit unrelated dimensions (their weight is zero); never repeat a dimension.
 - must_have contains supported dimensions explicitly required to have a high value. Do not
   put negatively weighted requirements in must_have (the current gate only supports minima).
-- Give a short reason in the user's language. Always return the supplied JSON schema.
+- Give a short reason in English. Always return the supplied JSON schema.
 '''
 
 

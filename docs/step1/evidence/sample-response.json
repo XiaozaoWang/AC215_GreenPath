@@ -1,5 +1,5 @@
 {
-  "region_id": "boston-heldout-v1",
+  "region_id": "boston-heldout-en-v2",
   "agent": {
     "preference": {
       "weights": [
@@ -68,11 +68,11 @@
     }
   },
   "timings_ms": {
-    "agent": 2.6,
-    "model": 2.5,
-    "score": 4.8
+    "agent": 0.4,
+    "model": 0.1,
+    "score": 0.3
   },
-  "schema_version": "greenpath-experience-v1",
+  "schema_version": "greenpath-experience-en-v2",
   "model_version": "m1-clip-baseline-20261013T0242",
   "prediction_source": "saved_heldout_baseline",
   "description": "Real M1 baseline test predictions; fixed-region fixture, not live inference.",

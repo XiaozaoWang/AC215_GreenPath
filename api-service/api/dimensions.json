@@ -1,5 +1,5 @@
 {
-  "schema_version": "greenpath-experience-v1",
+  "schema_version": "greenpath-experience-en-v2",
   "score_range": [
     0,
     1
@@ -8,101 +8,75 @@
   "dimensions": {
     "traffic_intensity": {
       "label": "Traffic intensity",
-      "label_zh": "交通强度",
       "description": "Higher means heavier perceived motor traffic.",
       "keywords": [
         "traffic",
         "cars",
-        "car traffic",
-        "车流",
-        "汽车",
-        "交通",
-        "太多车"
+        "car traffic"
       ]
     },
     "quietness": {
       "label": "Quietness",
-      "label_zh": "安静程度",
       "description": "Higher means a quieter perceived street environment.",
       "keywords": [
         "quiet",
         "quietness",
         "calm",
-        "peaceful",
-        "安静",
-        "宁静"
+        "peaceful"
       ]
     },
     "shade": {
       "label": "Shade",
-      "label_zh": "树荫",
       "description": "Higher means more perceived shade at street level.",
       "keywords": [
         "shade",
         "shady",
-        "tree shade",
-        "树荫",
-        "林荫"
+        "tree shade"
       ]
     },
     "naturalness": {
       "label": "Naturalness",
-      "label_zh": "自然感",
       "description": "Higher means a more natural-looking street environment; this does not specifically measure water or parks.",
       "keywords": [
         "natural",
         "nature",
-        "naturalness",
-        "自然"
+        "naturalness"
       ]
     },
     "scenic_appeal": {
       "label": "Scenic appeal",
-      "label_zh": "景观吸引力",
       "description": "Higher means more visually appealing scenery.",
       "keywords": [
         "scenic",
         "beautiful",
-        "scenery",
-        "景色",
-        "好看",
-        "风景"
+        "scenery"
       ]
     },
     "historic_character": {
       "label": "Historic character",
-      "label_zh": "历史风貌",
       "description": "Higher means a stronger perceived historic character.",
       "keywords": [
         "historic",
         "history",
-        "old buildings",
-        "历史",
-        "古建筑"
+        "old buildings"
       ]
     },
     "liveliness": {
       "label": "Liveliness",
-      "label_zh": "活力",
       "description": "Higher means more perceived street activity and liveliness.",
       "keywords": [
         "lively",
         "liveliness",
-        "vibrant",
-        "活力",
-        "热闹"
+        "vibrant"
       ]
     },
     "visual_openness": {
       "label": "Visual openness",
-      "label_zh": "视野开阔度",
       "description": "Higher means a more open visual field at street level.",
       "keywords": [
         "open views",
         "openness",
-        "open view",
-        "开阔",
-        "视野"
+        "open view"
       ]
     }
   },
@@ -116,22 +90,15 @@
       "river",
       "water",
       "waterfront",
-      "lake",
-      "沿河",
-      "河边",
-      "水体"
+      "lake"
     ],
     "bike_lane": [
       "bike lane",
-      "bike path",
-      "自行车道",
-      "骑行道"
+      "bike path"
     ],
     "cleanliness": [
       "cleanliness",
-      "tidy",
-      "整洁",
-      "干净"
+      "tidy"
     ]
   }
 }

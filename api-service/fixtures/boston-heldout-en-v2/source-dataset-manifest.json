@@ -37,12 +37,12 @@
     "test_cities": []
   },
   "funnel": {
-    "合并后的格子": 1126,
-    "卫星图可用": 1126,
-    "至少 1 个维度有标签": 1116,
-    "卫星图与街景年份相差 ≤ 3 年": 1091,
-    "OSM 特征齐全": 1091,
-    "缓冲区：丢掉紧挨测试集的 1 圈格子": 1012
+    "merged_cells": 1126,
+    "valid_satellite_tiles": 1126,
+    "at_least_one_labeled_dimension": 1116,
+    "satellite_streetview_year_gap_at_most_3": 1091,
+    "complete_osm_features": 1091,
+    "after_removing_one_ring_test_buffer": 1012
   },
   "counts": {
     "train": 651,
