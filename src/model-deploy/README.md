@@ -20,7 +20,8 @@ New encoder-generated inputs must carry matching encoder provenance. Historical
 notebook cache files are also accepted and explicitly marked in prediction metadata.
 Their shape and columns alone cannot establish which encoder produced them.
 
-This is batch inference, not a hosted endpoint. The existing API still uses its
-step-1 geographic fixture. See [STEP2.md](../../docs/STEP2.md).
+This is batch inference, not a hosted endpoint. `greenpath-infer` also packages matching
+H3 geometry and provenance for the API. `make run` selects the generated bundle; the
+standalone app can still use its historical fixture. See [PIPELINE.md](../../docs/PIPELINE.md).
 The Dockerfile builds a separate lightweight inference image. Build instructions are in
 [CONTAINERS.md](../../docs/CONTAINERS.md).

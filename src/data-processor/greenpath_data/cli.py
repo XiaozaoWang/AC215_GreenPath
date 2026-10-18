@@ -1,6 +1,7 @@
 """Cached-source ingestion and real dataset preparation for the four-job ML pipeline."""
 import argparse
 import json
+import os
 from pathlib import Path
 from greenpath_model.artifact import verify
 from greenpath_data.dataset import prepare
@@ -26,7 +27,7 @@ def main():
     for key in ["cache", "contract", "output"]:
         ingest.add_argument(f"--{key}", type=Path, required=True)
     ingest.add_argument("--mode", choices=["smoke", "full"], default="smoke")
-    ingest.add_argument("--offline", action="store_true")
+    ingest.add_argument("--offline", action="store_true", default=os.environ.get("PIPELINE_OFFLINE") == "1")
     args = parser.parse_args()
     if args.command == "snapshot":
         result = export_sources(args.data_root, args.config, args.output, args.artifact_version)

@@ -1,0 +1,3 @@
+Browser tab: 3, Title: "SmartPath", URL: "http://localhost:3030/".
+There has been no change in the accessibility tree.
+The focused UI element is 0 AXWebArea SmartPath, URL: localhost:3030/

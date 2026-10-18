@@ -1,0 +1,194 @@
+{
+  "region_id": "serving-smoke-20261018-02",
+  "agent": {
+    "preference": {
+      "weights": [
+        {
+          "dimension": "quietness",
+          "reason": "mock keyword: quiet",
+          "weight": 1.0
+        },
+        {
+          "dimension": "shade",
+          "reason": "mock keyword: shade",
+          "weight": 1.0
+        },
+        {
+          "dimension": "traffic_intensity",
+          "reason": "mock keyword: traffic",
+          "weight": -1.0
+        }
+      ],
+      "must_have": [],
+      "unsupported": []
+    },
+    "attempts": [
+      {
+        "prompt": "User description:\nA quiet ride with shade, avoid traffic",
+        "raw": "{\"weights\": [{\"dimension\": \"quietness\", \"weight\": 1.0, \"reason\": \"mock keyword: quiet\"}, {\"dimension\": \"shade\", \"weight\": 1.0, \"reason\": \"mock keyword: shade\"}, {\"dimension\": \"traffic_intensity\", \"weight\": -1.0, \"reason\": \"mock keyword: traffic\"}], \"must_have\": [], \"unsupported\": []}",
+        "error": null
+      }
+    ],
+    "used_fallback": false
+  },
+  "weights": {
+    "traffic_intensity": -1.0,
+    "quietness": 1.0,
+    "shade": 1.0,
+    "naturalness": 0.0,
+    "scenic_appeal": 0.0,
+    "historic_character": 0.0,
+    "liveliness": 0.0,
+    "visual_openness": 0.0
+  },
+  "stats": {
+    "n_tiles": 48,
+    "n_excluded": 0,
+    "t_min": -4.348,
+    "t_max": 5.13,
+    "mean": {
+      "traffic_intensity": 0.4992,
+      "quietness": 0.469,
+      "shade": 0.2941,
+      "naturalness": 0.3836,
+      "scenic_appeal": 0.5358,
+      "historic_character": 0.4323,
+      "liveliness": 0.1611,
+      "visual_openness": 0.5441
+    },
+    "sigma": {
+      "traffic_intensity": 0.1587,
+      "quietness": 0.1363,
+      "shade": 0.1375,
+      "naturalness": 0.1209,
+      "scenic_appeal": 0.1415,
+      "historic_character": 0.08,
+      "liveliness": 0.05,
+      "visual_openness": 0.1052
+    }
+  },
+  "timings_ms": {
+    "agent": 1.1,
+    "model": 0.5,
+    "score": 1.8
+  },
+  "schema_version": "greenpath-experience-en-v2",
+  "model_version": "model-smoke-20261018-02",
+  "prediction_source": "batch_inference_reloaded_model",
+  "description": "Fresh container pipeline predictions over 48 smoke cells; not per-request image inference.",
+  "rmse_source": "placeholder: 0.05 (5% of score range, not measured error)",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "BOS_8a2a3064420ffff",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -71.10844983359408,
+              42.34163497915737
+            ],
+            [
+              -71.10939863465627,
+              42.34150599217319
+            ],
+            [
+              -71.10972831360166,
+              42.340865603996455
+            ],
+            [
+              -71.10910920975894,
+              42.34035421073701
+            ],
+            [
+              -71.10816043194235,
+              42.34048319437962
+            ],
+            [
+              -71.10783073472328,
+              42.341123574623154
+            ],
+            [
+              -71.10844983359408,
+              42.34163497915737
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "BOS_8a2a3064420ffff",
+        "h3_index": "8a2a3064420ffff",
+        "value": -1.888,
+        "scores": {
+          "traffic_intensity": 0.5656363368034363,
+          "quietness": 0.4074721932411194,
+          "shade": 0.15403969585895538,
+          "naturalness": 0.30975642800331116,
+          "scenic_appeal": 0.4168201982975006,
+          "historic_character": 0.3495289087295532,
+          "liveliness": 0.19645357131958008,
+          "visual_openness": 0.49759671092033386
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "BOS_8a2a3064422ffff",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -71.1071713133196,
+              42.34240434551833
+            ],
+            [
+              -71.1081201320292,
+              42.34227536857178
+            ],
+            [
+              -71.10844983359408,
+              42.34163497915737
+            ],
+            [
+              -71.10783073472328,
+              42.341123574623154
+            ],
+            [
+              -71.10688193926039,
+              42.341252548228695
+            ],
+            [
+              -71.10655221942199,
+              42.34189292970939
+            ],
+            [
+              -71.1071713133196,
+              42.34240434551833
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "cell_id": "BOS_8a2a3064422ffff",
+        "h3_index": "8a2a3064422ffff",
+        "value": -0.153,
+        "scores": {
+          "traffic_intensity": 0.4742985665798187,
+          "quietness": 0.47561323642730713,
+          "shade": 0.24481315910816193,
+          "naturalness": 0.38651856780052185,
+          "scenic_appeal": 0.4916951060295105,
+          "historic_character": 0.33288440108299255,
+          "liveliness": 0.16889789700508118,
+          "visual_openness": 0.5161948800086975
+        }
+      }
+    }
+  ],
+  "rows": 0,
+  "cols": 0,
+  "heatmap": null,
+  "preview_note": "Only first two of 48 features shown. Complete response is retained in the local immutable run directory."
+}

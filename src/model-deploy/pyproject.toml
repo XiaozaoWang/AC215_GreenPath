@@ -7,6 +7,7 @@ dependencies = ["numpy==2.4.6", "pandas==3.0.6", "pyarrow==26.0.0"]
 
 [project.scripts]
 greenpath-predict = "greenpath_model.predict:main"
+greenpath-infer = "greenpath_model.region:main"
 
 [build-system]
 requires = ["setuptools>=84"]

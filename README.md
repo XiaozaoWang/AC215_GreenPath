@@ -1,6 +1,6 @@
-> **Milestone 2 integration branch: step 1 implemented.** The app uses a model-owned eight-dimension schema and real Boston H3 baseline test predictions. Start with [the integration guide](docs/STEP1.md). This is an interface and storage foundation; the complete containerized training pipeline is a later step.
+> **Milestone 2 integration branch.** Run the four-job container pipeline with `make run`: ingest versioned cached sources, prepare data, encode images, train/reload M1 and feed the app. Start with [the pipeline guide](docs/PIPELINE.md). The verified smoke run uses 48 images; live source collection and teacher labeling remain upstream research tasks.
 
-> **Step 2:** Reloadable M1 model export and independent image inference are documented in [STEP2.md](docs/STEP2.md). New encoding, training and inference components live under `src/`. The app continues to use the step-1 geographic prediction fixture until the next integration stage.
+> Earlier work: [step 1](docs/STEP1.md) established the geographic model contract; [step 2](docs/STEP2.md) exported the original M1 model. [Container builds](docs/CONTAINERS.md) and [app wireframe](docs/APP_DESIGN.md) document the current integration.
 
 # GreenPath: data workflow and application
 
@@ -19,7 +19,20 @@ The research notebooks turn raw inputs into a training table with one row per H3
 
 Collection starts with street-view coverage. Those locations determine which H3 cells receive aerial imagery and geographic features, avoiding unnecessary downloads for cells without labels.
 
-## Run the application
+## Run the container pipeline
+
+With Docker, Python 3.9+, make and authorized GCS ADC ready:
+
+```sh
+make run
+```
+
+Frontend: http://localhost:3030; API docs: http://localhost:9030/docs.
+The four ML jobs run in order and exit; the two app containers continue running.
+See [PIPELINE.md](docs/PIPELINE.md) for prerequisites, versions, offline/full options,
+logs and exact scope. Project code, comments and new submission documentation are English.
+
+## Run only the standalone application
 
 With Docker Desktop running, from the repository root:
 
@@ -33,7 +46,7 @@ docker compose up --build
 - Default vision scores: real saved M1 predictions for 188 held-out Boston cells.
 - Current English-only fixture: `boston-heldout-en-v2`.
 
-The app does not yet reload a fitted regression model or run the full training workflow. GCS setup, optional ADC mounts and artifact commands are documented in [docs/STEP1.md](docs/STEP1.md). Credentials are not required for the bundled offline example.
+This standalone command uses the bundled historical prediction fixture. `make run` instead generates and selects a fresh model-derived serving bundle. GCS setup and the historical artifact commands are documented in [docs/STEP1.md](docs/STEP1.md). Credentials are not required for the standalone bundled example.
 
 ## Research notebook setup
 

@@ -18,6 +18,10 @@ from greenpath_model.bundle import RegressionBundle
 
 def load_inputs(data_root, config_file, contract_file, embedding_file=None):
     data_root = Path(data_root)
+    if (data_root / "manifest.json").exists():
+        manifest = verify(data_root)
+        if manifest.get("format_version") not in ["greenpath-prepared-data-v1", "greenpath-m1-training-inputs-v1"]:
+            raise ValueError("Unsupported training data artifact")
     config = json.loads(Path(config_file).read_text())
     contract = json.loads(Path(contract_file).read_text())
     version = config["dataset_version"]

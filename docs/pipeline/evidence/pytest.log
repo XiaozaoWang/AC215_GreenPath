@@ -1,0 +1,19 @@
+cd src/model-training && uv run --frozen --python 3.11 pytest -q
+..........................                                               [100%]
+26 passed in 2.60s
+cd src/feature-encoder && uv run --frozen --python 3.11 pytest -q
+.....                                                                    [100%]
+5 passed in 0.35s
+cd src/data-processor && uv run --frozen --python 3.11 pytest -q
+..........                                                               [100%]
+10 passed in 0.65s
+python3 -m unittest discover -s tools/tests -v
+test_compose_status_array_and_json_lines (test_pipeline_launcher.LauncherChecks) ... ok
+test_other_process_port_conflict_fails_before_jobs (test_pipeline_launcher.LauncherChecks) ... ok
+test_ports_owned_by_the_pipeline_app_can_be_reused (test_pipeline_launcher.LauncherChecks) ... ok
+test_safe_run_id (test_pipeline_launcher.LauncherChecks) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.001s
+
+OK

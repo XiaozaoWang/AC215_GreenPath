@@ -25,7 +25,7 @@
 #4 1.617 Installing collected packages: uv
 #4 1.776 Successfully installed uv-0.12.12
 #4 1.776 WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv
-#4 1.878 
+#4 1.878
 #4 1.878 [notice] A new release of pip is available: 24.0 -> 26.2.1
 #4 1.878 [notice] To update, run: pip install --upgrade pip
 #4 DONE 2.0s

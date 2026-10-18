@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720">
+<rect width="1200" height="720" fill="#f6f5fa"/>
+<g font-family="Arial,sans-serif" fill="#172033">
+<text x="28" y="38" font-size="23" font-weight="bold">GreenPath - Milestone 2 application wireframe</text>
+<text x="28" y="65" font-size="14">Current layout: model-owned dimensions, geographic predictions and traceable scoring</text>
+<rect x="24" y="90" width="175" height="595" rx="10" fill="#e9e7f2" stroke="#b5afc9"/>
+<text x="42" y="127" font-size="18" font-weight="bold">Navigation</text>
+<text x="42" y="165" font-size="14">Active region</text><text x="42" y="194" font-size="14">API documentation</text>
+<circle cx="46" cy="650" r="5" fill="#16816c"/><text x="59" y="655" font-size="13">API status</text>
+<rect x="215" y="90" width="590" height="55" rx="8" fill="white" stroke="#c9c5d4"/>
+<text x="234" y="124" font-size="15">Region and active model dimension count</text>
+<rect x="215" y="160" width="590" height="365" rx="10" fill="white" stroke="#c9c5d4"/>
+<g fill="#70b8ab" stroke="#3f7e74" stroke-width="2">
+<path d="M350 230 l35 -20 35 20 0 40 -35 20 -35 -20Z"/>
+<path d="M420 230 l35 -20 35 20 0 40 -35 20 -35 -20Z"/>
+<path d="M385 290 l35 -20 35 20 0 40 -35 20 -35 -20Z"/>
+<path d="M455 290 l35 -20 35 20 0 40 -35 20 -35 -20Z" fill="#eaaa9b"/>
+<path d="M420 350 l35 -20 35 20 0 40 -35 20 -35 -20Z" fill="#c7d6d3"/>
+<path d="M490 350 l35 -20 35 20 0 40 -35 20 -35 -20Z"/>
+</g>
+<text x="238" y="455" font-size="15">H3 polygons colored by preference match</text>
+<text x="238" y="482" font-size="13">Hover: cell ID and raw model predictions</text>
+<rect x="215" y="540" width="590" height="145" rx="10" fill="white" stroke="#c9c5d4"/>
+<text x="235" y="570" font-size="14">Model source and unsupported-preference notice</text>
+<rect x="234" y="590" width="427" height="45" rx="7" fill="#f8f8fb" stroke="#aaa4ba"/>
+<text x="247" y="618" font-size="13">Describe desired scenery</text>
+<rect x="674" y="590" width="110" height="45" rx="7" fill="#6e52b6"/>
+<text x="691" y="618" font-size="14" fill="white">Generate</text>
+<text x="235" y="663" font-size="13">Examples and parsed preference weights</text>
+<rect x="822" y="90" width="354" height="595" rx="10" fill="white" stroke="#c9c5d4"/>
+<text x="842" y="126" font-size="18" font-weight="bold">Pipeline inspector</text>
+<text x="842" y="165" font-size="13">Overview | Weights | Stats | JSON</text>
+<text x="842" y="213" font-size="15">1. Parsed preferences</text>
+<text x="842" y="258" font-size="15">2. Model and schema versions</text>
+<text x="842" y="303" font-size="15">3. Batch prediction provenance</text>
+<text x="842" y="348" font-size="15">4. Cell counts and matching range</text>
+<text x="842" y="393" font-size="15">5. Scoring timings and error floor</text>
+<text x="842" y="610" font-size="13">Smaller screens stack these panels.</text>
+<text x="842" y="638" font-size="13">Diagram documents the M2 layout;</text>
+<text x="842" y="659" font-size="13">it is not a runtime screenshot.</text>
+</g></svg>

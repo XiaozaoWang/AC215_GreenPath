@@ -40,3 +40,13 @@ train-m1:
 predict-images:
 	cd src/feature-encoder && uv run --frozen --python 3.11 greenpath-encode encode --encoder-dir "$(ENCODER_DIR)" --input "$(IMAGE_INPUT)" --data-root "$(IMAGE_ROOT)" --output "$(EMBEDDING_OUTPUT)" --artifact-version "$(SMOKE_VERSION)-embeddings-v1" --device cpu --batch-size 3
 	cd src/model-deploy && uv run --frozen --python 3.11 greenpath-predict --model-dir "$(MODEL_DIR)" --embeddings "$(EMBEDDING_OUTPUT)/embeddings.parquet" --output "$(PREDICTION_OUTPUT)" --artifact-version "$(SMOKE_VERSION)-predictions-v1"
+
+PIPELINE_MODE ?= smoke
+PIPELINE_ARGS ?=
+.PHONY: run pipeline-test
+run:
+	python3 tools/run_pipeline.py --mode "$(PIPELINE_MODE)" $(PIPELINE_ARGS)
+
+pipeline-test: ml-test
+	cd src/data-processor && uv run --frozen --python 3.11 pytest -q
+	python3 -m unittest discover -s tools/tests -v

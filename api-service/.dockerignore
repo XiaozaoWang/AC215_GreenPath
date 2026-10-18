@@ -22,3 +22,8 @@ __pycache__/
 # Safety net: if someone ever puts a key in this folder, it still won't be packed into the image
 secrets/
 *service-account*.json
+
+# Additional local configuration and editable-package metadata
+.env
+.env.*
+*.egg-info/

@@ -1,0 +1,45 @@
+ Network gp-ml-smoke-20261018-02_default Creating
+ Network gp-ml-smoke-20261018-02_default Creating
+ Network gp-ml-smoke-20261018-02_default Created
+ Network gp-ml-smoke-20261018-02_default Created
+ Container gp-ml-smoke-20261018-02-data-processor-1 Creating
+ Container gp-ml-smoke-20261018-02-data-processor-1 Created
+ Container gp-ml-smoke-20261018-02-feature-encoder-1 Creating
+ Container gp-ml-smoke-20261018-02-feature-encoder-1 Created
+ Container gp-ml-smoke-20261018-02-model-training-1 Creating
+ Container gp-ml-smoke-20261018-02-model-training-1 Created
+ Container gp-ml-smoke-20261018-02-model-deploy-1 Creating
+ Container gp-ml-smoke-20261018-02-model-deploy-1 Created
+Attaching to data-processor-1, feature-encoder-1, model-deploy-1, model-training-1
+ Container gp-ml-smoke-20261018-02-data-processor-1 Starting
+ Container gp-ml-smoke-20261018-02-data-processor-1 Started
+ Container gp-ml-smoke-20261018-02-data-processor-1 Waiting
+data-processor-1  | {"artifact_version": "prepared-smoke-20261018-02", "dataset_version": "pipeline-smoke-v1", "counts": {"train": 32, "val": 8, "test": 8}, "full_filtered_counts": {"train": 651, "val": 173, "test": 188}, "ingestion": "gcs_manifest_verified"}
+
+data-processor-1 exited with code 0
+ Container gp-ml-smoke-20261018-02-data-processor-1 Exited
+ Container gp-ml-smoke-20261018-02-feature-encoder-1 Starting
+ Container gp-ml-smoke-20261018-02-feature-encoder-1 Started
+ Container gp-ml-smoke-20261018-02-feature-encoder-1 Waiting
+feature-encoder-1  | {"stage": "encoding", "completed": 8, "total": 48}
+feature-encoder-1  | {"stage": "encoding", "completed": 16, "total": 48}
+feature-encoder-1  | {"stage": "encoding", "completed": 24, "total": 48}
+feature-encoder-1  | {"stage": "encoding", "completed": 32, "total": 48}
+feature-encoder-1  | {"stage": "encoding", "completed": 40, "total": 48}
+feature-encoder-1  | {"stage": "encoding", "completed": 48, "total": 48}
+feature-encoder-1  | {"artifact_version": "embeddings-smoke-20261018-02", "n_images": 48, "cache_comparison": null}
+
+feature-encoder-1 exited with code 0
+ Container gp-ml-smoke-20261018-02-feature-encoder-1 Exited
+ Container gp-ml-smoke-20261018-02-model-training-1 Starting
+ Container gp-ml-smoke-20261018-02-model-training-1 Started
+ Container gp-ml-smoke-20261018-02-model-training-1 Waiting
+model-training-1   | {"model_version": "model-smoke-20261018-02", "reference_max_abs_error": null, "reference_tolerance": null, "reference_policy": "none", "n_test": 8, "no_test_rows_used_for_fit": true, "reload_max_abs_error": 5.960464477539063e-08, "fresh_process_max_abs_error": 5.960464477539063e-08, "reload_tolerance": 1e-06, "fresh_process_verified": true}
+
+model-training-1 exited with code 0
+ Container gp-ml-smoke-20261018-02-model-training-1 Exited
+ Container gp-ml-smoke-20261018-02-model-deploy-1 Starting
+ Container gp-ml-smoke-20261018-02-model-deploy-1 Started
+model-deploy-1     | {"prediction": {"artifact_version": "predictions-smoke-20261018-02", "n_cells": 48, "model_version": "model-smoke-20261018-02"}, "serving": {"artifact_version": "serving-smoke-20261018-02", "n_cells": 48, "model_version": "model-smoke-20261018-02", "mode": "smoke"}}
+
+model-deploy-1 exited with code 0
