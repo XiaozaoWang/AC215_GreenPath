@@ -1,5 +1,7 @@
 > **Milestone 2 integration branch: step 1 implemented.** The app uses a model-owned eight-dimension schema and real Boston H3 baseline test predictions. Start with [the integration guide](docs/STEP1.md). This is an interface and storage foundation; the complete containerized training pipeline is a later step.
 
+> **Step 2:** Reloadable M1 model export and independent image inference are documented in [STEP2.md](docs/STEP2.md). New encoding, training and inference components live under `src/`. The app continues to use the step-1 geographic prediction fixture until the next integration stage.
+
 # GreenPath: data workflow and application
 
 GreenPath uses a teacher/student approach. A vision-language teacher, such as Gemini, scores **street-view images** to create perception labels Y. A student model learns to predict those labels from **aerial images and OSM features**, the inputs X. Street-view images are used to create training labels; they are not needed for student inference.

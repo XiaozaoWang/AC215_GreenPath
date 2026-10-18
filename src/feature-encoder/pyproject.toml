@@ -1,0 +1,25 @@
+[project]
+name = "greenpath-encoder"
+version = "0.1.0"
+description = "Offline CLIP image encoding matching GreenPath notebook 06"
+requires-python = ">=3.11,<3.13"
+dependencies = ["greenpath-model", "torch==2.14.1", "torchvision==0.29.1", "open_clip_torch==3.3.0", "pillow==12.3.0", "safetensors==0.8.0"]
+
+[project.scripts]
+greenpath-encode = "greenpath_encoder.encode:main"
+
+[tool.uv.sources]
+greenpath-model = { path = "../model-deploy", editable = true }
+
+[build-system]
+requires = ["setuptools>=84"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["greenpath_encoder*"]
+
+[dependency-groups]
+dev = ["pytest>=9"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

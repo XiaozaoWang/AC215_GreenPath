@@ -1,0 +1,10 @@
+{
+  "reference_max_abs_error": 0.0,
+  "reference_tolerance": 1e-05,
+  "n_test": 188,
+  "no_test_rows_used_for_fit": true,
+  "reload_max_abs_error": 1.1920928955078125e-07,
+  "fresh_process_max_abs_error": 1.1920928955078125e-07,
+  "reload_tolerance": 1e-06,
+  "fresh_process_verified": true
+}

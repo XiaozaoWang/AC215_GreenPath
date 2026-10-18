@@ -1,0 +1,71 @@
+{
+  "stage": "step-2-model-export-and-independent-inference",
+  "model_version": "m1-clip-ridge-v1",
+  "encoder_version": "clip-b16-laion2b-v1",
+  "schema_version": "greenpath-experience-en-v2",
+  "n_fit": 824,
+  "n_test": 188,
+  "refit_and_reload_validation": {
+    "reference_max_abs_error": 0.0,
+    "reference_tolerance": 1e-05,
+    "n_test": 188,
+    "no_test_rows_used_for_fit": true,
+    "reload_max_abs_error": 1.1920928955078125e-07,
+    "fresh_process_max_abs_error": 1.1920928955078125e-07,
+    "reload_tolerance": 1e-06,
+    "fresh_process_verified": true
+  },
+  "image_smoke_test": {
+    "n_images": 3,
+    "device": "cpu",
+    "new_image_prediction_vs_cached_features_max_abs_error": 3.5762786865234375e-07,
+    "independent_inference_environment_has_sklearn": false,
+    "independent_inference_environment_has_torch": false
+  },
+  "tests": {
+    "training_and_model_tests_passed": 20,
+    "encoder_tests_passed": 5,
+    "total_new_tests_passed": 25
+  },
+  "gcs_publication": {
+    "models": {
+      "uri": "gs://ac215-greenpath/models/m1-clip-ridge-v1",
+      "published": true,
+      "download_and_checksum_verified": true
+    },
+    "encoders": {
+      "uri": "gs://ac215-greenpath/encoders/clip-b16-laion2b-v1",
+      "published": true,
+      "download_and_checksum_verified": true
+    },
+    "samples": {
+      "uri": "gs://ac215-greenpath/samples/boston-image-smoke-v1",
+      "published": true,
+      "download_and_checksum_verified": true
+    },
+    "training-inputs": {
+      "uri": "gs://ac215-greenpath/training-inputs/m1-refit-inputs-v1",
+      "published": true,
+      "download_and_checksum_verified": true
+    }
+  },
+  "api_integration": "Unchanged: the API still uses its step-1 geographic saved-prediction fixture.",
+  "limitations": [
+    "No fresh data collection or teacher labeling.",
+    "No encoder fine-tuning or new hyperparameter search.",
+    "Historical encoder cache lacked a weight digest; only three existing images were re-encoded for compatibility.",
+    "Complete training data snapshot and Docker ML orchestration are later work.",
+    "Held-out RMSE is reported for reproduction only; it is not automatically used for serving calibration."
+  ],
+  "one_command_image_prediction_verified": true,
+  "refit_from_downloaded_inputs": {
+    "reference_max_abs_error": 0.0,
+    "reference_tolerance": 1e-05,
+    "n_test": 188,
+    "no_test_rows_used_for_fit": true,
+    "reload_max_abs_error": 1.1920928955078125e-07,
+    "fresh_process_max_abs_error": 1.1920928955078125e-07,
+    "reload_tolerance": 1e-06,
+    "fresh_process_verified": true
+  }
+}

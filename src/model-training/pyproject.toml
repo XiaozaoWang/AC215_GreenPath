@@ -1,0 +1,26 @@
+[project]
+name = "greenpath-training"
+version = "0.1.0"
+description = "Refit and export the notebook-selected M1 baseline without test-set tuning"
+requires-python = ">=3.11,<3.13"
+dependencies = ["greenpath-model", "scikit-learn==1.9.1", "scipy==1.17.1"]
+
+[project.scripts]
+greenpath-train = "greenpath_training.train:main"
+greenpath-prepare-training = "greenpath_training.snapshot:main"
+
+[tool.uv.sources]
+greenpath-model = { path = "../model-deploy", editable = true }
+
+[build-system]
+requires = ["setuptools>=84"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["greenpath_training*"]
+
+[dependency-groups]
+dev = ["pytest>=9"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "../model-deploy/tests"]
