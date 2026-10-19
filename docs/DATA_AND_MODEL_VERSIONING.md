@@ -66,11 +66,12 @@ Freezing requires completion of the selected workspace's labeling. It saves:
 - `upstream/`: source workspace identity and stage records for new-pipeline snapshots.
 
 An existing snapshot version cannot be overwritten with different contents. Freezing
-separates fixed training inputs from the workspace's changing progress. A complete raw
-workspace backup is optional and separate (`source-archives/`).
+separates fixed training inputs from the workspace's changing progress. The source
+workspace is published separately under `sources/<source-version>/` when
+`--include-upstream` is requested; older publications used `source-archives/` tar files.
 
 **Historical input is an exception in location, not in meaning:** default `make run`
-uses `gs://ac215-greenpath/pipeline-inputs/boston-processed-v1`, downloaded to
+uses `gs://ac215-greenpath/artifacts/snapshots/sources/boston-processed-v1`, downloaded to
 `.artifacts/pipeline/cache/sources/boston-processed-v1/`. It does not automatically select
 the newest local snapshot. Use `--source-dir` to choose a local frozen input explicitly.
 
@@ -162,32 +163,68 @@ make app-versions APP_ARGS="--version serving-boston-pilot-v2"
 A successful pipeline selects its new serving as default; this does not overwrite older
 results. The frontend dropdown changes the displayed version without retraining.
 
-New outputs stay local until explicit publication:
+## Matching cloud and local paths
+
+New outputs stay local until explicit publication. GCS is a shared store for fixed
+published copies, not a live sync of workspaces. The default root is
+`gs://ac215-greenpath/artifacts/`; append the same formal relative path used locally:
+
+```text
+GCS artifacts/                         Local .artifacts/
+├── sources/<source-version>/          ├── sources/<source-version>/
+├── snapshots/sources/<snapshot>/      ├── snapshots/sources/<snapshot>/
+├── pipeline/runs/<run-id>/            ├── pipeline/runs/<run-id>/
+│   ├── prepared/                     │   ├── prepared/
+│   ├── embeddings/                   │   ├── embeddings/
+│   ├── model/                        │   ├── model/
+│   ├── predictions/                  │   ├── predictions/
+│   └── serving/                      │   └── serving/
+└── releases/mirrored-v1/<run-id>/      └── releases/mirrored-v1/<run-id>/
+```
+
+The published source is a fixed copy of selected workspace files; local collection can
+still resume, but changed contents cannot overwrite that published identity. Its generated
+root `manifest.json` checksums the copy. The published run similarly adds a root manifest
+that includes its stage manifests, logs and summary. `.DS_Store`, lock files and other
+hidden machine files are excluded. No remote catalog replaces your local version index.
 
 ```sh
-# Review a successful run first. Use the actual training ID after workflow retries.
 make publish-run RUN_ID=boston-pilot-v2 PUBLISH_ARGS="--include-upstream"
 ```
 
-GCS prefixes under `gs://ac215-greenpath/` are `pipeline-inputs/`, `datasets/`, `features/`,
-`models/`, `predictions/`, `serving/` and `releases/`, each with its artifact version.
-`--include-upstream` adds `source-archives/`; it requires new-pipeline lineage and unchanged
-source inputs. Historical runs can publish without this option. Release links are published
-last; local release records are under `.artifacts/releases/` and `catalog/publications/`.
+The example publishes raw sources, snapshot, complete run and version links. It also
+publishes the referenced encoder under `artifacts/encoders/<version>/`; downloads put
+weights in `pipeline/cache/encoders/<version>/`, a deliberate cache exception. The receipt
+is `.artifacts/catalog/publications/mirrored-v1/<run-id>.json`. Old release records remain.
+Omit `--include-upstream` when no new-pipeline source workspace exists.
+
+A viewer downloads only the app data, to its matching run path:
 
 ```sh
-# Replace other-run with a real published ID, then refresh the frontend version list.
 python3 tools/manage_artifacts.py fetch-serving \
-  --uri gs://ac215-greenpath/serving/serving-other-run \
-  --version serving-other-run
+  --run-id boston-pilot-v2 --version serving-boston-pilot-v2
+make app-versions APP_ARGS="--version serving-boston-pilot-v2"
 ```
 
-Local `.artifacts/` is where jobs read and write during execution. GCS is where explicitly
-published versions can be shared with teammates or recovered on another machine. Publishing
-copies selected artifacts to cloud storage; it does not move them out of the local folders,
-automatically synchronize future changes, or deploy the application.
-`pipeline/cache/` stores reusable downloads; `workflows/<id>/` stores full-workflow records
-and the actual `training_run_id`.
+To restore all published modeling data and optionally the source workspace:
+
+```sh
+make fetch-run RUN_ID=boston-pilot-v2
+make fetch-run RUN_ID=boston-pilot-v2 FETCH_ARGS="--include-upstream"
+```
+
+Restore verifies release-linked hashes, refuses different existing files, and can fill
+in a run previously downloaded as serving-only. It registers the result but does not
+change your selected default, regenerate features, train, or invoke a teacher. `--source-dir`
+can then use the restored snapshot for another training run. Original acquisition workflow
+configs still come from Git or can be generated; fetching a run is not cloning a machine.
+
+Older flat GCS prefixes remain compatible backups. Historical fixtures are also available
+at `artifacts/serving/<version>/`; obsolete standalone exports are under `artifacts/reference/`.
+Explicit legacy `fetch-serving --uri ... --version ...` remains supported and uses the
+legacy local `serving/<version>/` folder. Only new publications use the mirrored layout.
+`pipeline/cache/` and `workflows/<id>/` are local downloads/progress; the actual training
+run ID is recorded in the workflow summary. Cloud publication does not deploy the app.
 
 ## Archived legacy artifacts
 

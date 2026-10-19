@@ -4,6 +4,8 @@ Run from api-service: python -m api.artifacts verify|fetch|publish ...
 The manifest is published last; existing objects are never overwritten.
 """
 import argparse
+import base64
+import os
 import hashlib
 import json
 from pathlib import Path, PurePosixPath
@@ -92,6 +94,55 @@ class GCS:
         response.raise_for_status()
 
 
+    def metadata(self, name):
+        object_name = quote(f"{self.prefix}/{name}", safe="")
+        response = self.session.get(f"https://storage.googleapis.com/storage/v1/b/{self.bucket}/o/{object_name}", timeout=60)
+        if response.status_code == 404:
+            return None
+        response.raise_for_status()
+        return response.json()
+
+    def get_file(self, name, destination):
+        object_name = quote(f"{self.prefix}/{name}", safe="")
+        with self.session.get(f"https://storage.googleapis.com/storage/v1/b/{self.bucket}/o/{object_name}",
+                              params={"alt": "media"}, stream=True, timeout=600) as response:
+            if response.status_code == 404:
+                raise ValueError(f"Missing remote artifact file: {name}")
+            response.raise_for_status()
+            with Path(destination).open("wb") as stream:
+                for chunk in response.iter_content(1024 * 1024):
+                    stream.write(chunk)
+
+    def create_file(self, name, path):
+        path = Path(path)
+        md5 = hashlib.md5()
+        with path.open("rb") as stream:
+            for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+                md5.update(chunk)
+        expected = base64.b64encode(md5.digest()).decode("ascii")
+
+        def matches(metadata):
+            return metadata and int(metadata["size"]) == path.stat().st_size and metadata.get("md5Hash") == expected
+
+        existing = self.metadata(name)
+        if existing:
+            if not matches(existing):
+                raise ValueError(f"Refusing to overwrite different GCS contents: {name}")
+            return
+        with path.open("rb") as stream:
+            response = self.session.post(
+                f"https://storage.googleapis.com/upload/storage/v1/b/{self.bucket}/o",
+                params={"uploadType": "media", "name": f"{self.prefix}/{name}", "ifGenerationMatch": "0"},
+                data=stream, headers={"Content-Type": "application/octet-stream"}, timeout=600)
+        if response.status_code in (409, 412):
+            if not matches(self.metadata(name)):
+                raise ValueError(f"Refusing to overwrite different GCS contents: {name}")
+        else:
+            response.raise_for_status()
+            if not matches(response.json()):
+                raise ValueError(f"GCS upload checksum differs: {name}")
+
+
 def publish(root: Path, store) -> dict:
     manifest = verify(root)
     content = (root / "manifest.json").read_bytes()
@@ -99,16 +150,21 @@ def publish(root: Path, store) -> dict:
     if existing is not None and existing != content:
         raise ValueError("GCS version already exists with a different manifest; choose a new version")
     for name in manifest["files"]:
-        store.create(name, safe_path(root, name).read_bytes())
+        if hasattr(store, "create_file"):
+            store.create_file(name, safe_path(root, name))
+        else:
+            store.create(name, safe_path(root, name).read_bytes())
     store.create("manifest.json", content)
     return manifest
 
 
-def fetch(destination: Path, store) -> dict:
+def fetch(destination: Path, store, merge=False) -> dict:
     content = store.get("manifest.json")
     if content is None:
         raise ValueError("published artifact manifest not found")
-    if destination.exists():
+    if destination.is_symlink():
+        raise ValueError("Refusing a symlink destination")
+    if destination.exists() and (not merge or (destination / "manifest.json").exists()):
         manifest = verify(destination)
         if (destination / "manifest.json").read_bytes() != content:
             raise ValueError("cache belongs to a different manifest; choose another cache directory")
@@ -119,15 +175,39 @@ def fetch(destination: Path, store) -> dict:
         (staging / "manifest.json").write_bytes(content)
         manifest = read_manifest(staging)
         for name in manifest["files"]:
-            payload = store.get(name)
-            if payload is None:
-                raise ValueError(f"missing remote artifact: {name}")
             p = safe_path(staging, name)
             p.parent.mkdir(parents=True, exist_ok=True)
-            p.write_bytes(payload)
+            if hasattr(store, "get_file"):
+                store.get_file(name, p)
+            else:
+                payload = store.get(name)
+                if payload is None:
+                    raise ValueError(f"missing remote artifact: {name}")
+                p.write_bytes(payload)
         verify(staging)
         staging.chmod(0o755)  # readable by the non-root API container
-        staging.rename(destination)
+        if destination.exists():
+            if not merge:
+                raise ValueError("Destination appeared during download")
+            # A serving-only import may already occupy part of a run directory.
+            # Preflight every collision, then add missing files without replacing any.
+            names = [*manifest["files"], "manifest.json"]
+            for name in names:
+                target = safe_path(destination, name)
+                if target.exists() and (not target.is_file() or sha256_file(target) != sha256_file(safe_path(staging, name))):
+                    raise ValueError(f"Restore conflicts with a local file: {name}")
+            for name in names:
+                target = safe_path(destination, name)
+                target.parent.mkdir(parents=True, exist_ok=True)
+                if not target.exists():
+                    try:
+                        os.link(safe_path(staging, name), target)
+                    except FileExistsError:
+                        if sha256_file(target) != sha256_file(safe_path(staging, name)):
+                            raise ValueError(f"Concurrent restore conflict: {name}")
+            verify(destination)
+        else:
+            staging.rename(destination)
         return manifest
     finally:
         if staging.exists():
@@ -138,13 +218,13 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="action", required=True)
     p = sub.add_parser("verify"); p.add_argument("directory", type=Path)
-    for action in ("fetch", "publish"):
+    for action in ("fetch", "restore", "publish"):
         p = sub.add_parser(action); p.add_argument("uri"); p.add_argument("directory", type=Path)
     args = parser.parse_args()
     if args.action == "verify":
         result = verify(args.directory)
-    elif args.action == "fetch":
-        result = fetch(args.directory, GCS(args.uri))
+    elif args.action in ("fetch", "restore"):
+        result = fetch(args.directory, GCS(args.uri), merge=args.action == "restore")
     else:
         result = publish(args.directory, GCS(args.uri))
     print(json.dumps({"action": args.action, "artifact_version": result["artifact_version"], "files": len(result["files"]), "verified": True}))

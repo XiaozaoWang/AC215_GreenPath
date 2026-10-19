@@ -10,10 +10,12 @@ Next.js frontend. It does not run image inference on each user request.
 - [1. Setup](#1-setup)
 - [2. Credentials](#2-credentials)
 - [3. Open the app and select saved results](#3-open-the-app-and-select-saved-results)
+  - [Download a shared result from GCS](#download-a-shared-result-from-gcs)
 - [4. Train from an existing snapshot](#4-train-from-an-existing-snapshot)
 - [5. Run collection through the app](#5-run-collection-through-the-app)
 - [6. API and frontend operation](#6-api-and-frontend-operation)
 - [7. Check results and stop services](#7-check-results-and-stop-services)
+- [8. Publish a completed run to GCS](#8-publish-a-completed-run-to-gcs)
 - [Documentation and evidence](#documentation-and-evidence)
 
 | Read | Purpose |
@@ -75,6 +77,7 @@ The frontend uses Node and `npm ci` inside its container. First builds need inte
 | Operation | Required access |
 | --- | --- |
 | View bundled or locally saved results | No cloud credentials |
+| Download a shared serving result | Your own ADC with bucket read access |
 | Online training from a snapshot | ADC with read access to the team's private GCS inputs and encoder |
 | New collection and labeling | Mapillary Client Token; Vertex AI project access, billing and ADC |
 | Publish artifacts | ADC with write access to the destination bucket |
@@ -122,6 +125,46 @@ make app-versions APP_ARGS="--version serving-historical-smoke-001"
 The last command requires the run in section 4 to have succeeded. Without `--version`,
 `make app-versions` retains the saved catalog default. Changing the dropdown only changes
 the displayed selection. Neither operation retrains a model or overwrites old results.
+
+### Download a shared result from GCS
+
+Obtain the **training run ID**, **serving version ID**, publication root and bucket read
+access from the producer. Complete setup and configure your own ADC (section 2).
+The result must have been published before downloading. These are example values:
+
+```sh
+SHARED_RUN_ID=boston-pilot-v2
+SHARED_VERSION=serving-boston-pilot-v2
+
+python3 tools/manage_artifacts.py fetch-serving \
+  --run-id "$SHARED_RUN_ID" --version "$SHARED_VERSION"
+make app-versions APP_ARGS="--version $SHARED_VERSION"
+```
+
+Default publication root: `gs://ac215-greenpath/artifacts`. For another root, add
+`--gcs-root gs://YOUR_BUCKET/artifacts` to the download command.
+Cloud `pipeline/runs/<run-id>/serving/` restores to the identical relative path under
+local `.artifacts/`, and is verified/registered automatically. Open **http://localhost:3000**
+and check version/model/cell count against the producer's summary. The example has 49 cells.
+
+Viewing needs only serving, not raw images, model weights or training. `make app-versions`
+does not download missing versions. Old explicit `--uri` downloads remain supported;
+legacy flat serving URLs use `.artifacts/serving/<version>/`. Bundled fixtures need no cloud
+access. Result schemas must match the API/frontend version.
+
+To restore the complete published training run, snapshot and encoder instead:
+
+```sh
+make fetch-run RUN_ID="$SHARED_RUN_ID"
+# Also restore its raw collection/labeling workspace, if included in the release:
+make fetch-run RUN_ID="$SHARED_RUN_ID" FETCH_ARGS="--include-upstream"
+```
+
+Restore refuses conflicting local files and can complete a prior serving-only download.
+It registers serving without replacing your local catalog/default or running any models.
+Source/run/snapshot paths match the cloud layout; encoder weights use a local shared cache.
+Workspaces, caches and the catalog on your machine are not overwritten by another user's
+catalog or runtime locks.
 
 ## 4. Train from an existing snapshot
 
@@ -234,6 +277,51 @@ docker compose -p greenpath-pipeline-app -f docker-compose.yml down
 
 This stops the app without deleting `.artifacts`. If 3000/9000 is occupied, identify and
 stop the owning process or explicitly choose alternate launcher ports.
+
+## 8. Publish a completed run to GCS
+
+After reviewing a successful run, publish its saved results. Docker must be running;
+ADC needs bucket write access. Use the actual `training_run_id` from the workflow summary
+(or the successful `make run` ID). The value below is an example:
+
+```sh
+PUBLISH_RUN_ID=boston-pilot-v2
+make publish-run RUN_ID="$PUBLISH_RUN_ID" PUBLISH_ARGS="--include-upstream"
+```
+
+This uploads existing data without collection, labeling or training. `--include-upstream`
+adds the source workspace's actual files under `sources/<source-version>/`, without a tar
+wrapper. It requires new-pipeline lineage and unchanged frozen input files. Omit it for
+historical snapshots without a source workspace. Publication filters machine locks/hidden
+files, keeps stage manifests unchanged and publishes the release last.
+
+Cloud paths under `gs://ac215-greenpath/artifacts/` mirror local formal artifact paths:
+
+| Cloud path | Matching local path under `.artifacts/` |
+| --- | --- |
+| `sources/<source-version>/` | Same: raw images, geographic inputs, label caches and records |
+| `snapshots/sources/<snapshot-version>/` | Same: fixed input package |
+| `pipeline/runs/<run-id>/` | Same: prepared, embeddings, model, predictions, serving, logs and summary |
+| `releases/mirrored-v1/<run-id>/` | Same: checksummed version/restore links |
+| `encoders/<encoder-version>/` | `pipeline/cache/encoders/<encoder-version>/`: reusable weight cache |
+
+To publish to another root, add `GCS_ROOT=gs://YOUR_BUCKET/artifacts` to the Make command.
+No catalog, archived data or temporary cache is automatically uploaded; app deployment is
+separate. Ordinary `make run` / `make run-all` still do not publish automatically.
+
+```sh
+cat ".artifacts/catalog/publications/mirrored-v1/$PUBLISH_RUN_ID.json"
+```
+
+The receipt includes serving/release identities and URIs. Retry interrupted uploads with
+the same run, root and options; existing different contents are refused. Give viewers the
+run ID, serving version, publication root and bucket read access so they can follow
+[the download steps](#download-a-shared-result-from-gcs).
+
+Existing legacy GCS prefixes remain as read-compatible backups. Historical standalone
+artifacts are copied into `artifacts/reference/`; bundled historical serving results live
+under `artifacts/serving/`. The migration script is `tools/migrate_cloud_layout.py`;
+without `--apply` it prints a plan only. Migration does not delete old cloud data.
 
 ## Documentation and evidence
 

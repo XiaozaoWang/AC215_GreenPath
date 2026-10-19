@@ -140,3 +140,24 @@ See the [upstream log](pipeline/evidence/boston-pilot-v2/01-04_sources.log),
 [response](pipeline/evidence/boston-pilot-v2/sample-response.json).
 This validates the pilot workflow, not full-size collection or model generalization.
 No jobs or tests were rerun while updating these documents. See [experiments](EXPERIMENTS.md).
+
+## Shared storage and restore
+
+New publications use `gs://ac215-greenpath/artifacts/` with matching local formal paths:
+`sources/`, `snapshots/sources/`, `pipeline/runs/` and `releases/mirrored-v1/`. The original
+stage artifacts and their hashes are preserved. `make fetch-run RUN_ID=...` restores
+modeling inputs/results; `FETCH_ARGS="--include-upstream"` also restores the published
+source workspace. Serving-only imports go to the same run's `serving/` folder. See the
+[root sharing instructions](../README.md#download-a-shared-result-from-gcs).
+
+Local encoder caches are the intentional exception; the cloud stores a versioned
+`encoders/` artifact. Catalogs, locks and unrelated local caches are not shared.
+Legacy cloud prefixes remain accessible. New storage/restore code has not been exercised
+through Docker in this change; recorded model/application execution predates this migration.
+
+The 2026-10-19 cloud migration copied eight historical artifacts plus the reviewed
+`boston-pilot-v2` source/snapshot/run into the new layout. Remote manifest hashes match
+the local release; the serving manifest is unchanged. See the
+[migration record](pipeline/evidence/storage-migration-20261019.json). Old prefixes were
+not deleted. Full-run restoration and Docker transfer commands remain user-run checks;
+no collection, teacher calls, encoding, training or app launch was executed in migration.

@@ -1,4 +1,4 @@
-GCS_SERVING_URI ?= gs://ac215-greenpath/serving/boston-heldout-en-v2
+GCS_SERVING_URI ?= gs://ac215-greenpath/artifacts/serving/boston-heldout-en-v2
 
 .PHONY: app fetch-serving verify-serving app-gcs test
 app:
@@ -84,7 +84,7 @@ WORKFLOW_CONFIG ?= configs/workflow-boston-small.json
 WORKFLOW_ARGS ?=
 APP_ARGS ?=
 RUN_ID ?=
-GCS_ROOT ?= gs://ac215-greenpath
+GCS_ROOT ?= gs://ac215-greenpath/artifacts
 PUBLISH_ARGS ?=
 .PHONY: run-all catalog-refresh app-versions publish-run
 run-all:
@@ -104,3 +104,10 @@ publish-run:
 .PHONY: source-test
 source-test:
 	PYTHONPATH=src/data-source python3 -m unittest discover -s src/data-source/tests -v
+
+# Restore a published run into matching local paths; add --include-upstream if needed.
+FETCH_ARGS ?=
+.PHONY: fetch-run
+fetch-run:
+	@test -n "$(RUN_ID)" || (echo "Set RUN_ID to the published training run ID."; exit 1)
+	python3 tools/manage_artifacts.py fetch-run --run-id "$(RUN_ID)" --gcs-root "$(GCS_ROOT)" $(FETCH_ARGS)

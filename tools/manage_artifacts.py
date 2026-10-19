@@ -19,6 +19,24 @@ def artifact_tool(action, uri, local, env, build=True):
     local = Path(local).resolve()
     if not local.is_relative_to(ARTIFACTS.resolve()):
         raise ValueError('Transfer directory must be inside .artifacts')
+    if env.get('GREENPATH_ARTIFACT_TRANSFER') == 'host':
+        sys.path.insert(0, str(ROOT / 'api-service'))
+        from api.artifacts import GCS, publish, fetch
+        import os
+        previous = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')
+        os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = str(adc)
+        try:
+            store = GCS(uri)
+            if action == 'publish':
+                publish(local, store)
+            else:
+                fetch(local, store, merge=action == 'restore')
+        finally:
+            if previous is None:
+                os.environ.pop('GOOGLE_APPLICATION_CREDENTIALS', None)
+            else:
+                os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = previous
+        return
     if build:
         subprocess.run(['docker', 'compose', '-f', 'docker-compose.yml', 'build', 'api-service'], cwd=ROOT, env=env, check=True)
     command = ['docker', 'compose', '-p', 'greenpath-artifacts', '-f', 'docker-compose.yml', '-f', 'docker-compose.gcp.yml',
@@ -28,71 +46,9 @@ def artifact_tool(action, uri, local, env, build=True):
 
 
 def publish_run(run_id, gcs_root, env, no_build=False, include_upstream=False):
-    from run_pipeline import validate_run_id, verify_outputs
-    validate_run_id(run_id)
-    folder = ARTIFACTS / 'pipeline/runs' / run_id
-    summary = json.loads((folder / 'run-summary.json').read_text())
-    if not summary.get('success'):
-        raise ValueError('Publish a successful reviewed run, not partial or failed outputs')
-    verify_outputs(folder)
-    if not gcs_root.startswith('gs://') or not gcs_root[5:].strip('/'):
-        raise ValueError('Specify a gs://bucket[/prefix] publication root')
-    root = gcs_root.rstrip('/')
-    records = []
-    preparation = json.loads((folder / 'prepared/preparation.json').read_text())
-    snapshot = ARTIFACTS / 'snapshots/sources' / preparation['source_version']
-    if not snapshot.exists():
-        snapshot = ARTIFACTS / 'pipeline/cache/sources' / preparation['source_version']
-    artifacts = [('pipeline-inputs', snapshot), ('datasets', folder / 'prepared'),
-                 ('features', folder / 'embeddings'), ('models', folder / 'model'),
-                 ('predictions', folder / 'predictions'), ('serving', folder / 'serving')]
-    if include_upstream:
-        source_meta = json.loads((snapshot / 'upstream/source-workspace.json').read_text())
-        workspace = ARTIFACTS / 'sources' / source_meta['source_version']
-        frozen_sources = json.loads((snapshot / 'source.json').read_text())['source_files']
-        for relative, checksum in frozen_sources.items():
-            if digest(workspace / relative) != checksum:
-                raise ValueError('Source workspace changed after freezing; do not archive it as the old snapshot')
-        archive = ARTIFACTS / 'source-archives' / preparation['source_version']
-        if not archive.exists():
-            if not no_build:
-                subprocess.run(['docker', 'build', '-t', 'greenpath-data-processor:ml', '-f', 'src/data-processor/Dockerfile', '.'], cwd=ROOT, env=env, check=True)
-            archive.parent.mkdir(parents=True, exist_ok=True)
-            subprocess.run(['docker', 'run', '--rm', '--user', env['LOCAL_UID'] + ':' + env['LOCAL_GID'],
-                '--mount', 'type=bind,source=' + str(workspace) + ',target=/source,readonly',
-                '--mount', 'type=bind,source=' + str(archive.parent) + ',target=/archives',
-                '--mount', 'type=bind,source=' + str(snapshot) + ',target=/snapshot,readonly',
-                'greenpath-data-processor:ml', 'archive', '--data-root', '/source', '--output', '/archives/' + archive.name,
-                '--artifact-version', preparation['source_version'], '--snapshot-dir', '/snapshot'], cwd=ROOT, env=env, check=True)
-        verify(archive, 'greenpath-source-archive-v1')
-        if json.loads((archive / 'archive.json').read_text()).get('snapshot_manifest_sha256') != digest(snapshot / 'manifest.json'):
-            raise ValueError('Source archive is not bound to this frozen snapshot')
-        artifacts.insert(0, ('source-archives', archive))
-    # Validate the complete set before issuing uploads. Publications can resume safely.
-    manifests = [(kind, path, verify(path)) for kind, path in artifacts]
-    records = [{'kind': kind, 'uri': root + '/' + kind + '/' + manifest['artifact_version'],
-                'manifest_sha256': digest(path / 'manifest.json')} for kind, path, manifest in manifests]
-    release = ARTIFACTS / 'releases' / run_id
-    if release.exists():
-        verify(release, 'greenpath-release-v1')
-        if json.loads((release / 'release.json').read_text())['artifacts'] != records:
-            raise ValueError('Release is already sealed with a different publication set or GCS root')
-    for index, (kind, path, manifest) in enumerate(manifests):
-        uri = root + '/' + kind + '/' + manifest['artifact_version']
-        artifact_tool('publish', uri, path, env, build=(not no_build and index == 0))
-
-    if not release.exists():
-        with prepared_directory(release) as staging:
-            write_json(staging / 'release.json', {'run_id': run_id, 'dataset_version': preparation['dataset_version'],
-                'artifacts': records, 'code_revision': summary.get('git_commit'), 'run_summary': summary})
-            seal(staging, 'release-' + run_id, 'greenpath-release-v1')
-    else:
-        verify(release, 'greenpath-release-v1')
-        if json.loads((release / 'release.json').read_text())['artifacts'] != records:
-            raise ValueError('This release was already sealed with different publications; retain the existing release or select a new run')
-    artifact_tool('publish', root + '/releases/release-' + run_id, release, env, build=False)
-    atomic_json(ARTIFACTS / 'catalog/publications' / (run_id + '.json'), {'run_id': run_id, 'artifacts': records})
-    return records
+    from cloud_layout import publish_run as publish_mirrored
+    return publish_mirrored(run_id, gcs_root, env, artifact_tool,
+                            include_upstream=include_upstream, no_build=no_build)
 
 
 def main():
@@ -110,12 +66,19 @@ def main():
     serve.add_argument('--frontend-port', type=int, default=3000)
     serve.add_argument('--no-build', action='store_true')
     fetch = commands.add_parser('fetch-serving')
-    fetch.add_argument('--uri', required=True)
+    fetch.add_argument('--uri', help='Explicit URI; legacy flat serving URIs remain supported')
+    fetch.add_argument('--run-id', help='Download into pipeline/runs/<run-id>/serving')
+    fetch.add_argument('--gcs-root', default='gs://ac215-greenpath/artifacts')
     fetch.add_argument('--version', required=True)
     fetch.add_argument('--no-build', action='store_true')
+    restore = commands.add_parser('fetch-run')
+    restore.add_argument('--run-id', required=True)
+    restore.add_argument('--gcs-root', default='gs://ac215-greenpath/artifacts')
+    restore.add_argument('--include-upstream', action='store_true')
+    restore.add_argument('--no-build', action='store_true')
     publish = commands.add_parser('publish-run')
     publish.add_argument('--run-id', required=True)
-    publish.add_argument('--gcs-root', default='gs://ac215-greenpath')
+    publish.add_argument('--gcs-root', default='gs://ac215-greenpath/artifacts')
     publish.add_argument('--include-upstream', action='store_true')
     publish.add_argument('--no-build', action='store_true')
     args = parser.parse_args()
@@ -147,13 +110,34 @@ def main():
         print(f'Frontend: http://localhost:{args.frontend_port}')
         print(f'API docs: http://localhost:{args.api_port}/docs')
     elif args.action == 'fetch-serving':
+        from cloud_layout import fetch_serving, cloud_root
         if not args.version or any(c not in 'abcdefghijklmnopqrstuvwxyz0123456789-' for c in args.version):
             raise ValueError('Use a lowercase version ID without path separators')
-        target = ARTIFACTS / 'serving' / args.version
-        artifact_tool('fetch', args.uri, target, env, build=not args.no_build)
-        if verify(target)['artifact_version'] != args.version:
-            raise ValueError('Downloaded serving identity differs from requested version')
-        print(json.dumps(register_bundle(target), indent=2))
+        if args.run_id and not args.uri:
+            entry = fetch_serving(args.gcs_root, args.run_id, args.version, env, artifact_tool, args.no_build)
+        else:
+            if not args.uri:
+                raise ValueError('Specify --run-id for mirrored storage or --uri for an explicit bundle')
+            # New mirrored URIs automatically restore their matching relative run path.
+            import re
+            match = re.fullmatch(r'(gs://[^?#]+)/pipeline/runs/([a-z0-9][a-z0-9-]*)/serving/?', args.uri)
+            if match:
+                if args.run_id and args.run_id != match.group(2):
+                    raise ValueError('--run-id conflicts with the URI')
+                entry = fetch_serving(match.group(1), match.group(2), args.version, env, artifact_tool, args.no_build)
+            else:
+                if args.run_id:
+                    raise ValueError('Use --run-id without a legacy flat URI')
+                target = ARTIFACTS / 'serving' / args.version
+                artifact_tool('fetch', args.uri, target, env, build=not args.no_build)
+                if verify(target)['artifact_version'] != args.version:
+                    raise ValueError('Downloaded serving identity differs from requested version')
+                entry = register_bundle(target)
+        print(json.dumps(entry, indent=2))
+    elif args.action == 'fetch-run':
+        from cloud_layout import fetch_run
+        print(json.dumps(fetch_run(args.gcs_root, args.run_id, env, artifact_tool,
+                                   include_upstream=args.include_upstream, no_build=args.no_build), indent=2))
     else:
         print(json.dumps(publish_run(args.run_id, args.gcs_root, env, args.no_build, args.include_upstream), indent=2))
 
