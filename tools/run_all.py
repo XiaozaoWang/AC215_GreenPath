@@ -13,7 +13,7 @@ from artifact_catalog import ROOT, ARTIFACTS, atomic_json, register_bundle
 from runtime_environment import environment
 from run_pipeline import execute, validate_run_id, check_ports, verify_outputs, check_api
 sys.path.insert(0, str(ROOT / 'src/model-deploy'))
-from greenpath_model.artifact import digest, verify, safe_path
+from greenpath_model.artifact import digest, verify
 
 
 def project_path(value):
@@ -23,29 +23,14 @@ def project_path(value):
     return path
 
 
+sys.path.insert(0, str(ROOT / 'src/data-source'))
+from greenpath_source.workflow import stage_ready as source_stage_ready
+
+
 def stage_ready(workspace, stage, source_spec):
-    records = sorted((workspace / 'runs').glob('*/' + stage + '_manifest.json'))
-    if not records:
-        return False
-    record = json.loads(records[-1].read_text())
-    name = {'01_streetview': 'streetview', '02_tiles': 'tiles', '03_osm_features': 'features'}[stage]
-    expected = hashlib.sha256(json.dumps(source_spec, sort_keys=True).encode()).hexdigest()
-    if record.get('config_sha256') != expected or record.get('implementation_sha256') != digest(ROOT / 'src/data-source/greenpath_source' / (name + '.py')):
-        return False
-    for relative, checksum in record['output_sha256'].items():
-        # 02 legitimately extends this table. Its input hash retains the 01 lineage.
-        if stage == '01_streetview' and relative == 'processed/cells.parquet':
-            continue
-        file = safe_path(workspace, relative)
-        if not file.is_file() or digest(file) != checksum:
-            return False
-    if stage != '01_streetview':
-        for relative, checksum in record.get('input_sha256', {}).items():
-            if stage == '02_tiles' and relative == 'processed/cells.parquet':
-                continue
-            if digest(safe_path(workspace, relative)) != checksum:
-                return False
-    return True
+    """Compatibility entry point for source resume checks."""
+    return source_stage_ready(workspace, stage, source_spec,
+                              ROOT / 'src/data-source/greenpath_source')
 
 
 def run_workflow(args, config, env, record, folder):
@@ -93,21 +78,7 @@ def run_workflow(args, config, env, record, folder):
         if not complete and not args.allow_labeling:
             raise ValueError('Upstream labeling is incomplete. Add --allow-labeling explicitly to permit up to the configured new-image limit, or use an existing snapshot.')
         workspace.mkdir(parents=True, exist_ok=True)
-        record['stages'] = {}
-        for stage, service in [('01_streetview', 'source-streetview'), ('02_tiles', 'source-tiles'), ('03_osm_features', 'source-features')]:
-            if stage_ready(workspace, stage, source_spec):
-                record['stages'][stage] = 'reused_verified_outputs'
-                continue
-            if stage == '01_streetview' and not env.get('MAPILLARY_TOKEN'):
-                raise ValueError('Set MAPILLARY_TOKEN in .env for new street-view acquisition')
-            command = source_base + ['run', '--rm']
-            if not args.no_build: command += ['--build']
-            execute(command + [service], env, logs / (stage + '.log'))
-            if not stage_ready(workspace, stage, source_spec):
-                raise ValueError('Stage output verification failed: ' + stage)
-            record['stages'][stage] = 'completed'
-            atomic_json(folder / 'workflow-summary.json', record)
-        # Even a complete cache is rechecked by the labeling command with zero new calls.
+        # One Compose run creates one container for all four upstream stages.
         allowance = limit if args.allow_labeling else 0
         command = list(source_base)
         if allowance:
@@ -118,8 +89,16 @@ def run_workflow(args, config, env, record, folder):
             command += ['-f', 'docker-compose.sources.gcp.yml']
         command += ['run', '--rm']
         if not args.no_build: command += ['--build']
-        execute(command + ['source-labeling', 'labeling', '--config', '/config/source.json', '--data-root', '/data', '--max-images', str(allowance)],
-                env, logs / '04_labeling.log')
+        command += ['data-source', 'all', '--config', '/config/source.json',
+                    '--data-root', '/data', '--max-images', str(allowance)]
+        if args.allow_labeling:
+            command += ['--allow-labeling']
+        execute(command, env, logs / '01-04_sources.log')
+        source_summary = json.loads((workspace / 'source-run-summary.json').read_text())
+        if not source_summary.get('success'):
+            raise ValueError('Combined source job did not report success')
+        record['stages'] = source_summary['stages']
+        atomic_json(folder / 'workflow-summary.json', record)
         labels = json.loads(meta_path.read_text())
         if not labels.get('complete') or labels['images_pending']:
             raise ValueError('Label limit reached with %s images pending; outputs are saved. Resume explicitly to label another bounded batch.' % labels['images_pending'])

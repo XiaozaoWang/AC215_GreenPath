@@ -11,7 +11,7 @@ pyproject.toml: direct dependencies, optional stage extras and development group
 uv.lock: resolved direct/transitive versions and distribution hashes
        |
        v
-Dockerfile: pinned uv + uv sync --frozen --no-dev [--extra STAGE]
+Dockerfile: pinned uv + uv sync --frozen --no-dev [--all-extras for upstream]
        |
        v
 /opt/venv: container-specific Python environment
@@ -20,14 +20,11 @@ Dockerfile: pinned uv + uv sync --frozen --no-dev [--extra STAGE]
 A shared workflow does not mean one shared virtual environment or identical dependency
 versions. The API and ML components have different compatibility requirements. Their
 locks and environments remain independent, except the four upstream stages deliberately
-share one project/lock and select different extras.
+share one image, environment and project/lock with all four extras installed.
 
 | Container role | Component folder | Python | Lock selection |
 | --- | --- | --- | --- |
-| 01 streetview | `src/data-source/` | 3.11 | same project lock, `streetview` extra |
-| 02 aerial tiles | `src/data-source/` | 3.11 | same project lock, `tiles` extra |
-| 03 geographic features | `src/data-source/` | 3.11 | same project lock, `features` extra |
-| 04 teacher labeling | `src/data-source/` | 3.11 | same project lock, `labeling` extra |
+| 01-04 collection and labeling | `src/data-source/` | 3.11 | shared lock, `--all-extras`, one `data-source` service |
 | 05 data preparation | `src/data-processor/` | 3.11 | own lock, runtime dependencies |
 | 06 image encoding | `src/feature-encoder/` | 3.11 | own lock; CPU PyTorch index on Linux |
 | 07 baseline training | `src/model-training/` | 3.11 | own lock, runtime dependencies |
@@ -56,7 +53,7 @@ solely to make the tree identical. Tests remain where each component already sto
 - Use `UV_PROJECT_ENVIRONMENT=/opt/venv`, `UV_LINK_MODE=copy` and
   `UV_PYTHON_DOWNLOADS=never`. Put `/opt/venv/bin` on `PATH`.
 - Install from committed locks with `uv sync --frozen --no-dev`.
-- The upstream Dockerfile additionally selects one explicit stage extra.
+- The upstream Dockerfile installs all four stage extras into one shared image.
 - Keep the environment outside bind-mounted source/data folders.
 - Use a non-root runtime user; bind-mounted writable data uses the host UID/GID.
 - Mount data, weights and credentials at runtime; do not package them as dependencies.
@@ -75,8 +72,8 @@ Edit the relevant `pyproject.toml`, then run `uv lock` in that component directo
 Review and commit the declaration and lock together. Do not hand-edit the lock, update
 it during application startup or introduce a parallel requirements file.
 
-To install locally, run `uv sync --frozen` in the component directory. For an upstream
-stage, additionally select its extra, for example `uv sync --frozen --extra tiles`.
+To install locally, run `uv sync --frozen` in the component directory. For the combined upstream
+component, use `uv sync --frozen --all-extras`.
 Local development may include the `dev` group where defined; runtime images omit it.
 
 Existing locks in the four downstream ML components and API were retained, avoiding
@@ -84,7 +81,7 @@ unrelated library upgrades. Only the upstream lock was newly generated for this 
 
 ## Scope of this change and verification
 
-The dependency-management change does not change acquisition, labeling, model training,
+The dependency-management convention does not change acquisition, labeling, model training,
 API routes, ports, source-data versions or user command names. It does change image build
 inputs, the upstream code path inside its images and the API virtual environment path.
 The matching prompt location and API entrypoint have been adjusted accordingly.
@@ -114,3 +111,11 @@ docker compose -f docker-compose.ml.yml build
 Image builds can download packages but do not invoke data or model commands. After a
 successful rebuild, select the desired runtime checks from `SOURCE_PIPELINE.md` and
 `PIPELINE.md`; do not rerun paid labeling just to check the dependency manager.
+
+## Upstream consolidation
+
+01-04 now use one image (`greenpath-data-source:ml`) and one Compose service
+(`data-source`). The `all` command runs these stages sequentially inside one container.
+Individual stage commands reuse the same image. This changes image build and startup
+configuration, but retains the existing dependency versions and data/version formats.
+Rebuild with `make source-build` before use; consolidation has not been runtime-tested.

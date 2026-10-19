@@ -1,4 +1,4 @@
-# Notebook 01-04 as explicit container jobs
+# Notebook 01-04 in one upstream container
 
 For the one-command source-to-app workflow, use [END_TO_END.md](END_TO_END.md).
 The individual commands here remain available. Freezing a new source workspace now
@@ -7,8 +7,9 @@ requires its selected-image labeling to be complete; partial batches are not ful
 ## Scope and status
 
 These commands extract the upstream notebook logic without redesigning the application
-or the existing four-job training workflow. Each stage is an independent Python command
-inside a stage-specific Docker image. Runtime does not load `.ipynb` files.
+or the existing four-job training workflow. Each stage remains an independent Python command
+inside the shared `greenpath-data-source:ml` image. The `all` command executes the four
+stages sequentially in one `data-source` container with verified stage reuse. Runtime does not load `.ipynb` files.
 
 **Verification status:** the user ran all four stages before the uv dependency migration:
 50 cells, 192 street images, 50 usable aerial tiles, 50 geographic feature rows and 9
@@ -16,8 +17,8 @@ labeled images. Labeling remains partial. Those output checks predate the new lo
 image builds; rebuilding and runtime verification of the migration remain user tasks.
 No acquisition, VLM calls or tests were run during the dependency change.
 
-All Python images now follow the same `pyproject.toml` + `uv.lock` convention. Upstream
-images select one stage extra with `uv sync --frozen --no-dev --extra STAGE`. See
+All Python images now follow the same `pyproject.toml` + `uv.lock` convention. The upstream
+image installs all stage extras with `uv sync --frozen --no-dev --all-extras`. See
 [DEPENDENCIES.md](DEPENDENCIES.md) for shared rules and the component matrix.
 
 `make run` continues to use the published historical input snapshot. It does not start
@@ -67,12 +68,29 @@ export GOOGLE_CLOUD_LOCATION=us-central1
 export ADC_FILE="$HOME/.config/gcloud/application_default_credentials.json"
 ```
 
-Only the labeling override mounts ADC, read-only. Acquisition uses public imagery/OSM
-and the Mapillary token. No job copies credentials into an image.
+The optional GCP override mounts ADC read-only into the shared service. During a combined
+paid job, all stages share that container and can see the credential mount. Standalone
+acquisition commands omit the override. No job copies credentials into an image.
+
+## Run 01-04 in one container
+
+```sh
+make source-build
+make collect-sources SOURCE_ARGS="--allow-labeling --max-images 8"
+```
+
+The second command permits a bounded paid batch. If labels remain pending it exits with
+an error after persisting results; repeat explicitly to continue. It is not an automatic
+loop. The combined command holds a workspace lock, verifies prior stage manifests and
+skips valid completed 01-03 outputs. It saves `source-run-summary.json` in the workspace.
+The existing full `make run-all` command now invokes one such upstream container rather
+than creating a separate container for each stage. Its limit comes from the workflow JSON.
+With a matching frozen snapshot, run-all still skips upstream work entirely.
+The consolidated image and execution path await user runtime verification.
 
 ## Run stages individually
 
-Each target builds its image if necessary and runs one job. Start with these commands
+Each target uses the same shared image and runs one selected stage in a new temporary container. Start with these commands
 in order; do not run stage commands concurrently against the same directory.
 
 ### 01: street-view collection

@@ -40,6 +40,6 @@ reproduce an old experiment. Metrics report the new run's held-out split.
 
 ## Dependency convention across the project
 
-The four upstream images and the API now use the same pinned uv, frozen lock installation
+The combined upstream image and the API use the same pinned uv, frozen lock installation
 and `/opt/venv` location as these ML components. Python and dependency versions remain
 component-specific. See [DEPENDENCIES.md](DEPENDENCIES.md) for the full matrix.

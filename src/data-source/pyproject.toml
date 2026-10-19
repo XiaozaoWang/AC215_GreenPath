@@ -12,7 +12,7 @@ dependencies = [
     "tqdm==4.70.1",
 ]
 
-# The four upstream containers share code and a lockfile, but install only their stage.
+# One upstream image installs all four dependency groups from the shared lockfile.
 [project.optional-dependencies]
 streetview = [
     "h3==4.5.0",

@@ -1,6 +1,7 @@
-# Add only for Vertex AI labeling. No credentials are mounted into acquisition jobs.
+# Opt in to ADC for the combined upstream job or a standalone labeling command.
+# All stages share one container; the credential mount is available throughout it.
 services:
-  source-labeling:
+  data-source:
     volumes:
       - type: bind
         source: ${ADC_FILE:?Set ADC_FILE to your authorized ADC JSON file}

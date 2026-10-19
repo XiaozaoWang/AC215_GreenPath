@@ -1,42 +1,60 @@
-# Upstream notebook 01-04 commands
+# One upstream container for notebooks 01-04
 
-This package contains static Python extractions of the English notebooks. It does not
-execute notebooks or require Jupyter/Colab at runtime. Original notebooks are unchanged.
+The `data-source` Compose service uses image `greenpath-data-source:ml` and runs all
+four upstream stages sequentially in one container. The Python modules remain separate;
+notebooks are not executed at runtime and the original notebooks are unchanged.
 
-| Notebook | Module / CLI stage | Container service | uv extra |
-| --- | --- | --- | --- |
-| 01 streetview | `greenpath_source.streetview` / `streetview` | `source-streetview` | `streetview` |
-| 02 tiles | `greenpath_source.tiles` / `tiles` | `source-tiles` | `tiles` |
-| 03 OSM + WorldCover | `greenpath_source.features` / `features` | `source-features` | `features` |
-| 04 teacher labels | `greenpath_source.labeling` / `labeling` | `source-labeling` | `labeling` |
+| Notebook | Python module | Individual CLI stage |
+| --- | --- | --- |
+| 01 streetview | `greenpath_source.streetview` | `streetview` |
+| 02 aerial tiles | `greenpath_source.tiles` | `tiles` |
+| 03 OSM / WorldCover | `greenpath_source.features` | `features` |
+| 04 teacher labels | `greenpath_source.labeling` | `labeling` |
 
-Like the downstream ML components and API, this folder contains `Dockerfile`,
-`pyproject.toml`, `uv.lock` and `.python-version`. Direct and transitive dependencies are
-recorded in `uv.lock`; requirements files are no longer a second dependency source.
+`greenpath_source.workflow` coordinates `all`. It verifies and reuses successful 01-03
+outputs, runs missing stages, aggregates cached labels or performs an explicitly permitted
+bounded label batch, and requires labeling completion before reporting success. One
+workspace lock covers the entire combined execution. Progress is recorded in
+`source-run-summary.json`; individual stage manifests and durable label caches remain.
+A partial paid batch is saved but returns a failure until the selected workspace is complete.
 
-The four stages share one code package and lockfile. The Dockerfile selects its stage
-with `SOURCE_STAGE` and installs `uv sync --frozen --no-dev --extra STAGE` using uv 0.12.12
-into `/opt/venv`. Each image installs common dependencies plus only its selected extra.
-For example, the streetview image does not install Gemini or pyrosm. The `features` extra
-explicitly includes the geospatial dependencies it shares with `tiles`.
-
-Local dependency setup, when needed, uses the same lock and extra:
+The Dockerfile installs all four optional dependency groups from the existing shared
+`uv.lock` with `uv sync --frozen --no-dev --all-extras` using uv 0.12.12 in `/opt/venv`.
+No dependency versions changed for the container consolidation. For local development:
 
 ```sh
-uv sync --frozen --no-dev --extra streetview
+uv sync --frozen --all-extras
 ```
 
-Use `greenpath-source STAGE --config FILE --data-root DIRECTORY`. Labeling additionally
-accepts `--max-images N`: 0 uses only the durable label cache, a positive integer limits
-new images selected (retries may issue multiple API calls per image). No automatic
-smoke-test or sandbox calls run before the cache check.
+Build the shared image without acquiring data:
 
-The user verified 01-04 with 50 cells, 192 street images, 50 aerial tiles, 50 feature rows
-and 9 labeled images before this dependency migration. Those runs do not verify the new
-uv-built images; rebuilding and runtime verification are pending user execution.
+```sh
+make source-build
+```
 
-Commands, configuration, outputs, credentials, partial labeling and the existing
-training-flow handoff are documented in [SOURCE_PIPELINE.md](../../docs/SOURCE_PIPELINE.md).
-Interactive notebook displays are exported as PNG/HTML/Parquet reports. Human annotation
-remains a manual task. See `notebook-provenance.json` for the extraction references.
-For the shared dependency convention, see [DEPENDENCIES.md](../../docs/DEPENDENCIES.md).
+Run 01-04 in one container, permitting at most 8 new labeled images (excluding retries):
+
+```sh
+make collect-sources SOURCE_ARGS="--allow-labeling --max-images 8"
+```
+
+The combined target uses the ADC override. Without paid permission, it requires a complete
+label cache before acquisition and makes zero new labeling calls. For the full source-to-app
+workflow, `make run-all` invokes this same `all` command, then freezes the snapshot and
+starts the downstream pipeline. It mounts ADC only when new labeling is permitted.
+
+The existing `make collect-streetview`, `make collect-tiles`, `make collect-features`,
+`make label-images SOURCE_MAX_IMAGES=8` and `make label-report` remain available. Each
+standalone invocation creates its own temporary container from the same shared image;
+it does not create four stage-specific images. Explicitly invoking 01 after 02 still
+refuses to reset downstream columns; use `all` for verified stage reuse.
+
+The ADC mount is read-only. In the combined paid job it is available throughout the
+container, rather than isolated to a separate labeling container. Credentials are never
+copied into the image or written to source records.
+
+Consolidation has only received static checks; images, collection, labeling, training and
+tests have not been run during this change. Earlier successful outputs predate this image.
+Optional coordination checks (no actual source stages): `make source-test`.
+See [SOURCE_PIPELINE.md](../../docs/SOURCE_PIPELINE.md),
+[END_TO_END.md](../../docs/END_TO_END.md), and [DEPENDENCIES.md](../../docs/DEPENDENCIES.md).

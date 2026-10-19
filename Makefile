@@ -58,20 +58,26 @@ SOURCE_COMPOSE = docker compose -p greenpath-sources -f docker-compose.sources.y
 source-build:
 	$(SOURCE_COMPOSE) build
 
+# Run 01-04 inside one container; SOURCE_ARGS controls explicit paid labeling.
+SOURCE_ARGS ?=
+.PHONY: collect-sources
+collect-sources:
+	LOCAL_UID="$$(id -u)" LOCAL_GID="$$(id -g)" ADC_FILE="$${ADC_FILE:-$$HOME/.config/gcloud/application_default_credentials.json}" $(SOURCE_COMPOSE) -f docker-compose.sources.gcp.yml run --rm --build data-source all --config /config/source.json --data-root /data $(SOURCE_ARGS)
+
 collect-streetview:
-	LOCAL_UID="$$(id -u)" LOCAL_GID="$$(id -g)" $(SOURCE_COMPOSE) run --rm --build source-streetview
+	LOCAL_UID="$$(id -u)" LOCAL_GID="$$(id -g)" $(SOURCE_COMPOSE) run --rm --build data-source streetview --config /config/source.json --data-root /data
 
 collect-tiles:
-	LOCAL_UID="$$(id -u)" LOCAL_GID="$$(id -g)" $(SOURCE_COMPOSE) run --rm --build source-tiles
+	LOCAL_UID="$$(id -u)" LOCAL_GID="$$(id -g)" $(SOURCE_COMPOSE) run --rm --build data-source tiles --config /config/source.json --data-root /data
 
 collect-features:
-	LOCAL_UID="$$(id -u)" LOCAL_GID="$$(id -g)" $(SOURCE_COMPOSE) run --rm --build source-features
+	LOCAL_UID="$$(id -u)" LOCAL_GID="$$(id -g)" $(SOURCE_COMPOSE) run --rm --build data-source features --config /config/source.json --data-root /data
 
 label-images:
-	LOCAL_UID="$$(id -u)" LOCAL_GID="$$(id -g)" ADC_FILE="$${ADC_FILE:-$$HOME/.config/gcloud/application_default_credentials.json}" $(SOURCE_COMPOSE) -f docker-compose.sources.gcp.yml run --rm --build source-labeling labeling --config /config/source.json --data-root /data --max-images "$(SOURCE_MAX_IMAGES)"
+	LOCAL_UID="$$(id -u)" LOCAL_GID="$$(id -g)" ADC_FILE="$${ADC_FILE:-$$HOME/.config/gcloud/application_default_credentials.json}" $(SOURCE_COMPOSE) -f docker-compose.sources.gcp.yml run --rm --build data-source labeling --config /config/source.json --data-root /data --max-images "$(SOURCE_MAX_IMAGES)"
 
 label-report:
-	LOCAL_UID="$$(id -u)" LOCAL_GID="$$(id -g)" $(SOURCE_COMPOSE) run --rm --build source-labeling labeling --config /config/source.json --data-root /data --max-images 0
+	LOCAL_UID="$$(id -u)" LOCAL_GID="$$(id -g)" $(SOURCE_COMPOSE) run --rm --build data-source labeling --config /config/source.json --data-root /data --max-images 0
 
 # New collection to app. Labeling calls require an explicit workflow flag.
 WORKFLOW_CONFIG ?= configs/workflow-boston-small.json
@@ -93,3 +99,8 @@ app-versions:
 publish-run:
 	@test -n "$(RUN_ID)" || (echo "Set RUN_ID to a reviewed successful training run."; exit 1)
 	python3 tools/manage_artifacts.py publish-run --run-id "$(RUN_ID)" --gcs-root "$(GCS_ROOT)" $(PUBLISH_ARGS)
+
+# Standard-library coordination checks; no Docker, collection or paid requests.
+.PHONY: source-test
+source-test:
+	PYTHONPATH=src/data-source python3 -m unittest discover -s src/data-source/tests -v

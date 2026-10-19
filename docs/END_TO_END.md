@@ -7,6 +7,10 @@ built, no application was started, no VLM calls/collection/training or tests wer
 Earlier 01-04 and snapshot-based pipeline checks predate the new orchestration/catalog.
 Do not treat the new full path as runtime-verified until executing it.
 
+Upstream 01-04 now share one image/service (`data-source`) and run sequentially in one
+container. The four downstream ML jobs remain separate. This consolidation awaits user
+runtime verification. Per-stage source commands remain available for diagnosis.
+
 See [DATA_LIFECYCLE.md](DATA_LIFECYCLE.md) for storage rules and
 [DEPENDENCIES.md](DEPENDENCIES.md) for image builds.
 
@@ -90,9 +94,9 @@ mean 200 dollars, 200 total HTTP attempts or unlimited labeling.
 
 Execution order:
 
-1. Read source config and validate/reuse successful 01-03 outputs with hashes.
-2. Run missing acquisition/geographic stages in their containers.
-3. Run the bounded label batch; each paid result is persisted immediately.
+1. Read source config and use the combined source command to validate/reuse 01-03 outputs with hashes.
+2. Run the needed acquisition/geographic stages sequentially in one `data-source` container.
+3. Run the bounded label batch in that same container; each paid result is persisted immediately.
 4. Require labeling completion for the selected workspace before freezing.
 5. Freeze local processed source snapshot, keeping label metadata and upstream records.
 6. Start the existing four-job pipeline with that exact local snapshot.

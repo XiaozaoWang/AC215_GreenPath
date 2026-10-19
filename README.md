@@ -195,7 +195,8 @@ Collection notebooks 01-03 do not require GCP. Labeling uses paid Vertex AI call
 
 ## Optional upstream acquisition and teacher labeling
 
-Notebook 01-04 logic is available as four explicit container commands. See
+Notebook 01-04 logic runs in one `data-source` container with an `all` command;
+individual stage commands remain available from the same image. See
 [the upstream guide](docs/SOURCE_PIPELINE.md) before acquiring new data or making paid
 Vertex AI requests. These jobs do not run as part of `make run`. Original notebooks,
 historical GCS inputs and the default training workflow are preserved.

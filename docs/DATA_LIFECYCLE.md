@@ -42,7 +42,7 @@ identity when known, the frozen snapshot identity, the prepared dataset and mode
 │   │   ├── logs/
 │   │   └── run-summary.json
 │   └── latest.json                  # last successful training execution; not dataset identity
-├── workflows/<workflow-id>/         # orchestration summary and per-stage logs
+├── workflows/<workflow-id>/         # orchestration summary and combined upstream log
 ├── serving/<imported-version>/      # explicitly downloaded application bundles
 ├── catalog/
 │   ├── serving.json                 # atomic, locked result registry; no copies of scores
@@ -115,3 +115,7 @@ multiple data/model runs of the current task.
 Historical held-out predictions and newly trained pilot results have different evaluation
 meaning. New maps contain fitting and test cells; a convincing map is not an independent
 accuracy measurement. The UI retains that distinction.
+
+The combined 01-04 job also saves `sources/<source-version>/source-run-summary.json`.
+Its individual stage manifests remain under that workspace's `runs/` directory.
+Workflow-level upstream output is captured in `logs/01-04_sources.log`.

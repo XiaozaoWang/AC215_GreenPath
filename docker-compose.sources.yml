@@ -1,62 +1,26 @@
-# Explicit one-shot upstream jobs. These are not dependencies of docker-compose.ml.yml.
-x-source: &source
-  user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
-  volumes:
-    - ${SOURCE_DATA_DIR:-./.artifacts/sources/boston-source-local-v1}:/data
-    - type: bind
-      source: ${SOURCE_CONFIG:-./configs/source-boston.example.json}
-      target: /config/source.json
-      read_only: true
-      bind:
-        create_host_path: false
-  init: true
-  environment:
-    MPLCONFIGDIR: /tmp/matplotlib
+# One upstream image/service: all runs 01-04 sequentially in one container.
+# Individual commands remain available for diagnosis and bounded labeling.
 services:
-  source-streetview:
-    <<: *source
-    image: greenpath-source-streetview:ml
+  data-source:
+    image: greenpath-data-source:ml
     build:
       context: .
       dockerfile: src/data-source/Dockerfile
-      args:
-        SOURCE_STAGE: streetview
+    user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
+    volumes:
+      - ${SOURCE_DATA_DIR:-./.artifacts/sources/boston-source-local-v1}:/data
+      - type: bind
+        source: ${SOURCE_CONFIG:-./configs/source-boston.example.json}
+        target: /config/source.json
+        read_only: true
+        bind:
+          create_host_path: false
+    init: true
     environment:
       MPLCONFIGDIR: /tmp/matplotlib
       MAPILLARY_TOKEN: ${MAPILLARY_TOKEN:-}
-    command: ["streetview", "--config", "/config/source.json", "--data-root", "/data"]
-    mem_limit: 2g
-  source-tiles:
-    <<: *source
-    image: greenpath-source-tiles:ml
-    build:
-      context: .
-      dockerfile: src/data-source/Dockerfile
-      args:
-        SOURCE_STAGE: tiles
-    command: ["tiles", "--config", "/config/source.json", "--data-root", "/data"]
-    mem_limit: 3g
-  source-features:
-    <<: *source
-    image: greenpath-source-features:ml
-    build:
-      context: .
-      dockerfile: src/data-source/Dockerfile
-      args:
-        SOURCE_STAGE: features
-    command: ["features", "--config", "/config/source.json", "--data-root", "/data"]
-    mem_limit: 4g
-  source-labeling:
-    <<: *source
-    image: greenpath-source-labeling:ml
-    build:
-      context: .
-      dockerfile: src/data-source/Dockerfile
-      args:
-        SOURCE_STAGE: labeling
-    environment:
-      MPLCONFIGDIR: /tmp/matplotlib
       GOOGLE_CLOUD_PROJECT: ${GOOGLE_CLOUD_PROJECT:-}
       GOOGLE_CLOUD_LOCATION: ${GOOGLE_CLOUD_LOCATION:-us-central1}
-    command: ["labeling", "--config", "/config/source.json", "--data-root", "/data"]
-    mem_limit: 2g
+    # No new paid labels without explicit all --allow-labeling --max-images N.
+    command: ["all", "--config", "/config/source.json", "--data-root", "/data", "--max-images", "0"]
+    mem_limit: 4g
