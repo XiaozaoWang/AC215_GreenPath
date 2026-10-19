@@ -74,15 +74,19 @@ The notebooks support resuming by skipping outputs that already exist.
 
 ## Notebook responsibilities
 
+Research notebooks are archived in [docs/notebooks/](docs/notebooks/README.md).
+Both original and `en_` versions are retained without content changes. The container
+pipeline runs Python modules from `src/` and does not execute these notebooks.
+
 | Notebook | Purpose | Main outputs |
 | --- | --- | --- |
-| `01_streetview.ipynb` | Collect Mapillary metadata, filter images, assign H3 cells and download samples | `processed/cells.parquet`, `processed/streetview.parquet`, raw images and grid |
-| `02_tiles.ipynb` | Extract a 256 x 256 NAIP aerial tile for each selected cell | `processed/tiles/*.png`, imagery metadata in the cell table |
-| `03_osm_features.ipynb` | Compute OSM and WorldCover features | `processed/osm_features.parquet` |
-| Labeling notebook | Score street-view images using Gemini on Vertex AI and aggregate labels | `labels_image.parquet`, `labels_cell.parquet`, labeling metadata and QA exports |
-| `05_build_dataset.ipynb` | Join inputs and labels, filter rows, create spatial splits and freeze a version | `datasets/<version>/` tables, schema, manifest and dataset card |
-| `06_embeddings.ipynb` | Extract frozen ResNet-50, DINOv2-S and CLIP ViT-B/16 features | `embeddings/v1/*.parquet`, metadata |
-| `07_baselines.ipynb` | Select and evaluate B0, B1, M1 and M3 baselines | `results/<run_id>/`, experiment log |
+| [01_streetview.ipynb](docs/notebooks/01_streetview.ipynb) | Collect Mapillary metadata, filter images, assign H3 cells and download samples | `processed/cells.parquet`, `processed/streetview.parquet`, raw images and grid |
+| [02_tiles.ipynb](docs/notebooks/02_tiles.ipynb) | Extract a 256 x 256 NAIP aerial tile for each selected cell | `processed/tiles/*.png`, imagery metadata in the cell table |
+| [03_osm_features.ipynb](docs/notebooks/03_osm_features.ipynb) | Compute OSM and WorldCover features | `processed/osm_features.parquet` |
+| [04_labeling.ipynb](docs/notebooks/04_labeling.ipynb) | Score street-view images using Gemini on Vertex AI and aggregate labels | `labels_image.parquet`, `labels_cell.parquet`, labeling metadata and QA exports |
+| [05_build_dataset.ipynb](docs/notebooks/05_build_dataset.ipynb) | Join inputs and labels, filter rows, create spatial splits and freeze a version | `datasets/<version>/` tables, schema, manifest and dataset card |
+| [06_embeddings.ipynb](docs/notebooks/06_embeddings.ipynb) | Extract frozen ResNet-50, DINOv2-S and CLIP ViT-B/16 features | `embeddings/v1/*.parquet`, metadata |
+| [07_baselines.ipynb](docs/notebooks/07_baselines.ipynb) | Select and evaluate B0, B1, M1 and M3 baselines | `results/<run_id>/`, experiment log |
 
 ### 01: street-view collection
 

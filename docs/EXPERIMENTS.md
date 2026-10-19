@@ -1,6 +1,6 @@
 # GreenPath 实验日志
 
-每次运行 `07_baselines.ipynb` 会追加一节。
+每次运行 [07_baselines.ipynb](notebooks/07_baselines.ipynb) 会追加一节。
 
 ## baselines-first-run-20261013T0146
 

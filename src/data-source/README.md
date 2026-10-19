@@ -58,3 +58,10 @@ tests have not been run during this change. Earlier successful outputs predate t
 Optional coordination checks (no actual source stages): `make source-test`.
 See [SOURCE_PIPELINE.md](../../docs/SOURCE_PIPELINE.md),
 [END_TO_END.md](../../docs/END_TO_END.md), and [DEPENDENCIES.md](../../docs/DEPENDENCIES.md).
+
+## Research notebook archive
+
+Original and English research notebooks are retained unchanged in
+[docs/notebooks/](../../docs/notebooks/README.md). Container execution uses the extracted Python
+modules, not the notebook files. Extraction comments retain their original notebook
+basenames; `notebook-provenance.json` records their current repository paths.

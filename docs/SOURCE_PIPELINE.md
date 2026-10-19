@@ -274,3 +274,10 @@ application UI is introduced by this extraction.
 
 Run manifests capture configuration, input/output hashes and extraction source hashes;
 they are provenance records, not signatures or proof of model/label quality. Validation of the uv-built images is pending the user's execution.
+
+## Research notebook archive
+
+Original and English research notebooks are retained unchanged in
+[docs/notebooks/](notebooks/README.md). Container execution uses the extracted Python
+modules, not the notebook files. Extraction comments retain their original notebook
+basenames; `notebook-provenance.json` records their current repository paths.

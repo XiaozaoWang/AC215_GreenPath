@@ -1,18 +1,22 @@
 {
   "en_01_streetview.ipynb": {
     "sha256": "c8d48c772b3285d6c087d5aa7d03c5346b02b617cb4ddb7d5d70a372b6fe2043",
-    "role": "Extraction reference only; not read during execution"
+    "role": "Extraction reference only; not read during execution",
+    "repository_path": "docs/notebooks/en_01_streetview.ipynb"
   },
   "en_02_tiles.ipynb": {
     "sha256": "68cfea456cf69d679433428545848ebc4f1839fe7c81aefcc44ea7ede80d3506",
-    "role": "Extraction reference only; not read during execution"
+    "role": "Extraction reference only; not read during execution",
+    "repository_path": "docs/notebooks/en_02_tiles.ipynb"
   },
   "en_03_osm_features.ipynb": {
     "sha256": "19d22c614c653e49f6f8871b1b6550d0ee960e651f0282e8ba4304bbf809e31b",
-    "role": "Extraction reference only; not read during execution"
+    "role": "Extraction reference only; not read during execution",
+    "repository_path": "docs/notebooks/en_03_osm_features.ipynb"
   },
   "en_04_labeling.ipynb": {
     "sha256": "937ae7e112a5acdd28158f945189b2126113d10c5201ea3483ec5710d72ccfaa",
-    "role": "Extraction reference only; not read during execution"
+    "role": "Extraction reference only; not read during execution",
+    "repository_path": "docs/notebooks/en_04_labeling.ipynb"
   }
 }
