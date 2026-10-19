@@ -1,4 +1,4 @@
-> Archived 20-dimension simulated demo. Use `MODEL_PROVIDER=legacy`; current defaults are described in `../STEP1.md`.
+> Archived 20-dimension simulated demo. Use `MODEL_PROVIDER=legacy`; current defaults are described in [the current storage and contract guide](../DATA_AND_MODEL_VERSIONING.md).
 
 ![alt text](image.png)
 ![alt text](image-1.png)

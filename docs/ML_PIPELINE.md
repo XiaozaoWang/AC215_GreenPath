@@ -59,6 +59,35 @@ Images install pinned uv 0.12.12 and frozen runtime dependencies in `/opt/venv`.
 The source image installs `--all-extras`; downstream packages use separate locks.
 ML/source Python is 3.11; API Python is 3.12. See [dependency details](DEPENDENCIES.md).
 
+## Image builds and upstream outputs
+
+Build from the repository root so Docker can include sibling model packages:
+
+```sh
+make source-build
+docker build -f src/data-processor/Dockerfile -t greenpath-data-processor:ml .
+docker build -f src/feature-encoder/Dockerfile -t greenpath-feature-encoder:ml .
+docker build -f src/model-training/Dockerfile -t greenpath-model-training:ml .
+docker build -f src/model-deploy/Dockerfile -t greenpath-model-deploy:ml .
+```
+
+`make run` / `make run-all` normally build the required images themselves. Linux encoding
+uses CPU PyTorch; weights are runtime artifacts, not image contents. The launchers match
+host UID/GID for writable outputs; shared input caches are read-only to compute jobs.
+
+01 saves street photos, metadata and the H3 cell table. 02 saves RGB 256 x 256 aerial PNGs
+with source/hash sidecars and updates `cells.parquet`. 03 saves `osm_features.parquet`
+and dated/checksummed OSM source metadata. 04 saves per-image caches, aggregated targets,
+`labels_meta.json`, QA tables, galleries and human review sheets. Teacher scores in 1-5
+become `(score - 1) / 4`; too few usable photos leaves missing targets. Existing human
+review sheets are preserved, and model-generated labels are not human validation.
+
+New pipeline training uses verified feature artifacts with `--reference-policy none`;
+the standalone historical training entry point retains stricter reference checks.
+Both verify model reload and exclude test rows from fitting. Geographic IDs, not feature
+row order, align predictions to H3 polygons. The API schema is owned by
+`api-service/api/dimensions.json`; serving geometry, scores and schema must agree.
+
 ## Execution and resuming
 
 Use the [root README](../README.md) for the three main entry points. All commands below

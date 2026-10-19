@@ -256,7 +256,7 @@ stop the owning process or explicitly choose alternate launcher ports.
 - Optional user-run checks: `make source-test`, `make pipeline-test`, `make test`.
   Host component tests require uv and the appropriate Python versions.
 - [Research notebooks](docs/notebooks/README.md) are archived references; containers execute
-  `src/` scripts. Older STEP, PIPELINE and SOURCE guides are detailed development records.
+  `src/` scripts. Component READMEs and [dependency details](docs/DEPENDENCIES.md) provide implementation references.
 
 The earlier smoke logs predate consolidation; the new `boston-pilot-v2` evidence covers
 the shared upstream image and source-to-app path. Neither run establishes city-wide scale

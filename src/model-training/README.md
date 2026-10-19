@@ -18,9 +18,9 @@ uv run --frozen greenpath-train --help
 uv run --frozen pytest -q
 ```
 
-See [the step-2 guide](../../docs/STEP2.md) for exact data paths, artifact commands,
+See [the ML pipeline guide](../../docs/ML_PIPELINE.md) for exact data paths, artifact commands,
 GCS distribution and limitations. A Dockerfile is now provided; build from the repository
-root as explained in [CONTAINERS.md](../../docs/CONTAINERS.md).
+root as explained in [ML_PIPELINE.md](../../docs/ML_PIPELINE.md).
 
 New pipeline datasets use a verified `--embeddings` artifact and `--reference-policy none`.
 The default remains strict historical reproduction. Neither mode fits on test rows.

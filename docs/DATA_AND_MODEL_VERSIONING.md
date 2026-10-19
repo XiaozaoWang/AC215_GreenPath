@@ -187,6 +187,17 @@ published versions can be shared with teammates or recovered on another machine.
 copies selected artifacts to cloud storage; it does not move them out of the local folders,
 automatically synchronize future changes, or deploy the application.
 `pipeline/cache/` stores reusable downloads; `workflows/<id>/` stores full-workflow records
-and the actual `training_run_id`. Older top-level `models/`, `embeddings/`, `downloaded/`
-and `preflight/` are earlier development artifacts, not the new pipeline's default layout.
-Do not infer data identity or delete files solely from their folder names.
+and the actual `training_run_id`.
+
+## Archived legacy artifacts
+
+Earlier standalone inputs are now under `.artifacts/archived/`: `encoders/`,
+`models/m1-clip-ridge-v1/`, `samples/`, `training-inputs/` and `boston-heldout-en-v2/`.
+Legacy Make commands retain their original paths and need the corresponding directory
+restored before use. `.artifacts/archived/README.md` and `ARCHIVE_INDEX.json` record the
+exact original locations. Restore only when the destination is absent; do not overwrite
+newly created files. The current three main entry points use pipeline caches/runs and the
+API's built-in historical fixture, which were not moved.
+
+Old downloaded/preflight copies and explicitly selected test outputs were deleted.
+Real source workspaces, paid label caches, snapshots and registered successful runs remain.

@@ -53,11 +53,11 @@ The ADC mount is read-only. In the combined paid job it is available throughout 
 container, rather than isolated to a separate labeling container. Credentials are never
 copied into the image or written to source records.
 
-Consolidation has only received static checks; images, collection, labeling, training and
-tests have not been run during this change. Earlier successful outputs predate this image.
+The consolidated image completed the `boston-pilot-v2` source-to-app pilot on 2026-10-19.
+See the main pipeline guide for recorded evidence and scope.
 Optional coordination checks (no actual source stages): `make source-test`.
-See [SOURCE_PIPELINE.md](../../docs/SOURCE_PIPELINE.md),
-[END_TO_END.md](../../docs/END_TO_END.md), and [DEPENDENCIES.md](../../docs/DEPENDENCIES.md).
+See [ML_PIPELINE.md](../../docs/ML_PIPELINE.md) and
+[DEPENDENCIES.md](../../docs/DEPENDENCIES.md).
 
 ## Research notebook archive
 

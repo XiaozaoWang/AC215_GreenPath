@@ -25,10 +25,10 @@ docker build -t greenpath-api-service -f api-service/Dockerfile api-service
 
 Existing `make run` and application Compose commands remain the normal launch paths.
 See [the shared dependency convention](../docs/DEPENDENCIES.md) and
-[the full pipeline guide](../docs/PIPELINE.md) for runtime configuration.
+[the full pipeline guide](../docs/ML_PIPELINE.md) for runtime configuration.
 
-The updated image has not been built or run during this dependency change; user-run
-verification is still needed. Previously recorded API results predate this Dockerfile.
+The `boston-pilot-v2` workflow built/started the API and passed application checks on
+2026-10-19. See the current pipeline guide for the saved run evidence.
 
 ## Saved result versions
 
@@ -36,5 +36,5 @@ verification is still needed. Previously recorded API results predate this Docke
 `version_id` to `/capabilities`, `/preview` and `/score`. Preview is a saved score-dimension
 view and never calls the preference provider. Catalog entries are pinned to manifest
 hashes; selection is per request, not a mutable global model. Invalid/unknown versions
-never fall back to fake scores or another model. See [DATA_LIFECYCLE.md](../docs/DATA_LIFECYCLE.md)
-and [END_TO_END.md](../docs/END_TO_END.md).
+never fall back to fake scores or another model. See [DATA_AND_MODEL_VERSIONING.md](../docs/DATA_AND_MODEL_VERSIONING.md)
+and [ML_PIPELINE.md](../docs/ML_PIPELINE.md).

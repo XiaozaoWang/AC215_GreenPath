@@ -109,8 +109,8 @@ docker compose -f docker-compose.ml.yml build
 ```
 
 Image builds can download packages but do not invoke data or model commands. After a
-successful rebuild, select the desired runtime checks from `SOURCE_PIPELINE.md` and
-`PIPELINE.md`; do not rerun paid labeling just to check the dependency manager.
+successful rebuild, select the desired runtime checks from [ML_PIPELINE.md](ML_PIPELINE.md);
+do not rerun paid labeling just to check the dependency manager.
 
 ## Upstream consolidation
 
@@ -118,4 +118,6 @@ successful rebuild, select the desired runtime checks from `SOURCE_PIPELINE.md` 
 (`data-source`). The `all` command runs these stages sequentially inside one container.
 Individual stage commands reuse the same image. This changes image build and startup
 configuration, but retains the existing dependency versions and data/version formats.
-Rebuild with `make source-build` before use; consolidation has not been runtime-tested.
+Rebuild with `make source-build` when source code/dependencies change. Consolidation
+was verified by the user-executed `boston-pilot-v2` pilot on 2026-10-19; see
+[the current pipeline evidence](ML_PIPELINE.md#evidence-and-current-boundary).

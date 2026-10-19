@@ -23,7 +23,7 @@ every experimental backbone, baseline and visualization in these notebooks.
 
 ## Execution and paths
 
-Use the root [Makefile](../../Makefile) and [workflow guide](../END_TO_END.md) for the
+Use the root [Makefile](../../Makefile) and [workflow guide](../ML_PIPELINE.md) for the
 containerized pipeline. Moving the notebooks does not change Compose configuration,
 data locations, model locations or the existing Python CLI entry points.
 

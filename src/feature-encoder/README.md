@@ -23,7 +23,7 @@ identity. It is a vision feature extractor, not a vector database or RAG compone
 
 The encoder's historical cache did not record a weight digest. A sample re-encoding
 comparison demonstrates numerical compatibility, not proof about every old cache row.
-See [STEP2.md](../../docs/STEP2.md) for reproducible commands and artifact locations.
-Build the Linux CPU image from the repository root; see [CONTAINERS.md](../../docs/CONTAINERS.md).
+See [ML_PIPELINE.md](../../docs/ML_PIPELINE.md) for reproducible commands and artifact locations.
+Build the Linux CPU image from the repository root; see [ML_PIPELINE.md](../../docs/ML_PIPELINE.md).
 New embedding artifacts record actual runtime versions and per-batch progress as well
 as the separately versioned checkpoint identity.

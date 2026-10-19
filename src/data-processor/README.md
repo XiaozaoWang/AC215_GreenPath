@@ -3,8 +3,8 @@
 This is the first of four ML jobs. It ingests a versioned GCS snapshot of existing
 notebook 01-04 outputs, safely extracts NAIP images, then executes notebook 05's
 join/filter/spatial-split/buffer/fold logic. It does not reacquire Mapillary imagery,
-query OSM or invoke a paid teacher. Those upstream operations remain research notebooks;
-their cached outputs are the documented starting boundary of this reproducible pipeline.
+query OSM or invoke a paid teacher. Those upstream operations run in the separate `data-source` container; this component
+starts from their frozen outputs.
 
 ```sh
 uv sync --frozen --python 3.11
@@ -24,7 +24,7 @@ parameters, image provenance and teacher-label limitations. Original v1 is never
 
 All images are checked as RGB 256x256 tiles. CLIP crop/normalization is executed by the
 next component. Unsafe archives, broken hashes and ambiguous IDs fail before publication.
-Build the image from the repository root following [CONTAINERS.md](../../docs/CONTAINERS.md),
+Build the image from the repository root following [ML_PIPELINE.md](../../docs/ML_PIPELINE.md),
 so the shared sibling model package is included.
 
 ## New source snapshots and archives
@@ -38,4 +38,4 @@ The training launcher now accepts `--source-dir` to prepare a local immutable sn
 without requiring an intermediate GCS upload. Encoder weights still use their verified
 cache/GCS source. Dataset identity derives from the source manifest, contract, preparation
 recipe and mode rather than a universal `pipeline-full-v1` label. See
-[DATA_LIFECYCLE.md](../../docs/DATA_LIFECYCLE.md) for the version chain.
+[DATA_AND_MODEL_VERSIONING.md](../../docs/DATA_AND_MODEL_VERSIONING.md) for the version chain.
