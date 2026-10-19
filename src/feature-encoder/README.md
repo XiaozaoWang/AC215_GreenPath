@@ -11,6 +11,8 @@ its own Python/uv environment, separate from scikit-learn and LightGBM.
 - Encoding loads a verified local safetensors file; it does not automatically download
   model weights. `--device cpu` is portable; MPS/CUDA are explicit options.
 
+For local development, run from `src/feature-encoder/`:
+
 ```sh
 uv sync --frozen --python 3.11
 uv run --frozen greenpath-encode --help
@@ -27,3 +29,20 @@ See [ML_PIPELINE.md](../../docs/ML_PIPELINE.md) for reproducible commands and ar
 Build the Linux CPU image from the repository root; see [ML_PIPELINE.md](../../docs/ML_PIPELINE.md).
 New embedding artifacts record actual runtime versions and per-batch progress as well
 as the separately versioned checkpoint identity.
+
+## Pipeline inputs and outputs
+
+Compose service `feature-encoder` in `docker-compose.ml.yml` runs after `data-processor`:
+
+- Input list: `.artifacts/pipeline/runs/<run-id>/prepared/images.json`.
+- Images: `.artifacts/pipeline/cache/images/<snapshot-version>/`.
+- Encoder: `.artifacts/pipeline/cache/encoders/<encoder-version>/`, containing
+  `encoder.json`, `model.safetensors` and `manifest.json`.
+- Output: `.artifacts/pipeline/runs/<run-id>/embeddings/`, containing
+  `embeddings.parquet`, `embedding.json` and `manifest.json`.
+
+The pipeline ingests encoder weights before this job; the container has no network
+access and runs on CPU. It extracts features without training CLIP. From the repository
+root, `make run` includes this job automatically. Uploaded run embeddings retain the same
+relative path under `gs://ac215-greenpath/artifacts/pipeline/runs/<run-id>/embeddings/`;
+GCS publication is explicit, not part of encoding.

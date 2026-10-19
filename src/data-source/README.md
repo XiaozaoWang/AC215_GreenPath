@@ -20,13 +20,13 @@ A partial paid batch is saved but returns a failure until the selected workspace
 
 The Dockerfile installs all four optional dependency groups from the existing shared
 `uv.lock` with `uv sync --frozen --no-dev --all-extras` using uv 0.12.12 in `/opt/venv`.
-No dependency versions changed for the container consolidation. For local development:
+For local development, run from `src/data-source/`:
 
 ```sh
 uv sync --frozen --all-extras
 ```
 
-Build the shared image without acquiring data:
+Run the following Make commands from the repository root. Build the shared image without acquiring data:
 
 ```sh
 make source-build
@@ -65,3 +65,25 @@ Original and English research notebooks are retained unchanged in
 [docs/notebooks/](../../docs/notebooks/README.md). Container execution uses the extracted Python
 modules, not the notebook files. Extraction comments retain their original notebook
 basenames; `notebook-provenance.json` records their current repository paths.
+
+## Pipeline inputs and outputs
+
+The source JSON config defines the collection region, sample size, source version and
+labeling settings. Compose defaults to `configs/source-boston.example.json`; use
+`SOURCE_CONFIG` and `SOURCE_DATA_DIR` to select another config/workspace.
+
+Outputs live in `.artifacts/sources/<source-version>/`: `raw/` contains downloaded source
+assets, `processed/` contains tables, tiles and labeling outputs, and `runs/` records
+stage manifests. `source-workspace.json` identifies the workspace configuration;
+`source-run-summary.json` records the combined job result.
+
+This is a mutable, resumable workspace, not the frozen training snapshot. `make run-all`
+uses a workflow config to select it, freeze it into
+`.artifacts/snapshots/sources/<snapshot-version>/`, and run training through the app.
+A new run ID alone does not create a new source workspace. See the
+[root README](../../README.md) for credentials and fresh-collection instructions.
+
+Collection does not automatically upload data to GCS. After reviewing a successful run,
+use `make publish-run RUN_ID=YOUR-RUN-ID PUBLISH_ARGS="--include-upstream"` to publish
+its source workspace, frozen input, encoder and run outputs under
+`gs://ac215-greenpath/artifacts/`.
