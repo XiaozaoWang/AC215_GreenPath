@@ -24,7 +24,15 @@ make app-versions
 
 This registers existing successful pipeline runs, builds the updated API/frontend and
 starts the app. It does not collect data, call the teacher or train a model. Frontend is
-http://localhost:3030 and API docs are http://localhost:9030/docs.
+http://localhost:3000 and API docs are http://localhost:9000/docs.
+
+All application launchers (`make app`, `make app-versions`, `make run` and
+`make run-all`) default to frontend port 3000 and API port 9000. Re-running
+`make app-versions` recreates this launcher's existing containers when their port
+mappings change; no ML jobs are needed. An unrelated process occupying either port
+must be stopped first. For an intentional alternate mapping, use
+`make app-versions APP_ARGS="--frontend-port 3003 --api-port 9003"`. The pipeline
+launchers accept the same flags through `PIPELINE_ARGS` or `WORKFLOW_ARGS`.
 
 The version selector includes the historical fixture and successful registered runs,
 such as `serving-local-smoke-001`. Switching versions changes the preview immediately;

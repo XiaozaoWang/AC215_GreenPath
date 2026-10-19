@@ -106,8 +106,8 @@ def main():
     register.add_argument('--default', action='store_true')
     serve = commands.add_parser('serve')
     serve.add_argument('--version')
-    serve.add_argument('--api-port', type=int, default=9030)
-    serve.add_argument('--frontend-port', type=int, default=3030)
+    serve.add_argument('--api-port', type=int, default=9000)
+    serve.add_argument('--frontend-port', type=int, default=3000)
     serve.add_argument('--no-build', action='store_true')
     fetch = commands.add_parser('fetch-serving')
     fetch.add_argument('--uri', required=True)
@@ -144,6 +144,8 @@ def main():
         command = ['docker', 'compose', '-p', 'greenpath-pipeline-app', '-f', 'docker-compose.yml', 'up', '-d', '--wait']
         if not args.no_build: command.append('--build')
         subprocess.run(command, cwd=ROOT, env=env, check=True)
+        print(f'Frontend: http://localhost:{args.frontend_port}')
+        print(f'API docs: http://localhost:{args.api_port}/docs')
     elif args.action == 'fetch-serving':
         if not args.version or any(c not in 'abcdefghijklmnopqrstuvwxyz0123456789-' for c in args.version):
             raise ValueError('Use a lowercase version ID without path separators')

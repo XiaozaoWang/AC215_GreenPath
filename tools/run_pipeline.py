@@ -117,8 +117,8 @@ def main():
     parser.add_argument("--source-version")
     parser.add_argument("--source-uri")
     parser.add_argument("--catalog-label")
-    parser.add_argument("--api-port", type=int, default=9030)
-    parser.add_argument("--frontend-port", type=int, default=3030)
+    parser.add_argument("--api-port", type=int, default=9000)
+    parser.add_argument("--frontend-port", type=int, default=3000)
     args = parser.parse_args()
     run_id = validate_run_id(args.run_id or (datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S-") + uuid.uuid4().hex[:6]))
     runs = ROOT / ".artifacts/pipeline/runs"

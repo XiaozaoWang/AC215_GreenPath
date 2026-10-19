@@ -26,8 +26,8 @@ make run
 This builds and runs four real ML containers, validates their outputs, starts API and
 frontend containers, then issues a sample API request to verify the app serves that run.
 
-- Frontend: http://localhost:3030
-- API documentation: http://localhost:9030/docs
+- Frontend: http://localhost:3000
+- API documentation: http://localhost:9000/docs
 - Each invocation gets a unique run ID. Outputs are never silently overwritten.
 - Current successful run pointer: `.artifacts/pipeline/latest.json`.
 

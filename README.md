@@ -42,7 +42,7 @@ With Docker, Python 3.9+, make and authorized GCS ADC ready:
 make run
 ```
 
-Frontend: http://localhost:3030; API docs: http://localhost:9030/docs.
+Frontend: http://localhost:3000; API docs: http://localhost:9000/docs.
 The four ML jobs run in order and exit; the two app containers continue running.
 See [PIPELINE.md](docs/PIPELINE.md) for prerequisites, versions, offline/full options,
 logs and exact scope. Project code, comments and new submission documentation are English.
