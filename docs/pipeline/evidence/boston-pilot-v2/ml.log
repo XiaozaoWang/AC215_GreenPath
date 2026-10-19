@@ -1,0 +1,46 @@
+ Network gp-ml-boston-pilot-v2_default Creating 
+ Network gp-ml-boston-pilot-v2_default Creating 
+ Network gp-ml-boston-pilot-v2_default Created 
+ Network gp-ml-boston-pilot-v2_default Created 
+ Container gp-ml-boston-pilot-v2-data-processor-1 Creating 
+ Container gp-ml-boston-pilot-v2-data-processor-1 Created 
+ Container gp-ml-boston-pilot-v2-feature-encoder-1 Creating 
+ Container gp-ml-boston-pilot-v2-feature-encoder-1 Created 
+ Container gp-ml-boston-pilot-v2-model-training-1 Creating 
+ Container gp-ml-boston-pilot-v2-model-training-1 Created 
+ Container gp-ml-boston-pilot-v2-model-deploy-1 Creating 
+ Container gp-ml-boston-pilot-v2-model-deploy-1 Created 
+Attaching to data-processor-1, feature-encoder-1, model-deploy-1, model-training-1
+ Container gp-ml-boston-pilot-v2-data-processor-1 Starting 
+ Container gp-ml-boston-pilot-v2-data-processor-1 Started 
+ Container gp-ml-boston-pilot-v2-data-processor-1 Waiting 
+data-processor-1  | {"artifact_version": "prepared-boston-pilot-v2", "dataset_version": "dataset-full-d8a40f80c28adae4", "counts": {"train": 31, "val": 10, "test": 8}, "full_filtered_counts": {"train": 31, "val": 10, "test": 8}, "ingestion": "local_frozen_snapshot_verified"}
+
+[Kdata-processor-1 exited with code 0
+ Container gp-ml-boston-pilot-v2-data-processor-1 Exited 
+ Container gp-ml-boston-pilot-v2-feature-encoder-1 Starting 
+ Container gp-ml-boston-pilot-v2-feature-encoder-1 Started 
+ Container gp-ml-boston-pilot-v2-feature-encoder-1 Waiting 
+feature-encoder-1  | {"stage": "encoding", "completed": 8, "total": 49}
+feature-encoder-1  | {"stage": "encoding", "completed": 16, "total": 49}
+feature-encoder-1  | {"stage": "encoding", "completed": 24, "total": 49}
+feature-encoder-1  | {"stage": "encoding", "completed": 32, "total": 49}
+feature-encoder-1  | {"stage": "encoding", "completed": 40, "total": 49}
+feature-encoder-1  | {"stage": "encoding", "completed": 48, "total": 49}
+feature-encoder-1  | {"stage": "encoding", "completed": 49, "total": 49}
+feature-encoder-1  | {"artifact_version": "embeddings-boston-pilot-v2", "n_images": 49, "cache_comparison": null}
+
+[Kfeature-encoder-1 exited with code 0
+ Container gp-ml-boston-pilot-v2-feature-encoder-1 Exited 
+ Container gp-ml-boston-pilot-v2-model-training-1 Starting 
+ Container gp-ml-boston-pilot-v2-model-training-1 Started 
+ Container gp-ml-boston-pilot-v2-model-training-1 Waiting 
+model-training-1   | {"model_version": "model-boston-pilot-v2", "reference_max_abs_error": null, "reference_tolerance": null, "reference_policy": "none", "n_test": 8, "no_test_rows_used_for_fit": true, "reload_max_abs_error": 1.1920928955078125e-07, "fresh_process_max_abs_error": 1.1920928955078125e-07, "reload_tolerance": 1e-06, "fresh_process_verified": true}
+
+[Kmodel-training-1 exited with code 0
+ Container gp-ml-boston-pilot-v2-model-training-1 Exited 
+ Container gp-ml-boston-pilot-v2-model-deploy-1 Starting 
+ Container gp-ml-boston-pilot-v2-model-deploy-1 Started 
+model-deploy-1     | {"prediction": {"artifact_version": "predictions-boston-pilot-v2", "n_cells": 49, "model_version": "model-boston-pilot-v2"}, "serving": {"artifact_version": "serving-boston-pilot-v2", "n_cells": 49, "model_version": "model-boston-pilot-v2", "mode": "full"}}
+
+[Kmodel-deploy-1 exited with code 0

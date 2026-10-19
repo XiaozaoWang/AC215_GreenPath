@@ -1,0 +1,32 @@
+{
+  "workflow_id": "boston-pilot-v2",
+  "config_sha256": "4bd5b40d530477e6809a9c5aea6ea9da2ad2702c4cb65d9417232f7bf83113e7",
+  "configuration": {
+    "format_version": "greenpath-workflow-v1",
+    "source_config": "configs/source-boston-pilot-v2.json",
+    "source_directory": ".artifacts/sources/boston-pilot-v2",
+    "snapshot_version": "boston-pilot-v2-frozen-v1",
+    "training_config": "configs/training-clip-ridge.json",
+    "mode": "full",
+    "max_new_label_images": 200,
+    "result_label": "boston-pilot-v2: 50-cell pilot",
+    "scope_note": "Use all qualifying prepared rows from 50-cell pilot; collection filters still apply."
+  },
+  "started_at": "2026-10-19T06:58:53.522755+00:00",
+  "implementation_sha256": "a0b2db30d50d05cee572df7a20d4594f45b64f244ffc85f8089391f8ea12384e",
+  "git_commit": "7fd2a2ed3d4f59947abfb4a966192d2d71f50ad2",
+  "success": true,
+  "stages": {
+    "01_streetview": "completed",
+    "02_tiles": "completed",
+    "03_osm_features": "completed",
+    "04_labeling": "complete_selected_workspace"
+  },
+  "source_status": "collected_labeled_and_frozen",
+  "source_version": "boston-pilot-v2",
+  "snapshot_version": "boston-pilot-v2-frozen-v1",
+  "snapshot_manifest_sha256": "c8e5355da8b8ce58787ef9402fc4e9a3b4d59e741bcceba1d8a16f4d8fe95c44",
+  "training_run_id": "boston-pilot-v2",
+  "serving_version": "serving-boston-pilot-v2",
+  "finished_at": "2026-10-19T07:06:56.581553+00:00"
+}

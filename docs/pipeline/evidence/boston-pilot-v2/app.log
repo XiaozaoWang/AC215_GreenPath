@@ -1,0 +1,105 @@
+ Image greenpath-frontend Building 
+ Image greenpath-api-service Building 
+#1 [internal] load local bake definitions
+#1 reading from stdin 1.19kB done
+#1 DONE 0.0s
+
+#2 [frontend internal] load build definition from Dockerfile.dev
+#2 transferring dockerfile: 218B done
+#2 DONE 0.0s
+
+#3 [api-service internal] load build definition from Dockerfile
+#3 transferring dockerfile: 634B done
+#3 DONE 0.0s
+
+#4 [auth] library/node:pull token for registry-1.docker.io
+#4 DONE 0.0s
+
+#5 [api-service internal] load metadata for docker.io/library/python:3.12-slim-bookworm
+#5 DONE 0.2s
+
+#6 [frontend internal] load metadata for docker.io/library/node:20-alpine
+#6 DONE 0.3s
+
+#7 [api-service internal] load .dockerignore
+#7 transferring context: 1.10kB done
+#7 DONE 0.0s
+
+#8 [api-service internal] load build context
+#8 transferring context: 2.19kB done
+#8 DONE 0.0s
+
+#9 [api-service stage-0 1/7] FROM docker.io/library/python:3.12-slim-bookworm@sha256:34386ef0cb081344d7ec1c103ba398e6e9f64e9ab3a1509accc92a4e24a07258
+#9 resolve docker.io/library/python:3.12-slim-bookworm@sha256:34386ef0cb081344d7ec1c103ba398e6e9f64e9ab3a1509accc92a4e24a07258 done
+#9 DONE 0.0s
+
+#10 [api-service stage-0 3/7] WORKDIR /app
+#10 CACHED
+
+#11 [api-service stage-0 4/7] COPY pyproject.toml uv.lock ./
+#11 CACHED
+
+#12 [api-service stage-0 5/7] RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-dev
+#12 CACHED
+
+#13 [api-service stage-0 6/7] RUN useradd -m -u 1000 app && mkdir /persistent && chown app:app /persistent /app
+#13 CACHED
+
+#14 [api-service stage-0 2/7] RUN pip install --no-cache-dir uv==0.12.12
+#14 CACHED
+
+#15 [api-service stage-0 7/7] COPY --chown=app:app . /app
+#15 CACHED
+
+#16 [api-service] exporting to image
+#16 exporting layers done
+#16 exporting manifest sha256:ac6b2915225cba0aa94cb9c69fb89e4a866c7c65892f229ca6b3c7f80108b93b done
+#16 exporting config sha256:8b5ba51688eb96503a39f192492ab187f6f44daca0926c0a3bc7ca941560ef42 done
+#16 exporting attestation manifest sha256:50217787a01eec6b8add511664bd44d4d48599c3d08344649d513fe56dc5c2da done
+#16 exporting manifest list sha256:7025e8be88348afaf4ed1a761d6e3ba56074b0ace32d90a7405c3d271a86cf8d done
+#16 naming to docker.io/library/greenpath-api-service:latest done
+#16 unpacking to docker.io/library/greenpath-api-service:latest done
+#16 DONE 0.0s
+
+#17 [api-service] resolving provenance for metadata file
+#17 DONE 0.0s
+
+#18 [frontend internal] load .dockerignore
+#18 transferring context: 91B done
+#18 DONE 0.0s
+
+#19 [frontend 1/3] FROM docker.io/library/node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293
+#19 resolve docker.io/library/node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293 0.0s done
+#19 DONE 0.0s
+
+#20 [frontend 2/3] RUN set -ex;     apk update &&     apk add --no-cache bash &&     mkdir -p /app
+#20 CACHED
+
+#21 [frontend 3/3] WORKDIR /app
+#21 CACHED
+
+#22 [frontend] exporting to image
+#22 exporting layers done
+#22 exporting manifest sha256:f1fbb75b18c5a9d3562e381605e48e54aa1d57f5873e8c06a3b2392fd2ab78b4 done
+#22 exporting config sha256:6762cc02ff21bdb04ef7ec837df28fbda91e9e668f8e8d113bf2a071f77d49c9 done
+#22 exporting attestation manifest sha256:1f945b6f8fb59c17a6b84169827360e4a7bba9607d8a28b1eab832c11085c755 done
+#22 exporting manifest list sha256:9f530dab0828cf3abefd44ebbe1d2a599c2a0aac6f3ee31c1609963c78e77f85 done
+#22 naming to docker.io/library/greenpath-frontend:latest done
+#22 unpacking to docker.io/library/greenpath-frontend:latest done
+#22 DONE 0.0s
+
+#23 [frontend] resolving provenance for metadata file
+#23 DONE 0.0s
+ Image greenpath-api-service Built 
+ Image greenpath-frontend Built 
+ Container greenpath-pipeline-app-frontend-1 Running 
+ Container greenpath-pipeline-app-api-service-1 Recreate 
+ Container greenpath-pipeline-app-api-service-1 Recreated 
+ Container greenpath-pipeline-app-api-service-1 Starting 
+ Container greenpath-pipeline-app-api-service-1 Started 
+ Container greenpath-pipeline-app-api-service-1 Waiting 
+ Container greenpath-pipeline-app-api-service-1 Healthy 
+ Container greenpath-pipeline-app-api-service-1 Waiting 
+ Container greenpath-pipeline-app-frontend-1 Waiting 
+ Container greenpath-pipeline-app-api-service-1 Healthy 
+ Container greenpath-pipeline-app-frontend-1 Healthy 

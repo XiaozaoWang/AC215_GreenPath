@@ -1,111 +1,118 @@
-# GreenPath 实验日志
+# Experiments and Verification
 
-每次运行 [07_baselines.ipynb](notebooks/07_baselines.ipynb) 会追加一节。
+## Task and data
 
-## baselines-first-run-20261013T0146
+The teacher assigns eight street-view perception targets: `traffic_intensity`, `quietness`,
+`shade`, `naturalness`, `scenic_appeal`, `historic_character`, `liveliness`, `visual_openness`.
+Usable 1-5 scores are aggregated per cell and normalized to [0,1]; fewer than two usable
+photos leaves cell targets missing. Labels are Gemini-generated, not human-validated truth.
 
-- **日期**：2026-10-13T01:47:16Z · **数据集**：v1（824 个训练 / 验证格子，188 个测试格子）· TTA：True
-- **目的**：回答"只看卫星图能不能预测骑行体验？卫星图有没有提供 OSM 之外的信息？"
-- **标签**：Gemini 生成，**尚未经人工验证（E1）**。以下所有"准确"都是相对 Gemini 打分而言。
+Historical prepared v1 contains **1,012 cells: 651 train, 173 val, 188 test**. Splitting uses
+H3 resolution-8 blocks and a one-ring test buffer over resolution-10 cells, not random rows.
+The new acquisition configuration is a separate 50-cell pilot; filtering/buffering can
+leave fewer cells or insufficient spatial splits.
 
-### 测试集结果（Spearman [95% CI]，按区块自助法）
+## Historical baseline comparison
 
-| dim                | B0             | B1                | M1                 | M3                |
-|:-------------------|:---------------|:------------------|:-------------------|:------------------|
-| traffic_intensity  | 0.0 [0.0, 0.0] | 0.62 [0.47, 0.76] | 0.35 [0.1, 0.6]    | 0.55 [0.39, 0.73] |
-| quietness          | 0.0 [0.0, 0.0] | 0.67 [0.48, 0.79] | 0.44 [0.15, 0.62]  | 0.66 [0.49, 0.79] |
-| shade              | 0.0 [0.0, 0.0] | 0.46 [0.07, 0.69] | 0.28 [-0.04, 0.53] | 0.4 [-0.02, 0.65] |
-| naturalness        | 0.0 [0.0, 0.0] | 0.58 [0.35, 0.7]  | 0.56 [0.31, 0.71]  | 0.6 [0.35, 0.72]  |
-| scenic_appeal      | 0.0 [0.0, 0.0] | 0.53 [0.36, 0.68] | 0.51 [0.3, 0.65]   | 0.57 [0.41, 0.7]  |
-| historic_character | 0.0 [0.0, 0.0] | 0.51 [0.27, 0.67] | 0.56 [0.34, 0.68]  | 0.57 [0.37, 0.69] |
-| liveliness         | 0.0 [0.0, 0.0] | 0.68 [0.54, 0.77] | 0.57 [0.36, 0.67]  | 0.67 [0.54, 0.74] |
-| visual_openness    | 0.0 [0.0, 0.0] | 0.17 [-0.21, 0.4] | 0.26 [0.01, 0.38]  | 0.23 [-0.07, 0.4] |
-| 平均               | 0.00           | 0.53              | 0.44               | 0.53              |
+Source: experiment `baselines-first-run-20261013T0242`, recorded 2026-10-13. The
+[original experiment log](pipeline/evidence/historical-experiment-log.md) preserves full
+per-target results, block-bootstrap confidence intervals and earlier entries unchanged.
 
-### 结论
-- 最佳编码器（CV）：**clip_b16**；M3 的 PCA 维度：32；LightGBM 参数：{'n_estimators': 150, 'num_leaves': 7}。
-- 测试集平均 Spearman：B0 0.00 · B1 0.53 · M1 0.44 · M3 0.53。
-- M3 相对 B1：0/8 个维度显著更好（CI 不含 0），0/8 个显著更差，平均差 +0.002。
-- M1（只看卫星图）相对 B1：0/8 个显著更好，4/8 个显著更差，平均差 -0.086。
-- 较可预测的维度（M3 测试 Spearman ≥ 0.5）：liveliness, quietness, naturalness, historic_character, scenic_appeal, traffic_intensity；较弱的维度（< 0.3）：visual_openness。
+| Model | Inputs / method | Mean test Spearman |
+| --- | --- | --- |
+| B0 | Constant mean prediction | 0.00 |
+| B1 | OSM / WorldCover + LightGBM | 0.53 |
+| M1 | Fixed image embeddings + Ridge | 0.44 |
+| M3 | PCA image features + geographic features + LightGBM | 0.53 |
 
-### 下一轮计划
-- 卫星图特征没有显著超过 OSM 基线：先检查标签质量（E1）和编码器是否合适，再试遥感专用编码器（SatlasPretrain）和微调（M2）。
-- 弱维度（visual_openness）：回到 E1，看是标签不可靠，还是俯视图本来就推断不了；不可靠的维度考虑删除或重写打分规则。
-- 做 E1 人工标注，只对通过的维度下结论。
-- 扩大数据：放宽冬季过滤的消融实验；加入第二座城市做真正的跨城测试。
+Historical grouped CV selected CLIP ViT-B/16; M3 used PCA 32 and LightGBM
+`n_estimators=150`, `num_leaves=7`. Fusion did not significantly outperform B1 in any
+of the eight targets in the recorded block-bootstrap comparisons. `visual_openness`
+was weak (M1 Spearman 0.26). These findings concern agreement with teacher labels.
 
-### 备注（人工填写）
-- 
+## Current containerized baseline
 
-## baselines-first-run-20261013T0159
+M1 provides a simple exportable aerial-image baseline for integration. Its selection
+is based on manageable inference/export and prior image-encoder CV, not a claim that it
+outperformed the geographic baseline. OSM features remain in preparation/research inputs,
+but the deployed Ridge predictor uses CLIP features only.
 
-- **日期**：2026-10-13T02:00:17Z · **数据集**：v1（824 个训练 / 验证格子，188 个测试格子）· TTA：True
-- **目的**：回答"只看卫星图能不能预测骑行体验？卫星图有没有提供 OSM 之外的信息？"
-- **标签**：Gemini 生成，**尚未经人工验证（E1）**。以下所有"准确"都是相对 Gemini 打分而言。
+| Setting | Value / source |
+| --- | --- |
+| Input image | 256 x 256 aerial PNG; 224 center crop, RGB, CLIP normalization |
+| Encoder | Fixed `clip-b16-laion2b-v1`, 512 features; no CLIP fine-tuning |
+| TTA | Mean of eight rotation/flip embeddings |
+| Regressor | StandardScaler + independent Ridge targets; alpha 1000 |
+| Selection | Reuse historical grouped-CV choice; no new search on smoke/test data |
+| Final fit | Train + val; held-out test excluded from fitting |
+| Configuration | `configs/training-clip-ridge.json`; per-run `prepared/training-config.json` |
+| Version records | `model/model.json`, `model/manifest.json`, serving provenance |
 
-### 测试集结果（Spearman [95% CI]，按区块自助法）
+Missing target values are handled per target. Read each run's split IDs, metrics and
+fit counts rather than assuming a small pilot has the historical dataset size.
 
-| dim                | B0             | B1                | M1                 | M3                |
-|:-------------------|:---------------|:------------------|:-------------------|:------------------|
-| traffic_intensity  | 0.0 [0.0, 0.0] | 0.62 [0.47, 0.76] | 0.35 [0.1, 0.6]    | 0.55 [0.39, 0.73] |
-| quietness          | 0.0 [0.0, 0.0] | 0.67 [0.48, 0.79] | 0.44 [0.15, 0.62]  | 0.66 [0.49, 0.79] |
-| shade              | 0.0 [0.0, 0.0] | 0.46 [0.07, 0.69] | 0.28 [-0.04, 0.53] | 0.4 [-0.02, 0.65] |
-| naturalness        | 0.0 [0.0, 0.0] | 0.58 [0.35, 0.7]  | 0.56 [0.31, 0.71]  | 0.6 [0.35, 0.72]  |
-| scenic_appeal      | 0.0 [0.0, 0.0] | 0.53 [0.36, 0.68] | 0.51 [0.3, 0.65]   | 0.57 [0.41, 0.7]  |
-| historic_character | 0.0 [0.0, 0.0] | 0.51 [0.27, 0.67] | 0.56 [0.34, 0.68]  | 0.57 [0.37, 0.69] |
-| liveliness         | 0.0 [0.0, 0.0] | 0.68 [0.54, 0.77] | 0.57 [0.36, 0.67]  | 0.67 [0.54, 0.74] |
-| visual_openness    | 0.0 [0.0, 0.0] | 0.17 [-0.21, 0.4] | 0.26 [0.01, 0.38]  | 0.23 [-0.07, 0.4] |
-| 平均               | 0.00           | 0.53              | 0.44               | 0.53              |
+## Execution evidence is separate from model quality
 
-### 结论
-- 最佳编码器（CV）：**clip_b16**；M3 的 PCA 维度：32；LightGBM 参数：{'n_estimators': 150, 'num_leaves': 7}。
-- 测试集平均 Spearman：B0 0.00 · B1 0.53 · M1 0.44 · M3 0.53。
-- M3 相对 B1：0/8 个维度显著更好（CI 不含 0），0/8 个显著更差，平均差 +0.002。
-- M1（只看卫星图）相对 B1：0/8 个显著更好，4/8 个显著更差，平均差 -0.086。
-- 较可预测的维度（M3 测试 Spearman ≥ 0.5）：liveliness, quietness, naturalness, historic_character, scenic_appeal, traffic_intensity；较弱的维度（< 0.3）：visual_openness。
+| Evidence | What it establishes | Boundary |
+| --- | --- | --- |
+| Historical experiment above | Baseline comparison on 188 test cells | Teacher agreement, one city |
+| Recorded `smoke-20261018-02` | Fresh 48-image encoding, fit/export, independent reload, batch prediction, API/frontend | Historical snapshot input; predates newer changes |
+| Earlier individual 01-04 trial | 50 cells, 192 street images, 50 tiles/feature rows; initial partial labeling | Predates uv migration and single-container consolidation |
+| `boston-pilot-v2` (2026-10-19) | Consolidated 01-04, new frozen snapshot, downstream training/prediction and app checks | Completed 50-cell pilot; not full-size collection or a generalization benchmark |
 
-### 下一轮计划
-- 卫星图特征没有显著超过 OSM 基线：先检查标签质量（E1）和编码器是否合适，再试遥感专用编码器（SatlasPretrain）和微调（M2）。
-- 弱维度（visual_openness）：回到 E1，看是标签不可靠，还是俯视图本来就推断不了；不可靠的维度考虑删除或重写打分规则。
-- 做 E1 人工标注，只对通过的维度下结论。
-- 扩大数据：放宽冬季过滤的消融实验；加入第二座城市做真正的跨城测试。
+The recorded smoke fit **32 train + 8 val** and evaluated **8 test** cells; its map served
+all 48 cells. It completed in 92.57 seconds with cached builds. Fresh-process reload error
+was approximately **5.96e-8**, below tolerance **1e-6**. This tests execution/reload
+consistency; eight test cells are not a reliable new benchmark.
 
-### 备注（人工填写）
-- 
+Evidence: [run summary](pipeline/evidence/run-summary.json),
+[ML log](pipeline/evidence/pipeline-ml.log),
+[container statuses](pipeline/evidence/ml-containers.json),
+[smoke metrics](pipeline/evidence/smoke-metrics.json),
+[sample request](pipeline/evidence/sample-request.json),
+[response preview](pipeline/evidence/sample-response-preview.json),
+[UI screenshot](pipeline/evidence/ui-preview.jpg).
+Historical logs retain their original 3030/9030 ports; current defaults are 3000/9000.
+Old test logs are not evidence that all subsequent revisions passed.
 
-## baselines-first-run-20261013T0242
+## Completed source-to-app pilot
 
-- **Date**: 2026-10-13T02:43:11Z · **Dataset**: v1 (824 train / val cells, 188 test cells) · TTA: True
-- **Goal**: answer "Can we predict the ride experience from the aerial tile alone, and does the aerial tile provide information beyond OSM?"
-- **Labels**: generated by Gemini, **not yet validated by humans (E1)**. Every "accuracy" below is relative to Gemini's scores.
+`boston-pilot-v2` used a fresh source workspace. All three acquisition stages report
+`completed`; labeling reports 193 scored/usable photos, zero pending and 50 labeled cells.
+The year-gap filter removed one cell, leaving **31 train + 10 val + 8 test = 49**.
+Training fitted train + val; test rows were excluded. Fresh-process reload error was
+**1.19e-7**, below **1e-6**. The downstream run took 59.65 seconds; this excludes collection
+and labeling. The complete workflow lasted about eight minutes.
 
-### Test-set results (Spearman [95% CI], block bootstrap)
+The saved API response identifies source `boston-pilot-v2`, snapshot
+`boston-pilot-v2-frozen-v1`, model `model-boston-pilot-v2` and serving
+`serving-boston-pilot-v2`. It includes all 49 map cells, not only the eight held-out cells.
+Both workflow and run report success, including API/frontend readiness and result checks.
+This demonstrates pipeline execution; it does not replace the historical 188-cell evaluation.
 
-| dim                | B0             | B1                | M1                 | M3                |
-|:-------------------|:---------------|:------------------|:-------------------|:------------------|
-| traffic_intensity  | 0.0 [0.0, 0.0] | 0.62 [0.47, 0.76] | 0.35 [0.1, 0.6]    | 0.55 [0.39, 0.73] |
-| quietness          | 0.0 [0.0, 0.0] | 0.67 [0.48, 0.79] | 0.44 [0.15, 0.62]  | 0.66 [0.49, 0.79] |
-| shade              | 0.0 [0.0, 0.0] | 0.46 [0.07, 0.69] | 0.28 [-0.04, 0.53] | 0.4 [-0.02, 0.65] |
-| naturalness        | 0.0 [0.0, 0.0] | 0.58 [0.35, 0.7]  | 0.56 [0.31, 0.71]  | 0.6 [0.35, 0.72]  |
-| scenic_appeal      | 0.0 [0.0, 0.0] | 0.53 [0.36, 0.68] | 0.51 [0.3, 0.65]   | 0.57 [0.41, 0.7]  |
-| historic_character | 0.0 [0.0, 0.0] | 0.51 [0.27, 0.67] | 0.56 [0.34, 0.68]  | 0.57 [0.37, 0.69] |
-| liveliness         | 0.0 [0.0, 0.0] | 0.68 [0.54, 0.77] | 0.57 [0.36, 0.67]  | 0.67 [0.54, 0.74] |
-| visual_openness    | 0.0 [0.0, 0.0] | 0.17 [-0.21, 0.4] | 0.26 [0.01, 0.38]  | 0.23 [-0.07, 0.4] |
-| Mean               | 0.00           | 0.53              | 0.44               | 0.53              |
+Evidence: [workflow summary](pipeline/evidence/boston-pilot-v2/workflow-summary.json),
+[run summary](pipeline/evidence/boston-pilot-v2/run-summary.json),
+[label metadata](pipeline/evidence/boston-pilot-v2/labels-meta.json),
+[filter counts](pipeline/evidence/boston-pilot-v2/preparation.json),
+[reload validation](pipeline/evidence/boston-pilot-v2/validation.json),
+[upstream log](pipeline/evidence/boston-pilot-v2/01-04_sources.log),
+[ML log](pipeline/evidence/boston-pilot-v2/ml.log),
+[request](pipeline/evidence/boston-pilot-v2/sample-request.json) and
+[response](pipeline/evidence/boston-pilot-v2/sample-response.json).
+The local audit checked sizes and SHA-256 for 37 files across the snapshot and five
+artifact directories; all matched their manifests.
 
-### Conclusions
-- Best encoder (CV): **clip_b16**; PCA dimension for M3: 32; LightGBM parameters: {'n_estimators': 150, 'num_leaves': 7}.
-- Mean test Spearman: B0 0.00 · B1 0.53 · M1 0.44 · M3 0.53.
-- M3 vs B1: 0/8 dimensions significantly better (CI excludes 0), 0/8 significantly worse, mean difference +0.002.
-- M1 (aerial tile only) vs B1: 0/8 significantly better, 4/8 significantly worse, mean difference -0.086.
-- More predictable dimensions (M3 test Spearman ≥ 0.5): liveliness, quietness, naturalness, historic_character, scenic_appeal, traffic_intensity; weaker dimensions (< 0.3): visual_openness.
+## Next iteration and submission evidence
 
-### Plan for the next iteration
-- The aerial-tile features do not significantly beat the OSM baseline: first check the label quality (E1) and whether the encoder is suitable, then try a remote-sensing-specific encoder (SatlasPretrain) and fine-tuning (M2).
-- Weak dimensions (visual_openness): go back to E1 to see whether the labels are unreliable or the top-down view simply cannot predict them; for unreliable dimensions, consider dropping them or rewriting the scoring rules.
-- Run the E1 human annotation and draw conclusions only for the dimensions that pass.
-- Scale up the data: an ablation that relaxes the winter filter; add a second city for a true cross-city test.
+1. Keep the successful pilot as execution evidence. Evaluate larger collections separately;
+   record a new source version and preserve spatial test separation when expanding data.
+2. Validate teacher labels with human QA, especially weak targets, before investing in
+   another encoder, fine-tuning or larger collection. Check imagery/label time gaps.
+3. Attach a current running-instance screenshot and confirm saved-result version switching.
+   [Wireframe](app/m2-wireframe.svg) and [design changes](APP_DESIGN.md) are available;
+   actual M1 feedback must be supplied by the team, not inferred from implementation.
 
-### Notes (fill in by hand)
-- 
+Future research can compare remote-sensing encoders or a second city after label quality
+checks. No cloud-hosted app, live per-request image inference, route generation or
+cross-city performance is claimed. This update records the user-executed pilot and a
+read-only artifact audit; it does not rerun the pipeline or claim new test-suite results.

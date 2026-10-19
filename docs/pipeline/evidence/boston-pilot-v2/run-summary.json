@@ -1,0 +1,54 @@
+{
+  "run_id": "boston-pilot-v2",
+  "mode": "full",
+  "ml_compose_project": "gp-ml-boston-pilot-v2",
+  "success": true,
+  "started_at": "2026-10-19T07:05:56.923759+00:00",
+  "offline": false,
+  "source_input": {
+    "kind": "local_snapshot",
+    "version": "boston-pilot-v2-frozen-v1"
+  },
+  "git_commit": "7fd2a2ed3d4f59947abfb4a966192d2d71f50ad2",
+  "code_sha256": {
+    "src/data-processor/greenpath_data/dataset.py": "d45fe806fbcc1cbe74e1637b3ccf389f004323ec71f9f4b31fe7719148d4f6e7",
+    "src/feature-encoder/greenpath_encoder/encode.py": "bf40bc333d60a621a874a9d0a5fe38e5e03bb547e105705b59f76763873aa49e",
+    "src/model-training/greenpath_training/train.py": "46b722d5f6e4ecb654545ce743b0bc7c7bb583bccd41db96d75d75c8d106fb99",
+    "src/model-deploy/greenpath_model/region.py": "4c915748aea0f1f786788c9fffbb019b2a8f53f646dda0e1a78b4cc42054709a",
+    "docker-compose.ml.yml": "506428b19f527ef003128c4c7f0963251fffd735205c5b5641c4a026885b4bd3",
+    "tools/run_pipeline.py": "68c284f074e49771e6f53b9ea5856a46ade8183cfa96be367ccb4c4e63971edd"
+  },
+  "ml": {
+    "counts": {
+      "train": 31,
+      "val": 10,
+      "test": 8
+    },
+    "dataset_version": "dataset-full-d8a40f80c28adae4",
+    "n_cells": 49,
+    "model_version": "model-boston-pilot-v2",
+    "serving_version": "serving-boston-pilot-v2",
+    "fresh_encoding": true,
+    "artifact_checksums_verified": true,
+    "reload_validation": {
+      "reference_max_abs_error": null,
+      "reference_tolerance": null,
+      "reference_policy": "none",
+      "n_test": 8,
+      "no_test_rows_used_for_fit": true,
+      "reload_max_abs_error": 1.1920928955078125e-07,
+      "fresh_process_max_abs_error": 1.1920928955078125e-07,
+      "reload_tolerance": 1e-06,
+      "fresh_process_verified": true
+    }
+  },
+  "app": {
+    "verified": true,
+    "n_cells": 49,
+    "api_url": "http://127.0.0.1:9000",
+    "prediction_source": "batch_inference_reloaded_model",
+    "frontend_url": "http://localhost:3000"
+  },
+  "elapsed_seconds": 59.65,
+  "finished_at": "2026-10-19T07:06:56.573103+00:00"
+}
