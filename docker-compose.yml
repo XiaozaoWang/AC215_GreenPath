@@ -3,15 +3,15 @@ networks:
   default: {}
 services:
   api-service:
-    build: ./api-service
+    build: ./src/api-service
     image: greenpath-api-service
     ports:
       - "127.0.0.1:${API_PORT:-9000}:9000"
     volumes:
-      - ./api-service:/app
+      - ./src/api-service:/app
       - ./.artifacts:/artifacts:ro
     environment:
-      GCP_PROJECT: ${GCP_PROJECT:-organic-victory-508017-v9}
+      GCP_PROJECT: ${GCP_PROJECT:-organic-victory-508017-v9} #如果.env没设置则用这里的值
       LLM_PROVIDER: ${LLM_PROVIDER:-mock}
       MODEL_PROVIDER: ${MODEL_PROVIDER:-bundle}
       MODEL_ARTIFACTS_ROOT: /artifacts
@@ -25,14 +25,14 @@ services:
       start_period: 15s
   frontend:
     build:
-      context: ./frontend
+      context: ./src/frontend-app
       dockerfile: Dockerfile.dev
     image: greenpath-frontend
     entrypoint: ["/bin/bash", "-c", "npm ci && npm run dev"]
     ports:
       - "127.0.0.1:${FRONTEND_PORT:-3000}:3000"
     volumes:
-      - ./frontend:/app
+      - ./src/frontend-app:/app
       - frontend_node_modules:/app/node_modules
     environment:
       NEXT_PUBLIC_BASE_API_URL: http://localhost:${API_PORT:-9000}

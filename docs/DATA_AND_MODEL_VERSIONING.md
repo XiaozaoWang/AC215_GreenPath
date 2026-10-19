@@ -153,7 +153,7 @@ an existing run directory. Catalog registration refuses a serving ID with change
 
 ```sh
 make catalog-refresh
-python3 tools/manage_artifacts.py list
+python3 src/ml-workflow/manage_artifacts.py list
 make app-versions APP_ARGS="--version boston-heldout-en-v2"
 # After the corresponding run succeeds:
 make app-versions APP_ARGS="--version serving-boston-pilot-v2"
@@ -201,7 +201,7 @@ Omit `--include-upstream` when no new-pipeline source workspace exists.
 A viewer downloads only the app data, to its matching run path:
 
 ```sh
-python3 tools/manage_artifacts.py fetch-serving \
+python3 src/ml-workflow/manage_artifacts.py fetch-serving \
   --run-id boston-pilot-v2 --version serving-boston-pilot-v2
 make app-versions APP_ARGS="--version serving-boston-pilot-v2"
 ```

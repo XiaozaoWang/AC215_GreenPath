@@ -14,12 +14,12 @@ services:
   artifact-tools:
     profiles: ["tools"]
     image: greenpath-api-service
-    build: ./api-service
+    build: ./src/api-service
     # One-shot download job; the API itself keeps a read-only artifact mount.
     user: "0:0"
     entrypoint: ["/opt/venv/bin/python", "-m", "api.artifacts"]
     volumes:
-      - ./api-service:/app:ro
+      - ./src/api-service:/app:ro
       - ./.artifacts:/artifacts
       - type: bind
         source: ${ADC_FILE:-${HOME}/.config/gcloud/application_default_credentials.json}

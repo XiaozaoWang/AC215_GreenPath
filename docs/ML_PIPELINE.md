@@ -11,7 +11,7 @@ The app's simulated scores were replaced with real model predictions.
 
 | Container service | Code directory / main modules | Notebook responsibility |
 | --- | --- | --- |
-| `data-source` | `src/data-source/greenpath_source/`: `streetview.py`, `tiles.py`, `features.py`, `labeling.py` | 01-04 acquisition, preprocessing and teacher labels; one shared image/container |
+| `data-source` | `src/data-collector/greenpath_source/`: `streetview.py`, `tiles.py`, `features.py`, `labeling.py` | 01-04 acquisition, preprocessing and teacher labels; one shared image/container |
 | `data-processor` | `src/data-processor/greenpath_data/`: `dataset.py`, `snapshot.py` | 05 joins, filtering, spatial splits; snapshot utilities |
 | `feature-encoder` | `src/feature-encoder/greenpath_encoder/encode.py` | 06 fixed CLIP image features |
 | `model-training` | `src/model-training/greenpath_training/train.py` | 07 selected scaler + Ridge baseline |
@@ -49,8 +49,8 @@ image-inference server. [Versioning](DATA_AND_MODEL_VERSIONING.md) explains the 
 Supplement names above share the `docker-compose` prefix. Matching service names merge
 settings when loaded with `-f`; they do not each create another pipeline.
 
-`tools/run_all.py` invokes one upstream job, freezes the snapshot, then calls
-`tools/run_pipeline.py`. The latter runs the four ML jobs, validates artifacts, registers
+`src/ml-workflow/run_all.py` invokes one upstream job, freezes the snapshot, then calls
+`src/ml-workflow/run_pipeline.py`. The latter runs the four ML jobs, validates artifacts, registers
 serving and starts/checks the app. Thus one Make command coordinates several Compose
 invocations. Inside the ML group, `service_completed_successfully` enforces order.
 
@@ -86,7 +86,7 @@ New pipeline training uses verified feature artifacts with `--reference-policy n
 the standalone historical training entry point retains stricter reference checks.
 Both verify model reload and exclude test rows from fitting. Geographic IDs, not feature
 row order, align predictions to H3 polygons. The API schema is owned by
-`api-service/api/dimensions.json`; serving geometry, scores and schema must agree.
+`src/api-service/api/dimensions.json`; serving geometry, scores and schema must agree.
 
 ## Execution and resuming
 

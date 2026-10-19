@@ -1,0 +1,17 @@
+{
+  "name": "frontend-app-nextjs",
+  "version": "6.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "WATCHPACK_POLLING=true next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "h3-js": "4.1.0",
+    "leaflet": "1.9.4",
+    "next": "14.2.4",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  }
+}

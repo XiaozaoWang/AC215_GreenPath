@@ -5,7 +5,7 @@ services:
     image: greenpath-data-source:ml
     build:
       context: .
-      dockerfile: src/data-source/Dockerfile
+      dockerfile: src/data-collector/Dockerfile
     user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
     volumes:
       - ${SOURCE_DATA_DIR:-./.artifacts/sources/boston-source-local-v1}:/data

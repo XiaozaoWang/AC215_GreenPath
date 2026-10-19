@@ -23,7 +23,7 @@ Next.js frontend. It does not run image inference on each user request.
 | [ML pipeline](docs/ML_PIPELINE.md) | Containers, code folders, notebook mapping and orchestration |
 | [Data and model versioning](docs/DATA_AND_MODEL_VERSIONING.md) | What is stored where, input reuse and version selection |
 | [Experiments](docs/EXPERIMENTS.md) | Baselines, key settings, results and verification limits |
-| [API component](api-service/README.md) / [application notes](docs/app/README.md) | Backend configuration and app context |
+| [API component](src/api-service/README.md) / [application notes](docs/app/README.md) | Backend configuration and app context |
 | [App design](docs/APP_DESIGN.md) | Wireframe and implementation-driven UI changes |
 
 ## Choose a run path
@@ -113,18 +113,18 @@ make app-versions APP_ARGS="--version boston-heldout-en-v2"
 Open **http://localhost:3000**; API docs are **http://localhost:9000/docs**.
 The historical version contains predictions for **188 held-out test cells**.
 
-Use the frontend **Result version** selector to inspect another locally registered
-result. To list IDs and set the default explicitly:
+The page shows the default result version. To list locally registered results and choose
+which one the app shows:
 
 ```sh
 make catalog-refresh
-python3 tools/manage_artifacts.py list
+python3 src/ml-workflow/manage_artifacts.py list
 make app-versions APP_ARGS="--version serving-historical-smoke-001"
 ```
 
 The last command requires the run in section 4 to have succeeded. Without `--version`,
-`make app-versions` retains the saved catalog default. Changing the dropdown only changes
-the displayed selection. Neither operation retrains a model or overwrites old results.
+`make app-versions` retains the saved catalog default. Neither operation retrains a model
+or overwrites old results.
 
 ### Download a shared result from GCS
 
@@ -136,7 +136,7 @@ The result must have been published before downloading. These are example values
 SHARED_RUN_ID=boston-pilot-v2
 SHARED_VERSION=serving-boston-pilot-v2
 
-python3 tools/manage_artifacts.py fetch-serving \
+python3 src/ml-workflow/manage_artifacts.py fetch-serving \
   --run-id "$SHARED_RUN_ID" --version "$SHARED_VERSION"
 make app-versions APP_ARGS="--version $SHARED_VERSION"
 ```
@@ -216,7 +216,7 @@ For a fresh collection without reusing the default pilot workspace, generate new
 configs once (this command does not run the pipeline):
 
 ```sh
-python3 tools/create_workflow_config.py boston-pilot-v3
+python3 src/ml-workflow/create_workflow_config.py boston-pilot-v3
 make run-all WORKFLOW_CONFIG=configs/workflow-boston-pilot-v3.json WORKFLOW_ARGS="--run-id boston-pilot-v3 --allow-labeling"
 ```
 
@@ -249,15 +249,16 @@ docker compose -p greenpath-pipeline-app -f docker-compose.yml logs --tail=80 ap
 make app-versions
 ```
 
-API: `api-service/api/service.py` attaches the routes. Check `GET /versions`,
+API: `src/api-service/api/service.py` attaches the routes. Check `GET /versions`,
 `GET /capabilities` and `GET /preview` in Swagger UI. `POST /score` accepts preference
 text and an optional `version_id`; Swagger provides the current request schema.
 Default preference parsing is offline (`mock`); the displayed vision scores are real
 saved model predictions.
 
-Frontend: `frontend/src/app/page.jsx` manages version selection and the map;
-`frontend/src/services/DataService.js` calls the API. Select a version, inspect its
-preview, then enter a preference such as `A quiet ride with shade, avoid traffic`.
+Frontend: `src/frontend-app/src/app/page.jsx` draws an iPhone mockup with one prompt box and
+a zoomable map (`src/components/HexMap.jsx`: satellite imagery, H3 cells; colored = predicted,
+gray = no prediction). `src/frontend-app/src/services/DataService.js` calls the API. Enter a
+preference such as `A quiet ride with shade, avoid traffic`.
 The API reads saved serving data and computes preference matching.
 
 ## 7. Check results and stop services
@@ -320,7 +321,7 @@ run ID, serving version, publication root and bucket read access so they can fol
 
 Existing legacy GCS prefixes remain as read-compatible backups. Historical standalone
 artifacts are copied into `artifacts/reference/`; bundled historical serving results live
-under `artifacts/serving/`. The migration script is `tools/migrate_cloud_layout.py`;
+under `artifacts/serving/`. The migration script is `src/ml-workflow/migrate_cloud_layout.py`;
 without `--apply` it prints a plan only. Migration does not delete old cloud data.
 
 ## Documentation and evidence

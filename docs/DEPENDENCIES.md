@@ -24,12 +24,12 @@ share one image, environment and project/lock with all four extras installed.
 
 | Container role | Component folder | Python | Lock selection |
 | --- | --- | --- | --- |
-| 01-04 collection and labeling | `src/data-source/` | 3.11 | shared lock, `--all-extras`, one `data-source` service |
+| 01-04 collection and labeling | `src/data-collector/` | 3.11 | shared lock, `--all-extras`, one `data-source` service |
 | 05 data preparation | `src/data-processor/` | 3.11 | own lock, runtime dependencies |
 | 06 image encoding | `src/feature-encoder/` | 3.11 | own lock; CPU PyTorch index on Linux |
 | 07 baseline training | `src/model-training/` | 3.11 | own lock, runtime dependencies |
 | Model reload/prediction | `src/model-deploy/` | 3.11 | own lock, runtime dependencies |
-| API | `api-service/` | 3.12 | own lock, runtime dependencies |
+| API | `src/api-service/` | 3.12 | own lock, runtime dependencies |
 
 Every component folder has these recognizable files:
 

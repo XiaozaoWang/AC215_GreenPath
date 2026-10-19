@@ -5,16 +5,16 @@ app:
 	docker compose up --build
 
 fetch-serving:
-	cd api-service && uv run --frozen --python 3.12 python -m api.artifacts fetch $(GCS_SERVING_URI) ../.artifacts/boston-heldout-en-v2
+	cd src/api-service && uv run --frozen --python 3.12 python -m api.artifacts fetch $(GCS_SERVING_URI) ../../.artifacts/boston-heldout-en-v2
 
 verify-serving:
-	cd api-service && uv run --frozen --python 3.12 python -m api.artifacts verify ../.artifacts/boston-heldout-en-v2
+	cd src/api-service && uv run --frozen --python 3.12 python -m api.artifacts verify ../../.artifacts/boston-heldout-en-v2
 
 app-gcs: fetch-serving
 	MODEL_BUNDLE_DIR=/artifacts/boston-heldout-en-v2 docker compose up --build
 
 test:
-	cd api-service && uv run --frozen --python 3.12 pytest -q
+	cd src/api-service && uv run --frozen --python 3.12 pytest -q
 
 # Step 2 components run in separate environments. These are not the complete ML pipeline.
 DATA_ROOT ?= $(GREENPATH_ROOT)
@@ -35,7 +35,7 @@ ml-test:
 
 train-m1:
 	@test -n "$(DATA_ROOT)" || (echo "Set DATA_ROOT or GREENPATH_ROOT to the existing research data directory."; exit 1)
-	cd src/model-training && uv run --frozen --python 3.11 greenpath-train --data-root "$(DATA_ROOT)" --config "$(TRAIN_CONFIG)" --contract "$(CURDIR)/api-service/fixtures/boston-heldout-en-v2/schema.json" --encoder-dir "$(ENCODER_DIR)" --output "$(MODEL_DIR)" --artifact-version "$(MODEL_VERSION)"
+	cd src/model-training && uv run --frozen --python 3.11 greenpath-train --data-root "$(DATA_ROOT)" --config "$(TRAIN_CONFIG)" --contract "$(CURDIR)/src/api-service/fixtures/boston-heldout-en-v2/schema.json" --encoder-dir "$(ENCODER_DIR)" --output "$(MODEL_DIR)" --artifact-version "$(MODEL_VERSION)"
 
 predict-images:
 	cd src/feature-encoder && uv run --frozen --python 3.11 greenpath-encode encode --encoder-dir "$(ENCODER_DIR)" --input "$(IMAGE_INPUT)" --data-root "$(IMAGE_ROOT)" --output "$(EMBEDDING_OUTPUT)" --artifact-version "$(SMOKE_VERSION)-embeddings-v1" --device cpu --batch-size 3
@@ -45,11 +45,11 @@ PIPELINE_MODE ?= smoke
 PIPELINE_ARGS ?=
 .PHONY: run pipeline-test
 run:
-	python3 tools/run_pipeline.py --mode "$(PIPELINE_MODE)" $(PIPELINE_ARGS)
+	python3 src/ml-workflow/run_pipeline.py --mode "$(PIPELINE_MODE)" $(PIPELINE_ARGS)
 
 pipeline-test: ml-test
 	cd src/data-processor && uv run --frozen --python 3.11 pytest -q
-	python3 -m unittest discover -s tools/tests -v
+	python3 -m unittest discover -s src/ml-workflow/tests -v
 
 # Explicit upstream jobs. None of these targets is called by make run.
 SOURCE_MAX_IMAGES ?= 8
@@ -88,26 +88,26 @@ GCS_ROOT ?= gs://ac215-greenpath/artifacts
 PUBLISH_ARGS ?=
 .PHONY: run-all catalog-refresh app-versions publish-run
 run-all:
-	python3 tools/run_all.py --config "$(WORKFLOW_CONFIG)" $(WORKFLOW_ARGS)
+	python3 src/ml-workflow/run_all.py --config "$(WORKFLOW_CONFIG)" $(WORKFLOW_ARGS)
 
 catalog-refresh:
-	python3 tools/manage_artifacts.py refresh
+	python3 src/ml-workflow/manage_artifacts.py refresh
 
 app-versions:
-	python3 tools/manage_artifacts.py serve $(APP_ARGS)
+	python3 src/ml-workflow/manage_artifacts.py serve $(APP_ARGS)
 
 publish-run:
 	@test -n "$(RUN_ID)" || (echo "Set RUN_ID to a reviewed successful training run."; exit 1)
-	python3 tools/manage_artifacts.py publish-run --run-id "$(RUN_ID)" --gcs-root "$(GCS_ROOT)" $(PUBLISH_ARGS)
+	python3 src/ml-workflow/manage_artifacts.py publish-run --run-id "$(RUN_ID)" --gcs-root "$(GCS_ROOT)" $(PUBLISH_ARGS)
 
 # Standard-library coordination checks; no Docker, collection or paid requests.
 .PHONY: source-test
 source-test:
-	PYTHONPATH=src/data-source python3 -m unittest discover -s src/data-source/tests -v
+	PYTHONPATH=src/data-collector python3 -m unittest discover -s src/data-collector/tests -v
 
 # Restore a published run into matching local paths; add --include-upstream if needed.
 FETCH_ARGS ?=
 .PHONY: fetch-run
 fetch-run:
 	@test -n "$(RUN_ID)" || (echo "Set RUN_ID to the published training run ID."; exit 1)
-	python3 tools/manage_artifacts.py fetch-run --run-id "$(RUN_ID)" --gcs-root "$(GCS_ROOT)" $(FETCH_ARGS)
+	python3 src/ml-workflow/manage_artifacts.py fetch-run --run-id "$(RUN_ID)" --gcs-root "$(GCS_ROOT)" $(FETCH_ARGS)
