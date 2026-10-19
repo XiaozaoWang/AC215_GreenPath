@@ -1,0 +1,10 @@
+{
+  "run_id": "historical-m1-clip-alpha-selection",
+  "dataset_version": "assigned-during-preparation",
+  "tta": true,
+  "embedding_meta": {
+    "clip_b16": {"source": "open_clip: ViT-B-16 / laion2b_s34b_b88k", "dim": 512, "tta": true}
+  },
+  "chosen": {"best_backbone": "clip_b16", "M1_clip_b16": {"alpha": 1000}},
+  "selection_note": "Reuse the historical spatial-CV selection; this workflow does not search parameters or use its test set for selection."
+}

@@ -1,0 +1,108 @@
+ Image greenpath-frontend Building
+ Image greenpath-api-service Building
+#1 [internal] load local bake definitions
+#1 reading from stdin 1.19kB done
+#1 DONE 0.0s
+
+#2 [frontend internal] load build definition from Dockerfile.dev
+#2 transferring dockerfile: 218B done
+#2 DONE 0.0s
+
+#3 [api-service internal] load build definition from Dockerfile
+#3 transferring dockerfile: 1.69kB done
+#3 DONE 0.0s
+
+#4 [auth] library/python:pull token for registry-1.docker.io
+#4 DONE 0.0s
+
+#5 [api-service internal] load metadata for docker.io/library/python:3.12-slim-bookworm
+#5 ...
+
+#6 [frontend internal] load metadata for docker.io/library/node:20-alpine
+#6 DONE 0.3s
+
+#7 [frontend internal] load .dockerignore
+#7 transferring context: 91B done
+#7 DONE 0.0s
+
+#8 [frontend 1/3] FROM docker.io/library/node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293
+#8 resolve docker.io/library/node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293 0.0s done
+#8 DONE 0.0s
+
+#9 [frontend 2/3] RUN set -ex;     apk update &&     apk add --no-cache bash &&     mkdir -p /app
+#9 CACHED
+
+#10 [frontend 3/3] WORKDIR /app
+#10 CACHED
+
+#11 [frontend] exporting to image
+#11 exporting layers done
+#11 exporting manifest sha256:f1fbb75b18c5a9d3562e381605e48e54aa1d57f5873e8c06a3b2392fd2ab78b4 done
+#11 exporting config sha256:6762cc02ff21bdb04ef7ec837df28fbda91e9e668f8e8d113bf2a071f77d49c9 done
+#11 exporting attestation manifest sha256:b9882c1bca6b5d82506f1b867bb2fd0e44a8e9cc29609d059c228b90a471ba8a done
+#11 exporting manifest list sha256:576464f14663513508aaf8077aecd7c5a5d225a0d6e2680c8d624c5dc5d450c4 done
+#11 naming to docker.io/library/greenpath-frontend:latest done
+#11 unpacking to docker.io/library/greenpath-frontend:latest done
+#11 DONE 0.0s
+
+#12 [frontend] resolving provenance for metadata file
+#12 DONE 0.0s
+
+#5 [api-service internal] load metadata for docker.io/library/python:3.12-slim-bookworm
+#5 DONE 0.4s
+
+#13 [api-service internal] load .dockerignore
+#13 transferring context: 1.10kB done
+#13 DONE 0.0s
+
+#14 [api-service internal] load build context
+#14 transferring context: 2.05kB done
+#14 DONE 0.0s
+
+#15 [api-service 1/6] FROM docker.io/library/python:3.12-slim-bookworm@sha256:34386ef0cb081344d7ec1c103ba398e6e9f64e9ab3a1509accc92a4e24a07258
+#15 resolve docker.io/library/python:3.12-slim-bookworm@sha256:34386ef0cb081344d7ec1c103ba398e6e9f64e9ab3a1509accc92a4e24a07258 done
+#15 DONE 0.0s
+
+#16 [api-service 3/6] WORKDIR /app
+#16 CACHED
+
+#17 [api-service 5/6] RUN uv sync --frozen
+#17 CACHED
+
+#18 [api-service 2/6] RUN set -ex;     for i in $(seq 1 8); do mkdir -p "/usr/share/man/man${i}"; done &&     apt-get update &&     apt-get upgrade -y &&     apt-get install -y --no-install-recommends build-essential git screen vim &&     apt-get clean &&     rm -rf /var/lib/apt/lists/* &&     pip install --no-cache-dir --upgrade pip &&     pip install uv &&     useradd -ms /bin/bash app -d /home/app -u 1000 -p "$(openssl passwd -1 Passw0rd)" &&     mkdir -p /app &&     mkdir -p /persistent &&     chown app:app /persistent &&     chown app:app /app &&     mkdir -p /.venv &&     chown app:app /.venv
+#18 CACHED
+
+#19 [api-service 4/6] ADD --chown=app:app pyproject.toml uv.lock /app/
+#19 CACHED
+
+#20 [api-service 6/6] ADD --chown=app:app . /app
+#20 CACHED
+
+#21 [api-service] exporting to image
+#21 exporting layers done
+#21 exporting manifest sha256:0ff82cec0d5788c80eb318d3a961210e04c294975714167bb8d4156c531ae33f done
+#21 exporting config sha256:1a8088f760ff7cad88059d8d1571b448178d6be392702f02517c9db22ec4dacd done
+#21 exporting attestation manifest sha256:d30d2e2cd5a0fee110ef641999b3d3fc186a31d43a4f8b072a96d523bc6dd858 done
+#21 exporting manifest list sha256:5192752be27bac99eb9c625cfb0f097eda604fe446fb0bef67141f2f5a4c3f4e done
+#21 naming to docker.io/library/greenpath-api-service:latest done
+#21 unpacking to docker.io/library/greenpath-api-service:latest done
+#21 DONE 0.0s
+
+#22 [api-service] resolving provenance for metadata file
+#22 DONE 0.0s
+ Image greenpath-api-service Built
+ Image greenpath-frontend Built
+ Container greenpath-pipeline-app-api-service-1 Recreate
+ Container greenpath-pipeline-app-api-service-1 Recreated
+ Container greenpath-pipeline-app-frontend-1 Recreate
+ Container greenpath-pipeline-app-frontend-1 Recreated
+ Container greenpath-pipeline-app-api-service-1 Starting
+ Container greenpath-pipeline-app-api-service-1 Started
+ Container greenpath-pipeline-app-api-service-1 Waiting
+ Container greenpath-pipeline-app-api-service-1 Healthy
+ Container greenpath-pipeline-app-frontend-1 Starting
+ Container greenpath-pipeline-app-frontend-1 Started
+ Container greenpath-pipeline-app-frontend-1 Waiting
+ Container greenpath-pipeline-app-api-service-1 Waiting
+ Container greenpath-pipeline-app-api-service-1 Healthy
+ Container greenpath-pipeline-app-frontend-1 Healthy

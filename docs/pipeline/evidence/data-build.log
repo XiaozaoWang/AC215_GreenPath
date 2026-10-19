@@ -1,0 +1,100 @@
+#0 building with "desktop-linux" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 629B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.11-slim-bookworm
+#2 DONE 0.1s
+
+#3 [stage-0 1/7] FROM docker.io/library/python:3.11-slim-bookworm@sha256:0a310eeecf4e1f5a0743f9a6520c90c88d089c903ca5fd283f501e3a805f5f89
+#3 resolve docker.io/library/python:3.11-slim-bookworm@sha256:0a310eeecf4e1f5a0743f9a6520c90c88d089c903ca5fd283f501e3a805f5f89 done
+#3 sha256:eecf51de4b60961c1d1ab865753ddb35321669709b8fd752e2314640c848f454 249B / 249B 0.0s done
+#3 sha256:173739fea8c050c71ecb7a5b781873f9ee07e2d8e44a8ed9700be0ad91593f3f 18.21MB / 18.21MB 0.5s done
+#3 sha256:0beab4d6f63e2882c3b55d62f63f096b636a69ed911759c1264af11bf0051b7b 3.18MB / 3.18MB 0.6s done
+#3 extracting sha256:0beab4d6f63e2882c3b55d62f63f096b636a69ed911759c1264af11bf0051b7b 0.1s done
+#3 extracting sha256:173739fea8c050c71ecb7a5b781873f9ee07e2d8e44a8ed9700be0ad91593f3f 0.3s done
+#3 extracting sha256:eecf51de4b60961c1d1ab865753ddb35321669709b8fd752e2314640c848f454 done
+#3 DONE 1.0s
+
+#4 [stage-0 2/7] RUN pip install --no-cache-dir uv==0.12.12
+#4 0.990 Collecting uv==0.12.12
+#4 1.088   Downloading uv-0.12.12-py3-none-manylinux_2_28_aarch64.whl.metadata (11 kB)
+#4 1.112 Downloading uv-0.12.12-py3-none-manylinux_2_28_aarch64.whl (19.5 MB)
+#4 1.555    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 19.5/19.5 MB 54.3 MB/s eta 0:00:00
+#4 1.617 Installing collected packages: uv
+#4 1.776 Successfully installed uv-0.12.12
+#4 1.776 WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv
+#4 1.878
+#4 1.878 [notice] A new release of pip is available: 24.0 -> 26.2.1
+#4 1.878 [notice] To update, run: pip install --upgrade pip
+#4 DONE 2.0s
+
+#5 [stage-0 3/7] COPY src/model-deploy /app/src/model-deploy
+#5 DONE 0.0s
+
+#6 [internal] load .dockerignore
+#6 transferring context: 204B done
+#6 DONE 0.0s
+
+#7 [internal] load build context
+#7 transferring context: 119.49kB done
+#7 DONE 0.0s
+
+#8 [stage-0 3/8] COPY src/model-deploy /app/src/model-deploy
+#8 CACHED
+
+#9 [stage-0 4/8] COPY src/data-processor /app/src/data-processor
+#9 DONE 0.1s
+
+#10 [stage-0 5/8] COPY api-service/api/dimensions.json /contracts/schema.json
+#10 DONE 0.0s
+
+#11 [stage-0 6/8] WORKDIR /app/src/data-processor
+#11 DONE 0.0s
+
+#12 [stage-0 7/8] RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-dev
+#12 0.066 Using CPython 3.11.17 interpreter at: /usr/local/bin/python3.11
+#12 0.066 Creating virtual environment at: /opt/venv
+#12 0.071    Building greenpath-data @ file:///app/src/data-processor
+#12 0.196 Downloading cryptography (4.5MiB)
+#12 0.362       Built greenpath-data @ file:///app/src/data-processor
+#12 0.462  Downloaded cryptography
+#12 0.462 Prepared 12 packages in 392ms
+#12 0.770 Installed 20 packages in 307ms
+#12 0.770  + certifi==2026.7.22
+#12 0.770  + cffi==2.1.1
+#12 0.770  + charset-normalizer==3.5.2
+#12 0.770  + cryptography==50.0.2
+#12 0.770  + google-auth==2.62.0
+#12 0.770  + greenpath-data==0.1.0 (from file:///app/src/data-processor)
+#12 0.770  + greenpath-model==0.1.0 (from file:///app/src/model-deploy)
+#12 0.770  + h3==4.5.0
+#12 0.770  + idna==3.20
+#12 0.770  + numpy==2.4.6
+#12 0.770  + pandas==3.0.6
+#12 0.770  + pillow==12.3.0
+#12 0.770  + pyarrow==26.0.0
+#12 0.770  + pyasn1==0.6.4
+#12 0.770  + pyasn1-modules==0.4.2
+#12 0.770  + pycparser==3.11
+#12 0.770  + python-dateutil==2.9.0.post0
+#12 0.770  + requests==2.34.2
+#12 0.770  + six==1.17.0
+#12 0.770  + urllib3==2.8.0
+#12 DONE 0.9s
+
+#13 [stage-0 8/8] RUN useradd -m -u 1000 app && mkdir /work && chown app:app /work
+#13 DONE 0.1s
+
+#14 exporting to image
+#14 exporting layers
+#14 exporting layers 4.0s done
+#14 exporting manifest sha256:f028d2ffc8f79319b33309b7cbdd95ced4345c9480bf5577dc6d153528440b7d done
+#14 exporting config sha256:ab2157fb7fa345f4cb9480c9b9e124ba9552bd99fe0c88a42baf9796bb922eaa done
+#14 exporting attestation manifest sha256:bbd7cb295dd600faab0a64142fe68599efd61ddb1d115ba42e077ebd9e7c8768 done
+#14 exporting manifest list sha256:ae0de80bf4732eadb04cfbcfbc1e26f6b39b62d3834cf39947784c6b706310bf done
+#14 naming to docker.io/library/greenpath-data-processor:ml done
+#14 unpacking to docker.io/library/greenpath-data-processor:ml
+#14 unpacking to docker.io/library/greenpath-data-processor:ml 0.8s done
+#14 DONE 4.9s

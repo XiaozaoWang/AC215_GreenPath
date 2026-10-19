@@ -1,0 +1,99 @@
+{
+  "schema_version": "greenpath-experience-en-v2",
+  "dimensions": {
+    "traffic_intensity": {
+      "label": "Traffic intensity",
+      "description": "Higher means heavier perceived motor traffic.",
+      "keywords": [
+        "traffic",
+        "cars",
+        "car traffic"
+      ]
+    },
+    "quietness": {
+      "label": "Quietness",
+      "description": "Higher means a quieter perceived street environment.",
+      "keywords": [
+        "quiet",
+        "quietness",
+        "calm",
+        "peaceful"
+      ]
+    },
+    "shade": {
+      "label": "Shade",
+      "description": "Higher means more perceived shade at street level.",
+      "keywords": [
+        "shade",
+        "shady",
+        "tree shade"
+      ]
+    },
+    "naturalness": {
+      "label": "Naturalness",
+      "description": "Higher means a more natural-looking street environment; this does not specifically measure water or parks.",
+      "keywords": [
+        "natural",
+        "nature",
+        "naturalness"
+      ]
+    },
+    "scenic_appeal": {
+      "label": "Scenic appeal",
+      "description": "Higher means more visually appealing scenery.",
+      "keywords": [
+        "scenic",
+        "beautiful",
+        "scenery"
+      ]
+    },
+    "historic_character": {
+      "label": "Historic character",
+      "description": "Higher means a stronger perceived historic character.",
+      "keywords": [
+        "historic",
+        "history",
+        "old buildings"
+      ]
+    },
+    "liveliness": {
+      "label": "Liveliness",
+      "description": "Higher means more perceived street activity and liveliness.",
+      "keywords": [
+        "lively",
+        "liveliness",
+        "vibrant"
+      ]
+    },
+    "visual_openness": {
+      "label": "Visual openness",
+      "description": "Higher means a more open visual field at street level.",
+      "keywords": [
+        "open views",
+        "openness",
+        "open view"
+      ]
+    }
+  },
+  "score_range": [
+    0,
+    1
+  ],
+  "examples": [
+    "A quiet ride with shade, avoid traffic",
+    "Historic streets with open views",
+    "Natural, beautiful scenery"
+  ],
+  "regions": [
+    {
+      "id": "serving-smoke-20261018-02",
+      "label": "Boston H3 pipeline smoke (48 cells)"
+    }
+  ],
+  "default_region_id": "serving-smoke-20261018-02",
+  "model_version": "model-smoke-20261018-02",
+  "dataset_version": "pipeline-smoke-v1",
+  "prediction_source": "batch_inference_reloaded_model",
+  "description": "Fresh container pipeline predictions over 48 smoke cells; not per-request image inference.",
+  "rmse_source": "placeholder: 0.05 (5% of score range, not measured error)"
+}

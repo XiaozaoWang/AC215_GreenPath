@@ -1,0 +1,64 @@
+services:
+  data-processor:
+    image: greenpath-data-processor:ml
+    build:
+      context: .
+      dockerfile: src/data-processor/Dockerfile
+    user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
+    volumes:
+      - ${PIPELINE_CACHE_DIR:?Set PIPELINE_CACHE_DIR}:/cache
+      - ${PIPELINE_RUNS_DIR:?Set PIPELINE_RUNS_DIR}:/runs
+    environment:
+      PIPELINE_OFFLINE: ${PIPELINE_OFFLINE:-0}
+    command: ["ingest", "--source-uri", "${PIPELINE_SOURCE_URI:-gs://ac215-greenpath/artifacts/snapshots/sources/boston-processed-v1}", "--encoder-uri", "${PIPELINE_ENCODER_URI:-gs://ac215-greenpath/artifacts/encoders/clip-b16-laion2b-v1}", "--source-version", "${PIPELINE_SOURCE_VERSION:-boston-processed-v1}", "--encoder-version", "clip-b16-laion2b-v1", "--cache", "/cache", "--contract", "/contracts/schema.json", "--output", "/runs/${PIPELINE_RUN_ID:?Set PIPELINE_RUN_ID}/prepared", "--artifact-version", "prepared-${PIPELINE_RUN_ID}", "--mode", "${PIPELINE_MODE:-smoke}"]
+    mem_limit: 2g
+
+  feature-encoder:
+    image: greenpath-feature-encoder:ml
+    build:
+      context: .
+      dockerfile: src/feature-encoder/Dockerfile
+    user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
+    network_mode: none
+    volumes:
+      - ${PIPELINE_CACHE_DIR}:/cache:ro
+      - ${PIPELINE_RUNS_DIR}:/runs
+    depends_on:
+      data-processor:
+        condition: service_completed_successfully
+    command: ["encode", "--encoder-dir", "/cache/encoders/clip-b16-laion2b-v1", "--input", "/runs/${PIPELINE_RUN_ID}/prepared/images.json", "--data-root", "/cache/images/${PIPELINE_SOURCE_VERSION:-boston-processed-v1}", "--output", "/runs/${PIPELINE_RUN_ID}/embeddings", "--artifact-version", "embeddings-${PIPELINE_RUN_ID}", "--device", "cpu", "--batch-size", "${PIPELINE_BATCH_SIZE:-8}"]
+    cpus: ${PIPELINE_CPUS:-4}
+    mem_limit: 4g
+
+  model-training:
+    image: greenpath-model-training:ml
+    build:
+      context: .
+      dockerfile: src/model-training/Dockerfile
+    user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
+    network_mode: none
+    volumes:
+      - ${PIPELINE_CACHE_DIR}:/cache:ro
+      - ${PIPELINE_RUNS_DIR}:/runs
+    depends_on:
+      feature-encoder:
+        condition: service_completed_successfully
+    command: ["--data-root", "/runs/${PIPELINE_RUN_ID}/prepared", "--config", "/runs/${PIPELINE_RUN_ID}/prepared/training-config.json", "--contract", "/runs/${PIPELINE_RUN_ID}/prepared/schema.json", "--encoder-dir", "/cache/encoders/clip-b16-laion2b-v1", "--embeddings", "/runs/${PIPELINE_RUN_ID}/embeddings/embeddings.parquet", "--reference-policy", "none", "--output", "/runs/${PIPELINE_RUN_ID}/model", "--artifact-version", "model-${PIPELINE_RUN_ID}"]
+    cpus: ${PIPELINE_CPUS:-4}
+    mem_limit: 2g
+
+  model-deploy:
+    image: greenpath-model-deploy:ml
+    build:
+      context: .
+      dockerfile: src/model-deploy/Dockerfile
+    user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
+    network_mode: none
+    volumes:
+      - ${PIPELINE_RUNS_DIR}:/runs
+    depends_on:
+      model-training:
+        condition: service_completed_successfully
+    entrypoint: ["greenpath-infer"]
+    command: ["--model-dir", "/runs/${PIPELINE_RUN_ID}/model", "--embeddings", "/runs/${PIPELINE_RUN_ID}/embeddings/embeddings.parquet", "--prepared-dir", "/runs/${PIPELINE_RUN_ID}/prepared", "--output", "/runs/${PIPELINE_RUN_ID}/predictions", "--serving-output", "/runs/${PIPELINE_RUN_ID}/serving", "--artifact-version", "predictions-${PIPELINE_RUN_ID}", "--serving-version", "serving-${PIPELINE_RUN_ID}"]
+    mem_limit: 1g

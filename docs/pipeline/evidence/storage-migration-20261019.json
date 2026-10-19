@@ -1,0 +1,82 @@
+{
+  "date": "2026-10-19",
+  "destination_root": "gs://ac215-greenpath/artifacts",
+  "old_objects_deleted": false,
+  "checks": [
+    {
+      "kind": "legacy-copy",
+      "old": "pipeline-inputs/boston-processed-v1",
+      "new": "snapshots/sources/boston-processed-v1",
+      "manifest_identical": true
+    },
+    {
+      "kind": "legacy-copy",
+      "old": "encoders/clip-b16-laion2b-v1",
+      "new": "encoders/clip-b16-laion2b-v1",
+      "manifest_identical": true
+    },
+    {
+      "kind": "legacy-copy",
+      "old": "serving/boston-heldout-en-v2",
+      "new": "serving/boston-heldout-en-v2",
+      "manifest_identical": true
+    },
+    {
+      "kind": "legacy-copy",
+      "old": "serving/boston-heldout-v1",
+      "new": "serving/boston-heldout-v1",
+      "manifest_identical": true
+    },
+    {
+      "kind": "legacy-copy",
+      "old": "models/m1-clip-ridge-v1",
+      "new": "reference/models/m1-clip-ridge-v1",
+      "manifest_identical": true
+    },
+    {
+      "kind": "legacy-copy",
+      "old": "datasets/v1-tabular-export-v1",
+      "new": "reference/v1-tabular-export-v1",
+      "manifest_identical": true
+    },
+    {
+      "kind": "legacy-copy",
+      "old": "samples/boston-image-smoke-v1",
+      "new": "reference/samples/boston-image-smoke-v1",
+      "manifest_identical": true
+    },
+    {
+      "kind": "legacy-copy",
+      "old": "training-inputs/m1-refit-inputs-v1",
+      "new": "reference/training-inputs/m1-refit-inputs-v1",
+      "manifest_identical": true
+    },
+    {
+      "kind": "source",
+      "uri": "gs://ac215-greenpath/artifacts/sources/boston-pilot-v2",
+      "files": 686,
+      "manifest_sha256_verified": true
+    },
+    {
+      "kind": "snapshot",
+      "uri": "gs://ac215-greenpath/artifacts/snapshots/sources/boston-pilot-v2-frozen-v1",
+      "files": 14,
+      "manifest_sha256_verified": true
+    },
+    {
+      "kind": "encoder",
+      "uri": "gs://ac215-greenpath/artifacts/encoders/clip-b16-laion2b-v1",
+      "files": 2,
+      "manifest_sha256_verified": true
+    },
+    {
+      "kind": "run",
+      "uri": "gs://ac215-greenpath/artifacts/pipeline/runs/boston-pilot-v2",
+      "files": 36,
+      "manifest_sha256_verified": true
+    }
+  ],
+  "release_manifest_verified": true,
+  "serving_manifest_unchanged": true,
+  "collection_or_training_rerun": false
+}

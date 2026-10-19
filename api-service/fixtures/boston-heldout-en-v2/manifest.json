@@ -1,0 +1,46 @@
+{
+  "artifact_version": "boston-heldout-en-v2",
+  "format_version": "greenpath-region-v1",
+  "schema_version": "greenpath-experience-en-v2",
+  "schema_file": "schema.json",
+  "dataset_version": "v1",
+  "model_version": "m1-clip-baseline-20261013T0242",
+  "region_id": "boston-heldout-en-v2",
+  "region_name": "Boston · held-out H3 cells",
+  "prediction_source": "saved_heldout_baseline",
+  "description": "Real M1 baseline test predictions; fixed-region fixture, not live inference.",
+  "geometry_file": "region.geojson",
+  "scores_file": "scores.json",
+  "model_output": {
+    "format": "records",
+    "id_field": "cell_id",
+    "scores_field": "scores"
+  },
+  "rmse": null,
+  "files": {
+    "provenance.json": {
+      "sha256": "a8d5c01241ace9a9a6d1a1d7f4d0b99e428053dd95f9759bc754407d8bfe1b51",
+      "size_bytes": 2043
+    },
+    "region.geojson": {
+      "sha256": "6fc68d179b121d1247d4aa874eb585335dbf2201e72534a8d4447c39699544d9",
+      "size_bytes": 181012
+    },
+    "schema.json": {
+      "sha256": "f0aa81ce325666fb2a3e686023c2b5a79e8b20f511d003286860fb270fcc18cd",
+      "size_bytes": 2380
+    },
+    "scores.json": {
+      "sha256": "7b9a1affb33b2bb0bdc2c636f051ef500f82a378b559e8aafe11aacfb092e968",
+      "size_bytes": 76665
+    },
+    "source-dataset-manifest.json": {
+      "sha256": "7fef656fb816d7d4461bec4ec61522bfce6cd495887ebb879b17e85cee402777",
+      "size_bytes": 1489
+    },
+    "source-experiment-config.json": {
+      "sha256": "73cce8130a2b2f17df3cfd2ae52f018648c6ff4653f75f41c455cdc42d43f069",
+      "size_bytes": 2102
+    }
+  }
+}

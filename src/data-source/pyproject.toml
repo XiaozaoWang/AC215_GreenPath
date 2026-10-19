@@ -1,0 +1,59 @@
+[project]
+name = "greenpath-source"
+version = "0.1.0"
+description = "Standalone commands extracted from GreenPath notebooks 01-04"
+requires-python = ">=3.11,<3.13"
+dependencies = [
+    "numpy==2.4.6",
+    "pandas==3.0.6",
+    "pyarrow==26.0.0",
+    "pillow==12.3.0",
+    "matplotlib==3.11.2",
+    "tqdm==4.70.1",
+]
+
+# One upstream image installs all four dependency groups from the shared lockfile.
+[project.optional-dependencies]
+streetview = [
+    "h3==4.5.0",
+    "requests==2.34.2",
+    "mercantile==1.2.1",
+    "mapbox-vector-tile==2.2.0",
+]
+tiles = [
+    "pystac-client==0.9.0",
+    "planetary-computer==1.0.0",
+    "rasterio==1.4.4",
+    "pyproj==3.7.2",
+    "shapely==2.2.0",
+]
+features = [
+    "pystac-client==0.9.0",
+    "planetary-computer==1.0.0",
+    "rasterio==1.4.4",
+    "pyproj==3.7.2",
+    "shapely==2.2.0",
+    "requests==2.34.2",
+    "geopandas==1.2.0",
+    "pyrosm==0.19.1",
+    "cykhash==2.0.1",
+    "protobuf==6.33.6",
+]
+labeling = [
+    "google-genai==2.29.0",
+    "pydantic==2.14.0",
+    "scipy==1.17.1",
+]
+
+[project.scripts]
+greenpath-source = "greenpath_source.cli:main"
+
+[build-system]
+requires = ["setuptools==84.0.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["greenpath_source*"]
+
+[tool.setuptools.package-data]
+greenpath_source = ["notebook-provenance.json"]

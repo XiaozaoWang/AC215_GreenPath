@@ -3,13 +3,16 @@ import { BASE_API_URL } from "./Common";
 import axios from 'axios';
 
 const DataService = {
+    Capabilities: async function (versionId = null) { return await axios.get(BASE_API_URL + "/capabilities", { params: { version_id: versionId } }); },
+    Versions: async function () { return await axios.get(BASE_API_URL + "/versions"); },
+    Preview: async function (versionId) { return await axios.get(BASE_API_URL + "/preview", { params: { version_id: versionId } }); },
     // Health check: is the backend alive
     Health: async function () {
         return await axios.get(BASE_API_URL + "/", { timeout: 3000 });
     },
     // Full flow ①–⑩: one sentence + region → heatmap + the intermediate results of every step
-    Score: async function (text, regionId = "demo") {
-        return await axios.post(BASE_API_URL + "/score", { text: text, region_id: regionId });
+    Score: async function (text, regionId = null, versionId = null) {
+        return await axios.post(BASE_API_URL + "/score", { text: text, region_id: regionId, version_id: versionId });
     },
     // Only run the harness: one sentence → weights + Q&A record
     Preference: async function (text) {

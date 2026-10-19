@@ -1,0 +1,12 @@
+# Only ingestion receives ADC. The remaining ML jobs are network-disabled.
+services:
+  data-processor:
+    volumes:
+      - type: bind
+        source: ${ADC_FILE:?Set ADC_FILE to an authorized host ADC file}
+        target: /gcp/adc.json
+        read_only: true
+        bind:
+          create_host_path: false
+    environment:
+      GOOGLE_APPLICATION_CREDENTIALS: /gcp/adc.json

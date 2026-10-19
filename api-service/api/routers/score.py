@@ -2,6 +2,7 @@
 from fastapi import APIRouter, HTTPException
 
 from api import agent, pipeline
+from api.versions import UnknownVersionError
 from api.schemas import AgentResult, PreferenceRequest, ScoreRequest, ScoreResponse
 
 router = APIRouter()
@@ -18,6 +19,8 @@ def post_preference(request: PreferenceRequest) -> AgentResult:
 @router.post("/score", response_model=ScoreResponse)
 def post_score(request: ScoreRequest) -> ScoreResponse:
     try:
-        return pipeline.run_score(request.text, request.region_id)
-    except pipeline.UnknownRegionError as e:
+        return pipeline.run_score(request.text, request.region_id, version_id=request.version_id)
+    except (pipeline.UnknownRegionError, UnknownVersionError) as e:
         raise HTTPException(status_code=404, detail=str(e))
+    except (ValueError, FileNotFoundError) as e:
+        raise HTTPException(status_code=503, detail=f"Model artifact unavailable or invalid: {e}")

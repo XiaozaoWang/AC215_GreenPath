@@ -7,9 +7,9 @@ import DataService from '@/services/DataService';
 // Pipeline steps (numbers match the flow diagram ①–⑩), used as an explanation when there's no result
 const STEPS = [
     { n: '①', title: 'Your words', detail: 'Text from the prompt box', color: 'bg-violet-500' },
-    { n: '②–⑤', title: 'Harness · Gemini', detail: 'Parse weights, validate with pydantic, retry with the error', color: 'bg-pink-500' },
-    { n: '⑥⑦', title: 'Tiles', detail: '100 × 100 grid over the region', color: 'bg-teal-500' },
-    { n: '⑧⑨', title: 'Model', detail: '20 raw scores per tile (M2: simulated from the satellite image)', color: 'bg-amber-500' },
+    { n: '②–⑤', title: 'Preference parser', detail: 'Parse weights, validate with pydantic, retry with the error', color: 'bg-pink-500' },
+    { n: '⑥⑦', title: 'Tiles', detail: 'Region cells and their geographic boundaries', color: 'bg-teal-500' },
+    { n: '⑧⑨', title: 'Model', detail: 'Scores follow the selected model contract', color: 'bg-amber-500' },
     { n: '⑩', title: 'Score math', detail: 'z-score per region → t = Z · w → heatmap', color: 'bg-slate-700' },
 ];
 
@@ -20,12 +20,12 @@ export function signed(v) {
     return (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toFixed(1);
 }
 
-export default function Inspector({ result, loading }) {
+export default function Inspector({ result, loading, capabilities }) {
     const [tab, setTab] = useState('Overview');
     const total = result ? Object.values(result.timings_ms).reduce((a, b) => a + b, 0) : 0;
 
     return (
-        <aside className="flex h-full w-[400px] shrink-0 flex-col border-l border-slate-200 bg-white">
+        <aside className="flex w-full shrink-0 flex-col border-t border-slate-200 bg-white xl:h-full xl:w-[360px] xl:border-l xl:border-t-0">
             {/* Title + status */}
             <div className="flex items-center gap-2 px-5 pb-3 pt-5">
                 <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-pink-400 text-xs font-bold text-white">i</span>
@@ -53,10 +53,10 @@ export default function Inspector({ result, loading }) {
             </div>
 
             {/* Content area: only this part scrolls */}
-            <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-5 py-4">
+            <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-5 py-4 max-xl:max-h-[650px]">
                 {tab === 'Overview' && (result ? <Overview result={result} /> : <HowItWorks />)}
                 {tab === 'Harness' && result && <Harness agent={result.agent} />}
-                {tab === 'Weights' && result && <Weights weights={result.weights} preference={result.agent.preference} />}
+                {tab === 'Weights' && result && <Weights weights={result.weights} preference={result.agent.preference} dimensions={capabilities?.dimensions || {}} />}
                 {tab === 'Stats' && result && <Stats stats={result.stats} weights={result.weights} />}
                 {tab === 'JSON' && result && <RawJson result={result} />}
                 {tab === 'Code' && <SourceCode />}
@@ -119,12 +119,12 @@ function HowItWorks() {
 // Overview: the preference that was read (with reasons) + key numbers + time per step
 function Overview({ result }) {
     const weights = [...result.agent.preference.weights].sort((a, b) => Math.abs(b.weight) - Math.abs(a.weight));
-    const labels = { agent: '②–⑤ Harness (Gemini)', tiles: '⑥⑦ Tiles', model: '⑧⑨ Model (simulated)', score: '⑩ Score math' };
+    const labels = { agent: '②–⑤ Preference parser', tiles: '⑥⑦ Tiles', model: '⑧⑨ Model scores', score: '⑩ Score math' };
     const total = Object.values(result.timings_ms).reduce((a, b) => a + b, 0);
     return (
         <>
             <Section title="Parsed preference" right={`${weights.length} dimensions`}>
-                {weights.length === 0 && <div className="text-sm text-slate-500">No preference found (all weights 0).</div>}
+                {weights.length === 0 && <div className="text-sm text-slate-500">No supported preference found (all weights 0).</div>}
                 <div className="flex flex-col gap-1.5">
                     {weights.map((w) => (
                         <div key={w.dimension} className="flex items-start gap-2 text-sm">
@@ -141,10 +141,11 @@ function Overview({ result }) {
                 )}
             </Section>
 
+            <Section title="Model & provenance"><div className="break-words text-xs text-slate-600">{result.model_version}<br />{result.schema_version}<br />{result.description}<br />Error floor: {result.rmse_source}</div></Section>
             <Section title="Summary">
                 <div className="grid grid-cols-2 gap-2">
                     <Stat label="LLM attempts" value={`${result.agent.attempts.length}${result.agent.used_fallback ? ' · fallback' : ''}`} />
-                    <Stat label="Tiles" value={`${result.rows} × ${result.cols}`} />
+                    <Stat label="Tiles" value={result.stats.n_tiles} />
                     <Stat label="t range" value={`${result.stats.t_min} … ${result.stats.t_max}`} />
                     <Stat label="Below must-have" value={result.stats.n_excluded} />
                 </div>
@@ -187,15 +188,15 @@ function Harness({ agent }) {
 }
 
 // Full weight vector w: list all 20 dimensions, 0 for the ones not mentioned
-function Weights({ weights, preference }) {
+function Weights({ weights, preference, dimensions }) {
     const reasons = Object.fromEntries(preference.weights.map((w) => [w.dimension, w.reason]));
     return (
         <>
-            <p className="mb-4 text-sm text-slate-600">Full weight vector <span className="font-mono">w</span> (all 20 dimensions; unmentioned = 0).</p>
+            <p className="mb-4 text-sm text-slate-600">Full weight vector <span className="font-mono">w</span> (active model dimensions; unmentioned = 0).</p>
             <div className="flex flex-col gap-1.5">
                 {Object.entries(weights).map(([name, v]) => (
                     <div key={name} title={reasons[name] || ''} className="grid grid-cols-[8.5rem_1fr_2.5rem] items-center gap-2 text-xs">
-                        <span className={`font-mono ${v !== 0 ? 'text-slate-900' : 'text-slate-400'}`}>{name}</span>
+                        <span className={`font-mono ${v !== 0 ? 'text-slate-900' : 'text-slate-400'}`}>{dimensions[name]?.label || name}</span>
                         {/* Bar with the center line in the middle: green to the right, red to the left */}
                         <div className="relative h-2 rounded-full bg-slate-100">
                             <div className="absolute left-1/2 top-[-2px] h-3 w-px bg-slate-300" />
@@ -225,8 +226,8 @@ function Stats({ stats, weights }) {
                     {Object.keys(stats.mean).map((name) => (
                         <tr key={name} className={`border-t border-slate-100 ${weights[name] !== 0 ? 'text-slate-900' : 'text-slate-400'}`}>
                             <td className="py-1">{name}</td>
-                            <td>{stats.mean[name].toFixed(1)}</td>
-                            <td>{stats.sigma[name].toFixed(1)}</td>
+                            <td>{stats.mean[name].toFixed(3)}</td>
+                            <td>{stats.sigma[name].toFixed(3)}</td>
                             <td>{signed(weights[name])}</td>
                         </tr>
                     ))}
@@ -238,7 +239,7 @@ function Stats({ stats, weights }) {
 
 // The full returned JSON (heatmap is too long, so only the top-left corner is kept as a sample)
 function RawJson({ result }) {
-    const shown = { ...result, heatmap: [...result.heatmap.slice(0, 2).map((r) => r.slice(0, 6)), `… ${result.rows} rows × ${result.cols} cols (top-left corner shown)`] };
+    const shown = { ...result, features: result.features?.slice(0, 2), heatmap: result.heatmap?.slice(0, 2).map(r => r.slice(0, 6)), preview_note: "Only the first two geographic features / grid rows are shown" };
     return (
         <>
             <p className="mb-3 text-sm text-slate-600">Full <span className="font-mono">/score</span> response (<span className="font-mono">ScoreResponse</span> in schemas.py).</p>

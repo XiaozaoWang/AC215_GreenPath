@@ -1,0 +1,11 @@
+{
+  "format_version": "greenpath-workflow-v1",
+  "source_config": "configs/source-boston-full.json",
+  "source_directory": ".artifacts/sources/boston-source-full-v1",
+  "snapshot_version": "boston-source-full-v1-frozen-v1",
+  "training_config": "configs/training-clip-ridge.json",
+  "mode": "full",
+  "max_new_label_images": 1000,
+  "result_label": "Boston full collection v1",
+  "scope_note": "All eligible cells within the configured Boston bounding box."
+}

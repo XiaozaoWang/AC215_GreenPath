@@ -1,0 +1,1332 @@
+ Image greenpath-data-source:ml Building 
+#1 [internal] load local bake definitions
+#1 reading from stdin 635B done
+#1 DONE 0.0s
+
+#2 [internal] load build definition from Dockerfile
+#2 transferring dockerfile: 819B done
+#2 DONE 0.0s
+
+#3 [auth] library/python:pull token for registry-1.docker.io
+#3 DONE 0.0s
+
+#4 [internal] load metadata for docker.io/library/python:3.11-slim-bookworm
+#4 DONE 0.4s
+
+#5 [internal] load .dockerignore
+#5 transferring context: 204B done
+#5 DONE 0.0s
+
+#6 [stage-0 1/8] FROM docker.io/library/python:3.11-slim-bookworm@sha256:0a310eeecf4e1f5a0743f9a6520c90c88d089c903ca5fd283f501e3a805f5f89
+#6 resolve docker.io/library/python:3.11-slim-bookworm@sha256:0a310eeecf4e1f5a0743f9a6520c90c88d089c903ca5fd283f501e3a805f5f89 0.0s done
+#6 DONE 0.0s
+
+#7 [internal] load build context
+#7 transferring context: 360.54kB done
+#7 DONE 0.0s
+
+#8 [stage-0 2/8] RUN pip install --no-cache-dir uv==0.12.12
+#8 CACHED
+
+#9 [stage-0 3/8] RUN apt-get update && apt-get install -y --no-install-recommends build-essential libexpat1     && rm -rf /var/lib/apt/lists/*
+#9 CACHED
+
+#10 [stage-0 4/8] COPY src/data-source /app/src/data-source
+#10 CACHED
+
+#11 [stage-0 5/8] COPY prompts /app/src/data-source/prompts
+#11 CACHED
+
+#12 [stage-0 7/8] RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-dev --all-extras
+#12 CACHED
+
+#13 [stage-0 6/8] WORKDIR /app/src/data-source
+#13 CACHED
+
+#14 [stage-0 8/8] RUN useradd -m -u 1000 app && mkdir /data && chown app:app /data
+#14 CACHED
+
+#15 exporting to image
+#15 exporting layers done
+#15 exporting manifest sha256:87c9e735434956378d390671cfb5d5a19006ae605f8bfaa5ebac07898c720a0f done
+#15 exporting config sha256:9ce625435ce9985607638bcf956d9947d6d73465bb370de8a5be3aa50e19c955 done
+#15 exporting attestation manifest sha256:8b08cd6cd61aa9df5630c657b13e4a5352782b18b08ba39758d1bf8c83710df6 done
+#15 exporting manifest list sha256:e8d5518d9ff31de15e171323c025d0975ef9e86c3cbe7d4318599ee5dcc9aab9 done
+#15 naming to docker.io/library/greenpath-data-source:ml done
+#15 unpacking to docker.io/library/greenpath-data-source:ml done
+#15 DONE 0.0s
+
+#16 resolving provenance for metadata file
+#16 DONE 0.0s
+ Image greenpath-data-source:ml Built 
+ Container greenpath-sources-data-source-run-5855e0ca7145 Creating 
+ Container greenpath-sources-data-source-run-5855e0ca7145 Created 
+{"stage": "streetview", "source_version": "boston-pilot-v2", "data_root": "/data"}
+
+Downloading street-photo tiles:   0%|          | 0/24 [00:00<?, ?it/s]
+Downloading street-photo tiles:   4%|▍         | 1/24 [00:01<00:37,  1.64s/it]
+Downloading street-photo tiles:   8%|▊         | 2/24 [00:03<00:33,  1.53s/it]
+Downloading street-photo tiles:  12%|█▎        | 3/24 [00:05<00:38,  1.85s/it]
+Downloading street-photo tiles:  17%|█▋        | 4/24 [00:07<00:37,  1.89s/it]
+Downloading street-photo tiles:  21%|██        | 5/24 [00:09<00:35,  1.87s/it]
+Downloading street-photo tiles:  25%|██▌       | 6/24 [00:11<00:35,  1.99s/it]
+Downloading street-photo tiles:  29%|██▉       | 7/24 [00:14<00:41,  2.42s/it]
+Downloading street-photo tiles:  33%|███▎      | 8/24 [00:16<00:37,  2.33s/it]
+Downloading street-photo tiles:  38%|███▊      | 9/24 [00:18<00:32,  2.14s/it]
+Downloading street-photo tiles:  42%|████▏     | 10/24 [00:20<00:29,  2.08s/it]
+Downloading street-photo tiles:  46%|████▌     | 11/24 [00:23<00:32,  2.47s/it]
+Downloading street-photo tiles:  50%|█████     | 12/24 [00:25<00:28,  2.34s/it]
+Downloading street-photo tiles:  54%|█████▍    | 13/24 [00:28<00:25,  2.33s/it]
+Downloading street-photo tiles:  58%|█████▊    | 14/24 [00:31<00:26,  2.65s/it]
+Downloading street-photo tiles:  62%|██████▎   | 15/24 [00:35<00:26,  2.92s/it]
+Downloading street-photo tiles:  67%|██████▋   | 16/24 [00:37<00:21,  2.64s/it]
+Downloading street-photo tiles:  71%|███████   | 17/24 [00:38<00:15,  2.26s/it]
+Downloading street-photo tiles:  75%|███████▌  | 18/24 [00:40<00:12,  2.10s/it]
+Downloading street-photo tiles:  79%|███████▉  | 19/24 [00:42<00:11,  2.21s/it]
+Downloading street-photo tiles:  83%|████████▎ | 20/24 [00:44<00:07,  1.98s/it]
+Downloading street-photo tiles:  88%|████████▊ | 21/24 [00:45<00:05,  1.80s/it]
+Downloading street-photo tiles:  92%|█████████▏| 22/24 [00:46<00:03,  1.71s/it]
+Downloading street-photo tiles:  96%|█████████▌| 23/24 [00:47<00:01,  1.39s/it]
+Downloading street-photo tiles: 100%|██████████| 24/24 [00:48<00:00,  1.32s/it]
+Downloading street-photo tiles: 100%|██████████| 24/24 [00:48<00:00,  2.03s/it]
+24 tiles, metadata of 1,659,427 street photos
+all                     1,659,427
+inside BBOX             1,427,893
+taken in 2019 or later    452,028
+excluding months [12, 1, 2, 3]  135,419
+not panoramas              99,766
+has heading                99,766
+99766 usable street photos → in 1173 cells → 4506 selected
+Grid has 3532 cells
+  ≥1 usable street photo: 1158 (32.8%)
+  ≥2 usable street photos (eligible): 1127 (31.9%)
+Sampled 50 cells, 195 street photos in total
+
+Downloading street photos:   0%|          | 0/195 [00:00<?, ?it/s]
+Downloading street photos:   1%|          | 1/195 [00:00<01:54,  1.69it/s]
+Downloading street photos:   2%|▏         | 3/195 [00:00<00:52,  3.64it/s]
+Downloading street photos:   5%|▍         | 9/195 [00:01<00:14, 12.65it/s]
+Downloading street photos:   6%|▌         | 12/195 [00:01<00:19,  9.47it/s]
+Downloading street photos:  10%|█         | 20/195 [00:01<00:10, 16.11it/s]
+Downloading street photos:  13%|█▎        | 25/195 [00:02<00:13, 12.96it/s]
+Downloading street photos:  16%|█▌        | 31/195 [00:02<00:10, 15.32it/s]
+Downloading street photos:  19%|█▉        | 38/195 [00:02<00:08, 18.93it/s]
+Downloading street photos:  22%|██▏       | 43/195 [00:02<00:06, 22.07it/s]
+Downloading street photos:  24%|██▎       | 46/195 [00:03<00:13, 11.05it/s]
+Downloading street photos:  29%|██▉       | 57/195 [00:04<00:09, 15.02it/s]
+Downloading street photos:  33%|███▎      | 64/195 [00:04<00:06, 19.22it/s]
+Downloading street photos:  35%|███▍      | 68/195 [00:04<00:07, 17.26it/s]
+Downloading street photos:  37%|███▋      | 72/195 [00:04<00:06, 18.18it/s]
+Downloading street photos:  38%|███▊      | 75/195 [00:04<00:06, 18.49it/s]
+Downloading street photos:  40%|████      | 78/195 [00:05<00:09, 12.33it/s]
+Downloading street photos:  42%|████▏     | 82/195 [00:05<00:07, 14.29it/s]
+Downloading street photos:  47%|████▋     | 91/195 [00:06<00:05, 17.60it/s]
+Downloading street photos:  48%|████▊     | 94/195 [00:06<00:06, 16.60it/s]
+Downloading street photos:  50%|█████     | 98/195 [00:06<00:06, 14.74it/s]
+Downloading street photos:  52%|█████▏    | 101/195 [00:06<00:05, 16.47it/s]
+Downloading street photos:  53%|█████▎    | 104/195 [00:06<00:05, 17.47it/s]
+Downloading street photos:  55%|█████▍    | 107/195 [00:07<00:07, 12.42it/s]
+Downloading street photos:  57%|█████▋    | 111/195 [00:07<00:05, 15.02it/s]
+Downloading street photos:  59%|█████▉    | 116/195 [00:07<00:03, 19.85it/s]
+Downloading street photos:  61%|██████    | 119/195 [00:07<00:04, 18.13it/s]
+Downloading street photos:  63%|██████▎   | 122/195 [00:07<00:04, 18.16it/s]
+Downloading street photos:  65%|██████▌   | 127/195 [00:08<00:02, 23.56it/s]
+Downloading street photos:  67%|██████▋   | 130/195 [00:08<00:05, 11.91it/s]
+Downloading street photos:  70%|██████▉   | 136/195 [00:08<00:03, 17.46it/s]
+Downloading street photos:  72%|███████▏  | 140/195 [00:08<00:02, 19.94it/s]
+Downloading street photos:  74%|███████▍  | 144/195 [00:09<00:02, 21.29it/s]
+Downloading street photos:  75%|███████▌  | 147/195 [00:09<00:03, 15.02it/s]
+Downloading street photos:  79%|███████▉  | 154/195 [00:09<00:01, 22.24it/s]
+Downloading street photos:  81%|████████  | 158/195 [00:09<00:01, 18.75it/s]
+Downloading street photos:  83%|████████▎ | 161/195 [00:10<00:02, 16.73it/s]
+Downloading street photos:  84%|████████▍ | 164/195 [00:10<00:02, 14.56it/s]
+Downloading street photos:  85%|████████▌ | 166/195 [00:10<00:02, 14.16it/s]
+Downloading street photos:  88%|████████▊ | 172/195 [00:10<00:01, 18.95it/s]
+Downloading street photos:  90%|████████▉ | 175/195 [00:11<00:01, 16.98it/s]
+Downloading street photos:  92%|█████████▏| 180/195 [00:11<00:00, 21.56it/s]
+Downloading street photos:  94%|█████████▍| 183/195 [00:11<00:00, 15.55it/s]
+Downloading street photos:  95%|█████████▌| 186/195 [00:11<00:00, 15.65it/s]
+Downloading street photos:  97%|█████████▋| 190/195 [00:11<00:00, 19.43it/s]
+Downloading street photos:  99%|█████████▉| 194/195 [00:12<00:00, 15.31it/s]
+Downloading street photos: 100%|██████████| 195/195 [00:12<00:00, 15.94it/s]
+Downloaded 193 / 195
+cells.parquet: 50 cells; streetview.parquet: 193 photos
+{
+  "step": "01_streetview",
+  "city": "boston",
+  "bbox": [
+    -71.13,
+    42.33,
+    -71.03,
+    42.39
+  ],
+  "h3_res": 10,
+  "min_year": 2019,
+  "exclude_months": [
+    12,
+    1,
+    2,
+    3
+  ],
+  "allow_pano": false,
+  "min_images_per_cell": 2,
+  "max_images_per_cell": 4,
+  "sample_size": 50,
+  "seed": 42,
+  "filter_funnel": {
+    "all": 1659427,
+    "inside BBOX": 1427893,
+    "taken in 2019 or later": 452028,
+    "excluding months [12, 1, 2, 3]": 135419,
+    "not panoramas": 99766,
+    "has heading": 99766
+  },
+  "grid_cells": 3532,
+  "cells_with_any_image": 1158,
+  "cells_eligible": 1127,
+  "coverage_eligible_frac": 0.3191,
+  "cells_sampled": 50,
+  "images_selected": 193,
+  "images_downloaded": 193,
+  "attribution": "Street-level imagery © Mapillary contributors, CC-BY-SA 4.0",
+  "outputs": [
+    "raw/grid",
+    "raw/mapillary",
+    "processed/streetview.parquet",
+    "processed/cells.parquet"
+  ],
+  "finished_at": "2026-10-19T06:59:59+00:00",
+  "input_sha256": {},
+  "source_version": "boston-pilot-v2",
+  "config_sha256": "8abb490f3ebef2b1b62450eb6d88db4c6f56d08826c03218cf87ea87a1e8bb74",
+  "configuration": {
+    "city": "boston",
+    "city_prefix": "BOS",
+    "bbox": [
+      -71.13,
+      42.33,
+      -71.03,
+      42.39
+    ],
+    "h3_res": 10,
+    "tile_zoom": 14,
+    "min_quality": 0.0,
+    "min_year": 2019,
+    "exclude_months": [
+      12,
+      1,
+      2,
+      3
+    ],
+    "allow_pano": false,
+    "min_images_per_cell": 2,
+    "max_images_per_cell": 4,
+    "sample_size": 50,
+    "seed": 42,
+    "download_images": true,
+    "download_workers": 8
+  },
+  "output_sha256": {
+    "raw/grid/boston_h3r10.parquet": "7876421dbb8a2a31c4ef0d545c95cdeb3223e8c16725d459aa4284efeeb7092e",
+    "raw/mapillary/images/1010290986768240.jpg": "bcb387148aa7aa8a9f29211036b5825f5718ad5f6da1da0c9752a5bb6e5ac172",
+    "raw/mapillary/images/1020260753403311.jpg": "e3bfd1ae8641618104905ef9dce8f2a595a1d1b8d6896422c4720829e19a450c",
+    "raw/mapillary/images/1039927816808898.jpg": "850c13fece5608d69f82a659a384c63d6eefdec66f1bf9fe8442616a7c68ce0e",
+    "raw/mapillary/images/1042363577964309.jpg": "87175bdcada9c360a7b1140b6d7538d77a558db1d3ee671772666e2f47146409",
+    "raw/mapillary/images/1059602655647988.jpg": "0e8499ceed1c6d80327de95c9a882188cc43cc9c9324d7e0ec7ecbbe973d2a29",
+    "raw/mapillary/images/1060640369373085.jpg": "511ec196d81f368e57e75c259c38450564fe68d6700d5d8bc476dee028140def",
+    "raw/mapillary/images/1075292951147087.jpg": "1becdf1ea1695099f0a2c2f90e78f5ad2aae5c250df09c7552e7fb37ac35286f",
+    "raw/mapillary/images/1080517883046065.jpg": "907af084ff48ac755b205e89880d4c1185d1421fcca8cf14d329f7e20ed1f303",
+    "raw/mapillary/images/1095682172601150.jpg": "9221d8bc43f716ff46c4177d112ecec7fe5fba44d8e64d05525a62367aa63812",
+    "raw/mapillary/images/1108386240282136.jpg": "c6a31fa0d13490cded6d0d8de1a826de4bc86bb1369549465fc73d9c2e3246f0",
+    "raw/mapillary/images/1124282968881713.jpg": "09b5e193a590aaa04d44d29d39c5f07ee220cb59c8eaaf447182a4f91360a92a",
+    "raw/mapillary/images/1159805425079487.jpg": "d41f20144198c106b1619be3cfb70bbd2b36d01fb5848a589c0bf1570337894b",
+    "raw/mapillary/images/1170022130870111.jpg": "e19f8c4e85bba68b7989f12392f13231bfd57ae5408632cef833cd4bdf68e165",
+    "raw/mapillary/images/1171903203820875.jpg": "4058aaa847ac6afe979b7cb65919c2af7e86e14a6d3d274dfc2f18ce5eb9d988",
+    "raw/mapillary/images/1175242429642005.jpg": "658517eafd1e28c0194dad56272e693971aa33a07b7e62b45ec3a082b1f14da4",
+    "raw/mapillary/images/1176472146113916.jpg": "8589ca4266d6cbcc50937f002482040934c20bcec15d13ebb17b881536c93a20",
+    "raw/mapillary/images/1180801703099532.jpg": "797ed1ec2a7c0ff29a7d0aadcfd01bd5d273b5b2a89c5faed036c664942db9fc",
+    "raw/mapillary/images/1195646324776217.jpg": "ad1623ab36d3d7662f0d15f09edadc9c323eebbfe96aaa096553bb8e3b736a08",
+    "raw/mapillary/images/1197819905073060.jpg": "74388d1d739a35947014df2365cb8ee59c79c1eb3a0378b13c475e106fed9ec8",
+    "raw/mapillary/images/1215385393509662.jpg": "b65706f647b121429c2fd486d55cfdb161d53dedb85c2d9a3ab443822a91bad9",
+    "raw/mapillary/images/1249095386250738.jpg": "78244b0f4968c9ae06b1fe177350d12975a172cb58349908ade487011f185a4e",
+    "raw/mapillary/images/1264472095190318.jpg": "732fad7be469fad1a02f45f7fde48d5359a6d751ba80bf4b275240de2ef33b95",
+    "raw/mapillary/images/1311563979259689.jpg": "711f6a1a3543e924fb0bba80256c3ce6e3d9478f8eee93a60ee5dc3d75d1b82b",
+    "raw/mapillary/images/1313012843469644.jpg": "64c073f0793a9e752b807406bdba9b19235a75aa6f266dcdbd0e48ac116f51a7",
+    "raw/mapillary/images/1373708004406990.jpg": "95c067a5614040e342ef8a1997239ba0dcf3e5fa4986be8ee3ba926a9e66419c",
+    "raw/mapillary/images/1381561649223643.jpg": "fe3c0016d2319f55382a39d6c7db65e028ad3a81fb81aeb1fb20d45bd98e6b25",
+    "raw/mapillary/images/1383563536175299.jpg": "98bf0c70cd9c4d4f093ecd49a22aaa0b8d425f1645ace0c129a80e3c966e4a76",
+    "raw/mapillary/images/1414243103036594.jpg": "5bea4258cce1da7c55e94c354ec777a7b5726cfe060fe4bf9c81c961c0e4d8d2",
+    "raw/mapillary/images/142496221253618.jpg": "890ce6d1ee998dd5218251f89acbb691fed9999822c94cc793c5920b34ac8398",
+    "raw/mapillary/images/1425576261414838.jpg": "886e61a951d94102329b58dc704ce2da86b9edc8764443d7f7c2316eacadb1ac",
+    "raw/mapillary/images/1447553999184913.jpg": "8dbcce0bc572315f6877086fc4a663c139b76c367aa8791f4c08bc518d537298",
+    "raw/mapillary/images/1465809384605272.jpg": "9e8ab1a5f82d936a93a5814fc910bcf0d634da1ce9746b1248d65e93d84e8171",
+    "raw/mapillary/images/1474472796806267.jpg": "b98d0f6a1911e41ac71f1e8fe9bfbd4cf83911b78f1a9e698b480310e719195e",
+    "raw/mapillary/images/1482516409351389.jpg": "21262e1cbff1c7a9db5def70b498b3c54213ff88c3ee0b30680fdd40a549ae93",
+    "raw/mapillary/images/148820283888543.jpg": "f13da3bf09bd2fbd11add1178d95a29e018d30e9bd7c0ceb3cca230893099848",
+    "raw/mapillary/images/1497969097453542.jpg": "7262aa1f0b1f4e24e8227ca66841f35cbb81149df31ff719414a9d83a2d03c8c",
+    "raw/mapillary/images/1519682245562453.jpg": "f4d4ae5792f9b87f10608a273a1918255110316b5a696736199540676de514ce",
+    "raw/mapillary/images/1521818329105931.jpg": "748d451a77f4af377565893f4501a5573c106d488d95954e73f039d0a34bb0f3",
+    "raw/mapillary/images/1532348207110545.jpg": "033c1498a0034adae8bdbe5e7b27e876e5c813245e0cb6fa1409f9818e92eb37",
+    "raw/mapillary/images/154505820092193.jpg": "76f07ae5f4cc247d4bf6e4ebdf0b80e527e3f3fe31b20606fd0fb0558d1d21b3",
+    "raw/mapillary/images/1546522259538492.jpg": "34d3c58fd19c8b3b3609c9ec9100cf4b29d480f3bfb868d329bebf62237ab2f6",
+    "raw/mapillary/images/1550875322451389.jpg": "6caccf50eec34ec8b270462b00d5f98f72043137c9e6ba4abf6205790c92817e",
+    "raw/mapillary/images/1561762257518396.jpg": "4974ffa3932008ec5052a51fb2e7bc82998facb2ed9e93562f1e4dd5cdb10fa6",
+    "raw/mapillary/images/1570942730508311.jpg": "e474988c4281920781c9e99f29d428d9122187a69dd791b161777af685a20ed6",
+    "raw/mapillary/images/1574739289925954.jpg": "fcf058d6a2bd74ed61fd56005f0deb2e8e3aad6e6a741175af7a89f2b8eac4ad",
+    "raw/mapillary/images/158297470098533.jpg": "24c0db9c2fa55773b0fa8e0d02a6cb28f3995e122b8da5b0b744b8e0a44ecb88",
+    "raw/mapillary/images/1599915184504260.jpg": "a9455d343c29823928a29c1295508082f2fe9ad003fa326572269086e2e3e6e8",
+    "raw/mapillary/images/1603563553567032.jpg": "b204990ced4b6ebf4a3340cd4a3686c12eb351eb640a75ed8113277f2fcda21a",
+    "raw/mapillary/images/1604453163594365.jpg": "8cf4416072408bd2b7e69f579bd16acf881af0c913714c96dddfbeccebdf245b",
+    "raw/mapillary/images/1622824231852913.jpg": "764791912978d7190ed25503989fc09a8123325547653b60b5426fcf1e7d085b",
+    "raw/mapillary/images/1646450052604250.jpg": "2b1079e25a9929e46352bbfd2c2c8d8c5f642c8473fe8537876bfa2c75d16606",
+    "raw/mapillary/images/1663223981143737.jpg": "19f611cb3861559ae7b99517bb3af10abc107a490459cf954ada0f43a5e28beb",
+    "raw/mapillary/images/1753936865217510.jpg": "edb46ce26635e19a0f9efb33076ccc7556a662d5e8faf429f88a877a54497434",
+    "raw/mapillary/images/1776007613340719.jpg": "eb22617f8407f71e69a5128fda7c876a898418d6b010d93ce2751e8ed9877c95",
+    "raw/mapillary/images/1789452685299367.jpg": "fa59ae8f7ee0a0ed647a25b4b69f8d2202276b3885fa7ab53e318d0571cc5e27",
+    "raw/mapillary/images/1799269427609349.jpg": "da420a4b84fd146ee148301b57a0317f197d93952cc2f31105e482609e582895",
+    "raw/mapillary/images/1810858199491635.jpg": "671dea07fc06688e7b385a1a6536cee0c48eda005bc7cd003c77c2cf5a94e355",
+    "raw/mapillary/images/1813346995826528.jpg": "a2891a9a6c44d44b895108bf3383b529e2998c495d0df2370187b0ddf2da86a3",
+    "raw/mapillary/images/1818766285294875.jpg": "70da76c82fd27add51b367c4acd73e1270d4f3f9ed430f457459d131eaca5f89",
+    "raw/mapillary/images/1824272718461358.jpg": "ccad7cd4b3d6df0fc4328574c42705a84f55c6276185b28a10999a5a4be3ae5e",
+    "raw/mapillary/images/1829222840969128.jpg": "06c7b8bbcc7b4911cdc183de048349f7ae6fa3b1e171fdf82de0703728bf0f7c",
+    "raw/mapillary/images/1832411577490785.jpg": "79f118f9854cadceec4f8b0cebd496f4eeb1c0b9fe716e6aba1163f1d809f519",
+    "raw/mapillary/images/1896238761110717.jpg": "a11da4b68875942417141c0edc16693e36fc7c08ddd99089d7f72e98b8e35e81",
+    "raw/mapillary/images/190086697407125.jpg": "f18a44bd9d10a95a16b4ad28c90283ad363742efc7402972b28ddb39a7e3081e",
+    "raw/mapillary/images/1906157883461630.jpg": "ef95c7e4805aa7d8041a62a5554a1356ad3fafac1c31582b267c741d9d064afd",
+    "raw/mapillary/images/203257095130744.jpg": "8c2e616d213868b5786aa95a5fbe3dbc0352ec478a6a55eeb70f1fb3c8082ccf",
+    "raw/mapillary/images/208220170943739.jpg": "be6748cf23a6cf2bacff22ad079b086b9d55c572cbc268bb70d4db1f19741a40",
+    "raw/mapillary/images/208283781113656.jpg": "489e27e3dfd8b419fcd42c654b33dc45ae9fe1d1ed6aef6c7fd94b805e982684",
+    "raw/mapillary/images/2091088888035163.jpg": "f858095cf60da3b689df861ad3146b28335b31903ab7e4a70a4b7ad8fecfb20e",
+    "raw/mapillary/images/2120999081719159.jpg": "a9b987e28e73781651d735ff4822732cf7787504a85dda1fffd8ba6a77bbbf57",
+    "raw/mapillary/images/2127431314283689.jpg": "0f42850cce2ebf02e19aa4bdb1835e5d58ec3fc4b9f7316461ba4d9a47b48856",
+    "raw/mapillary/images/214697837926260.jpg": "8ac70eaf4e71b27697f4e3c1613bf900aae7be597584576420062b97f79abbf1",
+    "raw/mapillary/images/220544789978010.jpg": "84169949363eb82088e55bd49706df6443f6ec1e0a2d8e238ec65edf0f37f427",
+    "raw/mapillary/images/2206723189463487.jpg": "72e241bb130462270d15af3e2170ad9f0d4cae22a1bf7f8e82b90dcb01dbd542",
+    "raw/mapillary/images/223243333099778.jpg": "32e582a6dcbd9a68c21dfb1c8688fadbad9c081b5aa4e6abb259f90f3916c01a",
+    "raw/mapillary/images/2279018599205774.jpg": "68372ccffb0b19055788e768d14780e682bf7f45bce00ee57713c6de5eef9a41",
+    "raw/mapillary/images/2325543181181533.jpg": "ae9f4d1ac58344950bdb4edf9c4ce27a60966f198daf8a5c65923355974ade93",
+    "raw/mapillary/images/234043495398018.jpg": "448b32ef9f9b6d5a3e7c3d966dd7cd5a45dc34efaa53e641eea0a04eaea87394",
+    "raw/mapillary/images/236091215006356.jpg": "c340db918fd3b3d7fad37b841bf8e1b8958e75de2f9d2984cd816f2bd9b5467a",
+    "raw/mapillary/images/244526837579768.jpg": "62800432eed0141c0e7590f812bb71b78a691d9445071f532ee9281f47ff602f",
+    "raw/mapillary/images/248706600335311.jpg": "7a13a68dc53d9156fdd39dbb6361760cc55a0b68d0fdca449de7348c4872000e",
+    "raw/mapillary/images/2531783560342398.jpg": "97ce0b34f42eb15d12122f47b069486fbec0202fcf76af5c54d7e9b254350311",
+    "raw/mapillary/images/255349459793167.jpg": "6f791529be313ebbef5a3ebb10fc48d2a940f607c830c6c8e4d645889eb426de",
+    "raw/mapillary/images/26119187897680270.jpg": "dba736445d6897023a5c10b38c1e231c5923a8c3a40c24348615047c43cc1838",
+    "raw/mapillary/images/2758052644550172.jpg": "977ad1b7b364305619c9d1bd483ec8571841ee078db37b12c0c616281b7b3dd3",
+    "raw/mapillary/images/2895354490618394.jpg": "ad587f1c1e71492040145a803df2c0a753e7f8085e9392a629ec1860091157fa",
+    "raw/mapillary/images/2962292600698251.jpg": "6a9bd0ad4b7a85d26bbfb91f36266c31e6d831ff5abb9f39aacf153e82c16ee9",
+    "raw/mapillary/images/2979620872311246.jpg": "9848323f8cb5aad58de9a0e2906565b3223d083271054a93b66444e5717b998a",
+    "raw/mapillary/images/301556051443266.jpg": "9b73b619e8683462a441632aaba74c18a83ca0f45899c0eaebb60550e6a4e5a0",
+    "raw/mapillary/images/314045021024957.jpg": "9839d1555e06e8ef9f02cb79c6d2eaaf0d537afca2de86c663fb28b9a176e7c5",
+    "raw/mapillary/images/3230415333900989.jpg": "73553cdb0e71306d4f0acf9577f48fc8886423e8a1dbae6f4b0b4996efdc4ccc",
+    "raw/mapillary/images/324298159043921.jpg": "3858aa1b1f5a4426ef8da90e525d80f1dc37e856e2bcf8e02dee851a3703d741",
+    "raw/mapillary/images/325620435798316.jpg": "96e07b7563fe2cace2ba3f94b7fd730e09c4c0b2c01855f054921dfaf0bdef1f",
+    "raw/mapillary/images/332791453146261.jpg": "e64707655f3dd6a4e53ce258629c26ece40738272603660a88cef97aa92d33ce",
+    "raw/mapillary/images/335551231579164.jpg": "ea94d450e9253a84481e21a628ec500ea5016a315fbc43cba14245b3fd150879",
+    "raw/mapillary/images/3373330006147097.jpg": "f2a798d32cc2820b465714d5c76f84e59da7dfadebc03b2a2afe44e448518130",
+    "raw/mapillary/images/348715431526724.jpg": "f4db95fbbd561d5b9c5425112bd6673c2838c0551db35e12a71865098761a7cf",
+    "raw/mapillary/images/351152616396214.jpg": "6f6af46548bc1c1530c75e61cafd7071843130f9e56eb0414380653548f749b8",
+    "raw/mapillary/images/358885443286118.jpg": "bba6192586143497edd3f4f0f9366aa36d6192df41b3631ea076b1d649c73795",
+    "raw/mapillary/images/3613688198940910.jpg": "40cb19688727eb5742ca4a7c682a4258d401a795aa4421efc1977a9c0b766d47",
+    "raw/mapillary/images/361923742260583.jpg": "d2e12cbbb05f2b6d81b1eea296c5714b623e798a8058ba1c49fb3b225bcb640f",
+    "raw/mapillary/images/3828749524019784.jpg": "eda4fac71cdb01f1724f8473bbbd83626e5c8cc3dfd7379883bbf46391a23e49",
+    "raw/mapillary/images/3856924891260729.jpg": "81d858302f5e10c33e0b3eee5aa45824b83328e895cf52a60d4a50c9fb6ecd9c",
+    "raw/mapillary/images/396229029491734.jpg": "7e10279bbb30f656ee4b120bc14de0e73b2fc411fecda04581f1b82f495e6ea8",
+    "raw/mapillary/images/4004001903054302.jpg": "182cd914634e4140fd856e032eed3038c8f11a251feac07bde0999cd1f4e42b3",
+    "raw/mapillary/images/405424122376331.jpg": "ec6e1912a0abf6d6394f629ad7d018b1d4c84638cff0a8059a419a87e264139c",
+    "raw/mapillary/images/408792828700718.jpg": "6520bcaaa4fc259c3f5f4d9d6f1dd807eaae429728b81115f73727456ce3519e",
+    "raw/mapillary/images/410684427073301.jpg": "2de7d92e4d98a27085bc5e057c0bfef8c4dfae6ab979a3808606c5a5ebcad79a",
+    "raw/mapillary/images/410796834789039.jpg": "2527cc80f7017d65c100c6a4daff059fa189dbea4ce8acbd240f156a0ceda039",
+    "raw/mapillary/images/412733974875917.jpg": "2d2f7c75754e6d6e4b3e405449f01f2a1155acc0fc2185882f149d29b7398cf1",
+    "raw/mapillary/images/414658051463029.jpg": "d212c4f6e5e8ebd4edd29c21c99146e33fafec6771d34bf9ca029f80cb7218d3",
+    "raw/mapillary/images/415892547150626.jpg": "8af6e28829b92b6d31c8493a18f3f7d344272732de7390f505e4e33b249ef2c4",
+    "raw/mapillary/images/416664359670443.jpg": "6c247da6814031b0a75d98e0e73330799dbf98e1c6c3ca590ddae46ca3c8fc22",
+    "raw/mapillary/images/418121147635211.jpg": "228ff95e491e7eaf2c0443b0bc2325400a5e5a84f6b2b28ca61fa0e530ce15a8",
+    "raw/mapillary/images/418640554258942.jpg": "f7605875836cc93a61641c83f83784ecf5691cd0e285d8a147d0d1c43067b898",
+    "raw/mapillary/images/4251924198174838.jpg": "94ec9ebaae9ff8cadc3acc839b21ece04b1cf182b7f57f8b10237c4cac58395d",
+    "raw/mapillary/images/425804630095158.jpg": "ae4736534241fa4dd202857c1549e73213abf66594e313b2d75eb219e3d597fd",
+    "raw/mapillary/images/4415137241841938.jpg": "3e2d1e561487c82185014430f1674bb933a0dcf5e473dc2cf6154a961aa1fc8c",
+    "raw/mapillary/images/443486310589825.jpg": "9000c0e1f6ef974ba39dadbad5958d4d8962df689ce86972bef234fbaaba9830",
+    "raw/mapillary/images/448737860895352.jpg": "08b21789d712b1255c41fef79ff3e60154c4eed80e078f2c1e7c2abdfd0a46dc",
+    "raw/mapillary/images/453496810392336.jpg": "6d62821474c5d77244f084e5126d02bca4d602e59fbb7a8b23d8d1e54f994715",
+    "raw/mapillary/images/456167970307735.jpg": "374934ab443714746279589eac331555277190669a72271ad8b67c5740a87612",
+    "raw/mapillary/images/456188046944132.jpg": "a6a06156c90164994cb6d5eb851443f0f7111f9e244ce961c64703662a97af91",
+    "raw/mapillary/images/483990986209417.jpg": "f1bf842fb661f1570d5fa3e16f36f176d8c522703d6190ae77bbf91b2b7cc71b",
+    "raw/mapillary/images/495710618397763.jpg": "cdd9a8f7991de09d0793a847d0faf90509ea43611e2bb41d29f9baeb15a4ae5e",
+    "raw/mapillary/images/511873796739749.jpg": "bc78495b99f58ab038a4f20491d2d88782e8448079d0497d14d70c25b558da6b",
+    "raw/mapillary/images/525467585431294.jpg": "691335b4d70d92026bb23511115f1003704b7a28d35c6cae5eadca0ef9ca097d",
+    "raw/mapillary/images/532232258055040.jpg": "a4b68dd5aef67354ac50a7c1530d960f235e0c8c683406c66372cfcb8ac7337b",
+    "raw/mapillary/images/554350932644803.jpg": "394e3d3e226b8c70a2e2583b8f1ff5e853fd522918475152a9493d2e0c66addc",
+    "raw/mapillary/images/569787290831447.jpg": "2e641c7c092b1fd27ae294940b6c1853ddf2d53d135b47167ad5b0f480222c4f",
+    "raw/mapillary/images/585554890470874.jpg": "95482a4579b35f9a71bd63805c55cc69d224e8e4c6edabaa478e34c6e68482db",
+    "raw/mapillary/images/586756620747747.jpg": "c4d42ed7be6fed72fd1a7f743bbeb062cde20a887892a02b4f36a9eef9c8214c",
+    "raw/mapillary/images/588243996056226.jpg": "19ef3469b6a07b8e66aea4d02ad2ebbb8eb4067b6d4d5d9074a7c0d147dda018",
+    "raw/mapillary/images/605228397538546.jpg": "4327e959dea6f862f2cd6c62854b884d6d735b1114a746a25f7e8d1319af1fcb",
+    "raw/mapillary/images/636645775860872.jpg": "4e75ea894117205e0a90394335b750dc6d96d56b5a0d64949f1bcec2f4d49170",
+    "raw/mapillary/images/660178163539614.jpg": "e3eee55c8c425fadbc0fe00e089fef4a2682bc46dcf8f75f3d1e7702381a8f1d",
+    "raw/mapillary/images/684022185681543.jpg": "59624509f69cca044d1e9eafa26a23b3ea7bb076e5af836ad9e62f5642bd798e",
+    "raw/mapillary/images/684412680421860.jpg": "ba05b6932b83209c1a004f367164ed5e015134022f87bf85d82546625c97ecee",
+    "raw/mapillary/images/684907520397769.jpg": "46a4f629e909bc1108c88bf85c89ab181139ce0ca7a441d88d058f6be266933c",
+    "raw/mapillary/images/690692213962582.jpg": "778893309e8f122ec0707ce70646bc2eb508ec9edbe85f11c5c84cfe6ccd24a7",
+    "raw/mapillary/images/696517679532490.jpg": "cbd51926d4246046006eaebc20228ad7f6c15d9c957fd785de1e729defadf5ab",
+    "raw/mapillary/images/705404078856054.jpg": "84a9aff853aa88c3ce3bdef32f5c6981cdaff18752f84471d97f539edca64564",
+    "raw/mapillary/images/726416369569345.jpg": "63b38765ef3c7954dd97de50b43becd541bc4f2c1d7d250dac835935d84aa436",
+    "raw/mapillary/images/7375256822590228.jpg": "d02a17684502895d52e9d01cc80a43aa7e39c8d62e2bab60f40bb08477e3a4e5",
+    "raw/mapillary/images/7376222132476000.jpg": "65f51a1706b13de243cf99f6bad727c9c9702b5b9245a5f7f33c2c133ac2da75",
+    "raw/mapillary/images/7411174352328924.jpg": "66aa3ebb5ded5abb52674587225906193f17d63395663e8e2a5cd79094a222c0",
+    "raw/mapillary/images/750003553597766.jpg": "3be3fafa1bbe0e83b6ff3b41c4b59c1840d08f9177dade78a63a359c76c21ab6",
+    "raw/mapillary/images/7556959914373305.jpg": "4d9a17ef0dbf24528dabcd76523bff1b14bb119d43b3134cdf0f411d5199c13e",
+    "raw/mapillary/images/762188529031979.jpg": "b7ade73efd0852f05659be5da6299531425a4797d304ce68fc251b5ef3a619b9",
+    "raw/mapillary/images/762480947766061.jpg": "956504ca9e7defd8530a051bbdfbfaa7b679a93c37151b46f6ee4998b2784834",
+    "raw/mapillary/images/7634716016594544.jpg": "242b166c7a4020eb5a7ea664b52c4c9739427a4f746bcab662143e8cc408974f",
+    "raw/mapillary/images/765684482374500.jpg": "d9c64fbd8f2d5182a483e90acd5fc25d176901c5d168fa39a1c7c02a84bbea04",
+    "raw/mapillary/images/769530297077782.jpg": "6b2ddb98c78717526d5c7c3eea89d2d588b59c02d3f22945a802da985a09ecd2",
+    "raw/mapillary/images/771394082124800.jpg": "3fa5da39a41dc225f5853e900a11e1aaa3346f7b73a0e90c8161129c16f39c00",
+    "raw/mapillary/images/771645862515328.jpg": "7cad4880920639075a4fc8028fee2e28a52a44e127322dae78e0611e1c6af37e",
+    "raw/mapillary/images/772257943654388.jpg": "c996151bd2670fcce00c5f3aa9d8c1ac67549a6123d236e997799c05da6471c6",
+    "raw/mapillary/images/782276468231771.jpg": "698b7ae1fbd4dff5800f9127ef83326c4a7c42b3e3e5862b8e84668e6065b927",
+    "raw/mapillary/images/787468050008159.jpg": "e8af4ae855c702c97d86e370f04aa860f22d561915e92708d60c1cb8876e96bc",
+    "raw/mapillary/images/788120436622163.jpg": "bdf014dbb0ac6937bb6cf3482a2615e0dfe7fe168c0b9b091c0bb670af3d2fc2",
+    "raw/mapillary/images/789963378169131.jpg": "fde2f2881c77f60e4700a2b259d6b6930075f990b1684d6ecbbf4e3f8c36125f",
+    "raw/mapillary/images/798327858457703.jpg": "d9dd74b68e342103a84ad31bf05759618ad2982e8a1a427fe1d5e3c9df3a1fc9",
+    "raw/mapillary/images/806850547984914.jpg": "b745ffb2e74bd882a268aeb4d0c9bdf437bac5a1f43ec4f5e06d3f29df1926ff",
+    "raw/mapillary/images/811721604478668.jpg": "996281d651f142bed7da8489616e58929d1972d329e5101997230af1da651c83",
+    "raw/mapillary/images/813209903472615.jpg": "7e6f2c2752be76dfef0a9afe7f00fc098346d3c3420f0f741551f34da4c28cf7",
+    "raw/mapillary/images/815206040500142.jpg": "056fc7ae5bfed6900ad3005efddf48236a7c9b02e5115c2f3de1eb5b9100fbae",
+    "raw/mapillary/images/824473156999786.jpg": "e601102bb30136eb25fad38fe40adaf4315a5cbdf959cd236ad685eb8f106363",
+    "raw/mapillary/images/827753892265295.jpg": "f378f4a94678251abd6ff44df7fa60bff514017b10be1d3aa332c2ad23ad3fda",
+    "raw/mapillary/images/833705839247053.jpg": "8c4a7c3229d06abca1e365d82bab069f2ac01aeb99c3e6c4b64b9be013980ea1",
+    "raw/mapillary/images/838088138295545.jpg": "0c4ba236e974dfe796bc356d2e5c33e0d6d793abeb97b00b0549cef6282ed685",
+    "raw/mapillary/images/871025174788840.jpg": "cacac2f03cc3971ae827d9ab20ae47da10795690415e5ae125175513db75dd77",
+    "raw/mapillary/images/872521447000533.jpg": "4ad227ea46777e7216c2482b7eeac42a4eb4fe1df1930d57216c43f69c3cf06b",
+    "raw/mapillary/images/877761824479702.jpg": "7a99ad4fdae0c07554ebd0418d4f771cefe6cb3564deeb393513d444f9e85630",
+    "raw/mapillary/images/894193502977087.jpg": "122a0af93fb8f5b67b02639dea0d51e1bb9f6a33523e21068ef1e8cb0e62847c",
+    "raw/mapillary/images/904923973442924.jpg": "a77383f3e8ec3b702db185f173df2f29ce6b96b39c4f61cf017f72e9869568ea",
+    "raw/mapillary/images/923251192769394.jpg": "5c96efddafdf21eb698274c445ad6dd6a8ece7ccac29f42c5a7444365fc5c3ab",
+    "raw/mapillary/images/926569859429526.jpg": "0462be03f0a74944d27d1a3d919daa195e0b4b635a34dd39150d00ada89d8074",
+    "raw/mapillary/images/946905920988574.jpg": "7e86309ef0f237a1ae0c12034864ebfae983e8351c6bf1fc0507d2166d708a0a",
+    "raw/mapillary/images/949675059973698.jpg": "dd537bbb18cd9891106b830a4d4d07e4b6b7635d7085f92174c68f991de39586",
+    "raw/mapillary/images/9505101536246973.jpg": "9cb0a3aa23f8e2a1e1fc7deeca611300ff2aaa6dc2300a657f77955be1fc1570",
+    "raw/mapillary/images/954359662314240.jpg": "aaddc5a91108be320ec7e627abb64253dab8738b5d737b2015abb2305c3388f1",
+    "raw/mapillary/images/958159719377775.jpg": "96e6a903380192c813feb5411e19a83c5c64383c7f62b8511b90fc5df74a60da",
+    "raw/mapillary/images/958207608989117.jpg": "4e50ebcb6eb72c5ecaf8f47ec0764399c071d5d23f03a0a84add7a6a8955cd7a",
+    "raw/mapillary/images/962313072218729.jpg": "ca0a481f462020ed6f029c2edd57adc4ae1743a9aebcc9d04deacbcd84f77f1c",
+    "raw/mapillary/images/965166778570420.jpg": "c70ee4735f86e2fdc3066f5d65edce946d4124227c467ea7564f14f971fc5cb9",
+    "raw/mapillary/images/970621911317866.jpg": "b1263fbff8547df29c1aa31ec6945baab875ee7988b20c54bce1c3944158209d",
+    "raw/mapillary/images/970662110367313.jpg": "fff7a7457c5eb12dae81e34df699ce4e7564a7f31dc81841e904f621ee6ace68",
+    "raw/mapillary/images/971812724046153.jpg": "7a1fb2bc788d6c8fe126dde66014b9a4ebe9e8ae1ffa57f6a3df1b03969d14e4",
+    "raw/mapillary/images/976727139809363.jpg": "e974dca342bbc38ace6bb87031ecec23fd72ca7c3780fb957049fcdda65368f1",
+    "raw/mapillary/images/978722993682253.jpg": "42a38b480eeeca5e3111193ece55ea564e3e3e68f651f3e1a00d97dea661ee50",
+    "raw/mapillary/images/981182595979018.jpg": "76d9ec6c54dccd9a0c58b8d2e26ebe4a5641c7c59dbd55fe241427839b8f6f43",
+    "raw/mapillary/images/982742147306521.jpg": "da5bf959b676bb026fb6d13e0e98dc30e60592cf6509997ee62b55cc34dae9df",
+    "raw/mapillary/images/991338538333060.jpg": "64d8d433adbd8a7f9ad490baa90f191263ff7cf9c5eef969e9fe9090fa9069ea",
+    "raw/mapillary/images/992191595433499.jpg": "1a58b03afc34c1fec09a985a5d53845a78ee19e25376ab164d0b4d6287ea3124",
+    "raw/mapillary/metadata/boston/tile_z14_4954_6058.parquet": "d15da065d27389ccf186013ee54d162527153b1dbc99db84a661f6b787dd364d",
+    "raw/mapillary/metadata/boston/tile_z14_4954_6059.parquet": "bf2386c32ea523c6f7ee3a7579fa670aed31997e2f0a05b884e192672230951e",
+    "raw/mapillary/metadata/boston/tile_z14_4954_6060.parquet": "27681962795e377dd2ba5fd92714e3d0f67807adc3de474cfba22b8bb55582a1",
+    "raw/mapillary/metadata/boston/tile_z14_4954_6061.parquet": "91934cefd0fd792619a0385f21eff94198445381b6f74fd4e7631b1c104791d8",
+    "raw/mapillary/metadata/boston/tile_z14_4955_6058.parquet": "48dde54f06c855754a9f7869d341f111714911e7e9f1006bb5c6355e8dd2026a",
+    "raw/mapillary/metadata/boston/tile_z14_4955_6059.parquet": "0e82a62f61be1fb557c01adeabd7455004eea6c8bd9ce0780cf99527ef00dcdc",
+    "raw/mapillary/metadata/boston/tile_z14_4955_6060.parquet": "99346d6d10319085a0d510761ed8cca1565059796ade99770fe856e91a3de240",
+    "raw/mapillary/metadata/boston/tile_z14_4955_6061.parquet": "b87c22d1bacae9e2367b7e62169d47ebc4b584fff5a78866f485bd7ff6e71224",
+    "raw/mapillary/metadata/boston/tile_z14_4956_6058.parquet": "c047ff401eab0652a1534af18baea94b88ca744bdd369d286e6ff720033ca0be",
+    "raw/mapillary/metadata/boston/tile_z14_4956_6059.parquet": "2bb6e48a88f2c194555acf9b433e2014a642467360a6acf67c09c83d7f6c3974",
+    "raw/mapillary/metadata/boston/tile_z14_4956_6060.parquet": "d2cc204c3aded44c8e7d735a993274e866724ebd49f4099438348fcae1700fb0",
+    "raw/mapillary/metadata/boston/tile_z14_4956_6061.parquet": "f7c9cf7d5a259900f7f3b1381291abcda0f27d0b39d25b8be6ac7511fb75fcb0",
+    "raw/mapillary/metadata/boston/tile_z14_4957_6058.parquet": "1d6350815dbd1b0e75e13c06395c7b85f03bde816b0bc14c853b1639f3578020",
+    "raw/mapillary/metadata/boston/tile_z14_4957_6059.parquet": "bb68028b883a93accbb81c12a922c3f75705c876257c871840fafbdd51151012",
+    "raw/mapillary/metadata/boston/tile_z14_4957_6060.parquet": "938c0f779e57df35ab4f134c09461ce229d057a6f8d6d5af540cd97ba7cdad00",
+    "raw/mapillary/metadata/boston/tile_z14_4957_6061.parquet": "727214443050af58587b952d93a20af8c07fa4f8fc1ec7f9711adbfa8826a9e5",
+    "raw/mapillary/metadata/boston/tile_z14_4958_6058.parquet": "cc8a47b2319a317c5818c3c86e73bdf981304f2fe4b5f191d093d61d22e99349",
+    "raw/mapillary/metadata/boston/tile_z14_4958_6059.parquet": "0e6497ebed857c3233aef7b76eb50855fb0bd8f374e1d03ba1d005b063286b13",
+    "raw/mapillary/metadata/boston/tile_z14_4958_6060.parquet": "003815276d5be09e5979e65de3542b28460aa0f20632aa6e33d100b2632063d1",
+    "raw/mapillary/metadata/boston/tile_z14_4958_6061.parquet": "d4bd4d2bf85037b3d3f594200f72becb4bbdf56a975c2fe524c11c29e3402554",
+    "raw/mapillary/metadata/boston/tile_z14_4959_6058.parquet": "ed7b11685b6c839972d1374339ee12a8af9f0e6e8a0a428bc8f0c0c1ec0414c5",
+    "raw/mapillary/metadata/boston/tile_z14_4959_6059.parquet": "0d3d421f5afbb0a110fbdb4c189dadd2e1d1becbf690997296294cf4b291801f",
+    "raw/mapillary/metadata/boston/tile_z14_4959_6060.parquet": "6f37aec555acf93e365f79b488f93c1ad5319759996065141d99206ad09d86b5",
+    "raw/mapillary/metadata/boston/tile_z14_4959_6061.parquet": "f17590c03f5caa783fd6c554fb39758e01ddc2b269752d3d8dbbaf1877e5b640",
+    "processed/streetview.parquet": "6c55a77cc9a04c0761887a237168da22b94b24178a1bd8e3a9b21a34763a8bd5",
+    "processed/cells.parquet": "7b7ed7cbd4bec123c86845e72a690339eb8406bdddcd21463bf36ad46de2cb5d"
+  },
+  "implementation_sha256": "162096236ab00aaa617d62fec3047a3fb960068ecbda584f47aca955b5ddf0e5",
+  "notebook_sources": {
+    "en_01_streetview.ipynb": {
+      "sha256": "c8d48c772b3285d6c087d5aa7d03c5346b02b617cb4ddb7d5d70a372b6fe2043",
+      "role": "Extraction reference only; not read during execution",
+      "repository_path": "docs/notebooks/en_01_streetview.ipynb"
+    },
+    "en_02_tiles.ipynb": {
+      "sha256": "68cfea456cf69d679433428545848ebc4f1839fe7c81aefcc44ea7ede80d3506",
+      "role": "Extraction reference only; not read during execution",
+      "repository_path": "docs/notebooks/en_02_tiles.ipynb"
+    },
+    "en_03_osm_features.ipynb": {
+      "sha256": "19d22c614c653e49f6f8871b1b6550d0ee960e651f0282e8ba4304bbf809e31b",
+      "role": "Extraction reference only; not read during execution",
+      "repository_path": "docs/notebooks/en_03_osm_features.ipynb"
+    },
+    "en_04_labeling.ipynb": {
+      "sha256": "937ae7e112a5acdd28158f945189b2126113d10c5201ea3483ec5710d72ccfaa",
+      "role": "Extraction reference only; not read during execution",
+      "repository_path": "docs/notebooks/en_04_labeling.ipynb"
+    }
+  },
+  "execution": "standalone_python",
+  "human_validation": "pending"
+}
+{"stage": "tiles", "source_version": "boston-pilot-v2", "data_root": "/data"}
+Read 50 cells (from 01)
+Found 18 NAIP images, years: [2018, 2021, 2023]
+Cells without NAIP coverage: 0
+
+NAIP images:   0%|          | 0/4 [00:00<?, ?it/s]
+NAIP images:  25%|██▌       | 1/4 [00:02<00:08,  2.74s/it]
+NAIP images:  50%|█████     | 2/4 [00:08<00:08,  4.40s/it]
+NAIP images:  75%|███████▌  | 3/4 [00:17<00:06,  6.71s/it]
+NAIP images: 100%|██████████| 4/4 [01:03<00:00, 22.00s/it]
+NAIP images: 100%|██████████| 4/4 [01:03<00:00, 15.80s/it]
+succeeded: 50 | failed: 0
+cells.parquet has 50 rows, 50 usable aerial tiles
+0 unusable
+NAIP year − latest street-photo year (positive = aerial tile is newer):
+-2.0    15
+-1.0    21
+ 0.0     3
+ 1.0     1
+ 2.0     8
+ 3.0     1
+ 4.0     1
+{
+  "step": "02_tiles",
+  "city": "boston",
+  "tile_px": 256,
+  "ground_m": 154,
+  "naip_min_year": 2018,
+  "input_cells": 50,
+  "tiles_ok": 50,
+  "naip_years": {
+    "2023": 50
+  },
+  "naip_item_ids": [
+    "ma_m_4207139_se_19_030_20230707_20231116",
+    "ma_m_4207139_se_19_060_20181016_20190207",
+    "ma_m_4207139_se_19_060_20211024",
+    "ma_m_4207140_se_19_030_20230707_20231116",
+    "ma_m_4207140_se_19_060_20181016_20190207",
+    "ma_m_4207140_se_19_060_20211024",
+    "ma_m_4207140_sw_19_030_20230707_20231116",
+    "ma_m_4207140_sw_19_060_20181016_20190207",
+    "ma_m_4207140_sw_19_060_20211024",
+    "ma_m_4207147_ne_19_030_20230707_20231116",
+    "ma_m_4207147_ne_19_060_20181016_20190207",
+    "ma_m_4207147_ne_19_060_20210826",
+    "ma_m_4207148_ne_19_030_20230707_20231116",
+    "ma_m_4207148_ne_19_060_20181016_20190206",
+    "ma_m_4207148_ne_19_060_20211024",
+    "ma_m_4207148_nw_19_030_20230707_20231116",
+    "ma_m_4207148_nw_19_060_20181016_20190206",
+    "ma_m_4207148_nw_19_060_20210826"
+  ],
+  "outputs": [
+    "processed/tiles",
+    "processed/cells.parquet"
+  ],
+  "finished_at": "2026-10-19T07:01:05+00:00",
+  "input_sha256": {
+    "processed/cells.parquet": "7b7ed7cbd4bec123c86845e72a690339eb8406bdddcd21463bf36ad46de2cb5d"
+  },
+  "source_version": "boston-pilot-v2",
+  "config_sha256": "8abb490f3ebef2b1b62450eb6d88db4c6f56d08826c03218cf87ea87a1e8bb74",
+  "configuration": {
+    "tile_px": 256,
+    "ground_m": 154,
+    "naip_min_year": 2018,
+    "max_nodata_frac": 0.05,
+    "seed": 42
+  },
+  "output_sha256": {
+    "processed/tiles/BOS_8a2a3064411ffff.png": "f668a323df494557a0cd8c2bde5bb985fde04af6bd01893658e2f7a85d3e9e96",
+    "processed/tiles/BOS_8a2a3064411ffff.png.json": "a13c6426e7de683efe87496c1723b2637b70790e8269a33ede5156ac34e1f24a",
+    "processed/tiles/BOS_8a2a306441affff.png": "450a5fc7c696bbc0b39df24df3b6fbe14dd39dced0583c6c1680bc78dc110137",
+    "processed/tiles/BOS_8a2a306441affff.png.json": "2cf64d0d318f4a9900ea39171d76b3f8b054020b7750c18904182b6074fc8aa2",
+    "processed/tiles/BOS_8a2a306442e7fff.png": "9192115f35d7e008d47183bf941b7427e1c7667f983cef510b2a6e6e99fd3453",
+    "processed/tiles/BOS_8a2a306442e7fff.png.json": "f547b75a3bd8b808cf66e019f7ac8b3b09971b469a615d14fb3c3b6f6b7a7aa8",
+    "processed/tiles/BOS_8a2a3064452ffff.png": "fa8bbb00ccf14c3417a143c9ec1fd7a1eb2e73a4cc93acfdbb4671bfdf80df36",
+    "processed/tiles/BOS_8a2a3064452ffff.png.json": "58c1a096ff2fc47ea83ec2c0f1512da31abc4e1c8a18402e7c58add3ceb0a07f",
+    "processed/tiles/BOS_8a2a306448d7fff.png": "1070a12a8d437e7dbd450bb4856cf9fc8b0580b779285dd23cbe6bc927e76771",
+    "processed/tiles/BOS_8a2a306448d7fff.png.json": "3067531a6d9f4f12d49a72d1614593d5a401f602d73f616691564c270bb29ee0",
+    "processed/tiles/BOS_8a2a3064491ffff.png": "43b904961dd7553821b7da1cbf42dea1bc8d7449b1e14db1a5a04c5300622e9a",
+    "processed/tiles/BOS_8a2a3064491ffff.png.json": "42757eebca241fceb7120876db20a288f5d5866cdea246ed12def5857188e620",
+    "processed/tiles/BOS_8a2a30644b17fff.png": "dc2e5f01bafd0cf2ba33ce5e1ed030734c9199ca09078f8d943e806b691f9d2c",
+    "processed/tiles/BOS_8a2a30644b17fff.png.json": "a343749027795b94bc66e7ebdfe9e8ba32ab4ddee5e53f212ee841ca2f7262cd",
+    "processed/tiles/BOS_8a2a30644db7fff.png": "a7b756f74b2873adef322f28cf2e15e55a439fc9fbd3eb90b06a0206d1efe2ed",
+    "processed/tiles/BOS_8a2a30644db7fff.png.json": "6a6e2a559b9c216eee501d9940c81ab095faed95a967ffad0c49911b34ceec2b",
+    "processed/tiles/BOS_8a2a306450b7fff.png": "e93754cd005fab934b12697e8e474ebf20ffd774302ee78ebd58c8554420ce7a",
+    "processed/tiles/BOS_8a2a306450b7fff.png.json": "2f8bde1815e4f4af0e64c3b88fc48d31e8d0b70036eff8d9db12468a1d320fcc",
+    "processed/tiles/BOS_8a2a30645d77fff.png": "cfd3b76477e383f4ea88ba791030a799b0141ea1205c2d28f6c5842ebdaca852",
+    "processed/tiles/BOS_8a2a30645d77fff.png.json": "e8816bd87b0e903e9f6a5db07a6716d0265b41681e46d2f4c3131ab2ca3f633e",
+    "processed/tiles/BOS_8a2a3066001ffff.png": "d0fff6f5c88966c6490d0ad4f0e385f2605a7b50885dc535b87f5f8d6d56bd5d",
+    "processed/tiles/BOS_8a2a3066001ffff.png.json": "ba65f62102bdaf800bd3cdf22ba6be3c6268e86d18a77934c0e764367b5fc467",
+    "processed/tiles/BOS_8a2a306600effff.png": "8787f9b271ff2412554150d0c154314fc09c67f9f744a62cb3ed6565a123bae1",
+    "processed/tiles/BOS_8a2a306600effff.png.json": "6512d77199c97d5d099d1ee385ec810d62e5e0e3d26a2cf3242d4a335a3e0ae9",
+    "processed/tiles/BOS_8a2a30660197fff.png": "78c7deefbb3b2f0dc09820fe089fbb31c362325c5b68e1c91841ea3db90cd496",
+    "processed/tiles/BOS_8a2a30660197fff.png.json": "7f0b4ab7bd074c5cc506ab5a032448456d357cb9b3448070a924a398231f0866",
+    "processed/tiles/BOS_8a2a3066019ffff.png": "3cf7031d1ac5721e2b6243f6784446bec624eebd950f9b6bd1270e09e3aa8038",
+    "processed/tiles/BOS_8a2a3066019ffff.png.json": "cba54a4064ac8dda59d7e35acaf4f7120e1ec644a7284ca808e0e6dcbafc56b7",
+    "processed/tiles/BOS_8a2a3066032ffff.png": "7a63a1e173105943d3eb7a825d1b787a66d35f902e5b861b5f35018971a9cb24",
+    "processed/tiles/BOS_8a2a3066032ffff.png.json": "e27e6d05e9abc61049eea0964bbbeab0d78e956abc7df5276be5023e8ade9f41",
+    "processed/tiles/BOS_8a2a30660617fff.png": "b859be654f23a85795e500db932381363664435e9d260065e2f02cb3eef9be32",
+    "processed/tiles/BOS_8a2a30660617fff.png.json": "118e66dd9725f590735b5d24967901684b6328c955717087c7313a216c7fdbfd",
+    "processed/tiles/BOS_8a2a30660637fff.png": "20f156be3a93473398eb6def1e370466766017b8742c5bdba8e5b4892e786428",
+    "processed/tiles/BOS_8a2a30660637fff.png.json": "4a90c69e78c742db20c793f5cc3c6fe58bc1c2d37f63440d8ab71c59bd99d0cb",
+    "processed/tiles/BOS_8a2a3066079ffff.png": "b35df40eaad67ce325f8be2a15e574416b47dd966c1d9e343bd233a61d04a31d",
+    "processed/tiles/BOS_8a2a3066079ffff.png.json": "79e8d8b0635a4c4e1e13a1f7843507d5a963dc13a3f07a24f0202904335cd4f5",
+    "processed/tiles/BOS_8a2a30660857fff.png": "a99198d36da3134e1098bdc26c4ad21aab5d40e8241c6c9644d9a0d0c0599742",
+    "processed/tiles/BOS_8a2a30660857fff.png.json": "574cd0ddb9d922785e6dc359c21d7a0c8c383f72798fe8db0489b729d9b747bc",
+    "processed/tiles/BOS_8a2a30660a47fff.png": "582ae9784c7e15cc0f3c7ec496ebffcc575f2ad84c2f4df877b3820811f84eda",
+    "processed/tiles/BOS_8a2a30660a47fff.png.json": "56bb1760a8efa24fef249976db0a98979811efe12abceee17549b9e2de07f5a2",
+    "processed/tiles/BOS_8a2a30660b9ffff.png": "4f602d2a9237385e5c33049ec69bf2525b455caf7716cbb1aae5609590265f13",
+    "processed/tiles/BOS_8a2a30660b9ffff.png.json": "1e772fd632775692b533df13b6313e00816b65c97909029ac245c1608dda404d",
+    "processed/tiles/BOS_8a2a30660cdffff.png": "9da791c099b6f24e3650c8f4ef9e9207a3ed4437da79d4d8429b206b9d3da62d",
+    "processed/tiles/BOS_8a2a30660cdffff.png.json": "13825b799442391f80e561551d2cd566787dd54c0940e869e097ed67fe7713c3",
+    "processed/tiles/BOS_8a2a30661407fff.png": "c11aa8651b717847730c4648f64c02c9da2887106076790960df66a54c5daa45",
+    "processed/tiles/BOS_8a2a30661407fff.png.json": "627c2bed7b4a910892ac3c4fe69d0244ac7e93e232a0563bca003d7c52c9a34c",
+    "processed/tiles/BOS_8a2a3066144ffff.png": "8a6fa7fcba591a1fb13f924ace8666cc2a4dd6ae24e1e8eb4758622d9df386e8",
+    "processed/tiles/BOS_8a2a3066144ffff.png.json": "56845885ddbef400eefa53c34b58094d631204e6e89ed7b5a72fdd4967f313b9",
+    "processed/tiles/BOS_8a2a30661487fff.png": "0b5e820795a031f86fb4a03ac8d57728f45cb5b033835c117213815543c64d69",
+    "processed/tiles/BOS_8a2a30661487fff.png.json": "f97bad6d0dac532cf41ffd73f0b1ffdb5f9376a031b6d3b21ec0aa22afd266e0",
+    "processed/tiles/BOS_8a2a30661c97fff.png": "3417491f0b901958cddb4a0d3c78c1f9f83d99ba964f945aa2b54d68d13f99cb",
+    "processed/tiles/BOS_8a2a30661c97fff.png.json": "1eaa1423ce6dfe0fcccf9ff91cc872539d6161b48cd28de0824b6088978c724d",
+    "processed/tiles/BOS_8a2a30661ceffff.png": "74aac5250d714b6557fb0fa24602d3dfa352662e4a951c1ff21eaf1719d05210",
+    "processed/tiles/BOS_8a2a30661ceffff.png.json": "b3f253b175558d1b2347883ca6106e0fd9853bc5b5faf894f6a6db8f74cfc99b",
+    "processed/tiles/BOS_8a2a3066201ffff.png": "ca84f38b06e4a34a6e606d3111510ea7223f23b9fe7a881038f7ee709dbabbbe",
+    "processed/tiles/BOS_8a2a3066201ffff.png.json": "10d2e3612f003ccf3f4dcdce3e1b8123dff52d573e64041f486b9289d1368019",
+    "processed/tiles/BOS_8a2a3066252ffff.png": "ec2b303869023303a0b9652b22cb439acd61b91453b2b470e8d702c7521aa3ea",
+    "processed/tiles/BOS_8a2a3066252ffff.png.json": "04454749690c4d223d7cb791ee2f79021b9cbffb8fac0ff2af6e9b9e7bf46386",
+    "processed/tiles/BOS_8a2a30662ac7fff.png": "e86ae310980540b52c4c6e0395492982e2a1552a040a2597ce4ea64ce02fbc7b",
+    "processed/tiles/BOS_8a2a30662ac7fff.png.json": "a7fcda3686b08982db02c547ec84c5ae2250f2f774e7b22b38a7fb331bde8de5",
+    "processed/tiles/BOS_8a2a306636b7fff.png": "be28e98ea4253fd7667be251359e8d11690586c2eab909ff5ca11eeddc9f4674",
+    "processed/tiles/BOS_8a2a306636b7fff.png.json": "84de4827a6cdcae4d60e9d1ffe8f263b62277d7e090ab576802542316f4db9bb",
+    "processed/tiles/BOS_8a2a3066381ffff.png": "3bbbeb59efc6dbf6e3f4104dbf76e0d730efcf69eb5fc67a8e7b5e0c48863e77",
+    "processed/tiles/BOS_8a2a3066381ffff.png.json": "4644466b2530d1f34f584e93ad0c1868d08abe20810a8aad5d9a3d32862ba1a7",
+    "processed/tiles/BOS_8a2a306638b7fff.png": "1df281a7ed804ceed9e34dcf67372c2fa79638385b44b7b09c0134b7025bfc7a",
+    "processed/tiles/BOS_8a2a306638b7fff.png.json": "43070b65c50af9ed33c1441ff21e75e446b80f1bf1c0095bd4a55cfa6d51ea8f",
+    "processed/tiles/BOS_8a2a3066391ffff.png": "3aad9af12a4288193c8889f214b07a9e792fb728f420731f9a2785797db65917",
+    "processed/tiles/BOS_8a2a3066391ffff.png.json": "7660becd01a96149caf7584dc0870724422d2e926ad9ecca18722271e728889b",
+    "processed/tiles/BOS_8a2a30663987fff.png": "90ce42ce011412a36db86431e0df425b067f983c728545ac8c78e3ae92fa5974",
+    "processed/tiles/BOS_8a2a30663987fff.png.json": "649444735a44e1e1cb69a8799f5d0db1f4ce518b9dda4b310ddfd64363d3749f",
+    "processed/tiles/BOS_8a2a30663a07fff.png": "da74c57d28cae2aac2c53e1e8e5dcdc1354e2dc66df422702e2771a35a832d76",
+    "processed/tiles/BOS_8a2a30663a07fff.png.json": "db9ba27d97f771407f13642327bc75ff616326849f96fd692265f78ef14ec50a",
+    "processed/tiles/BOS_8a2a30663cb7fff.png": "3d987ab2fce6b01f814849232ed2d6565ce4b3fa1e87861c0a28e1d9db74f468",
+    "processed/tiles/BOS_8a2a30663cb7fff.png.json": "20ea45f8402791ba9396912d74bb44c7b455569d05c3ed0526bf089e381c3f94",
+    "processed/tiles/BOS_8a2a30664057fff.png": "2b24a31f68d96d7a0337e7673a2edd0a473777377ead7b1cc77c0d4a03eea5ac",
+    "processed/tiles/BOS_8a2a30664057fff.png.json": "6c3b90567b13eb0a4462ba7388f8a0c01d5d54b78d9b12ad379794898adc18e2",
+    "processed/tiles/BOS_8a2a3066661ffff.png": "ca61fbf5c853b382a4ba532987c1247137c28645ef532e497d3f5a8c643144f5",
+    "processed/tiles/BOS_8a2a3066661ffff.png.json": "401ff152f4fd40db4f3fd5a824fcd49f988acb1251af97bab92117e83b981f49",
+    "processed/tiles/BOS_8a2a306666a7fff.png": "e48a7f1e01521e6a00bf1634c6b2782d89704013af2e77d8f3bf6e4329568aec",
+    "processed/tiles/BOS_8a2a306666a7fff.png.json": "79788b4284ff9f90f2bed0f25988654ea5fb14cde45da6b30a3c8894a5ef541a",
+    "processed/tiles/BOS_8a2a3066e15ffff.png": "06abc6ba1487508aa3a98e81bdeac38c989cf91981b7f928f63c030b64e33714",
+    "processed/tiles/BOS_8a2a3066e15ffff.png.json": "7e12d677f72ceb19f51ee3f0332454d7c60ef8f8f0cfbb7ce5751ca4df25b971",
+    "processed/tiles/BOS_8a2a3066eca7fff.png": "212299dff0ae12d131007d47a8cce0217b65d109e0bacd4de727c94e8e2b0007",
+    "processed/tiles/BOS_8a2a3066eca7fff.png.json": "716e85630035742886726b5c6b8e83afd2314587adac99a8127953ea2ae68a99",
+    "processed/tiles/BOS_8a2a3067102ffff.png": "4a0d52a00f13656885bc3decc95b042d61f760ac02424df5473437bf629d4d79",
+    "processed/tiles/BOS_8a2a3067102ffff.png.json": "2ebaa73bfd5c38d4ff66eba10c5f2e05a7892b6cc738cf68ffa8dc2684456286",
+    "processed/tiles/BOS_8a2a3067124ffff.png": "2d6b2a2b15610b6edebbf4d4e6b3d39454383e041294fb678d181c820d083525",
+    "processed/tiles/BOS_8a2a3067124ffff.png.json": "9672e11f9f2896696458d4739953373a1e2b150cb6852e9f2e810ca476ee0a32",
+    "processed/tiles/BOS_8a2a3067184ffff.png": "83ae1faf95944baea382d65e575768ddff85d038658b4643c5bc7843a2b27c58",
+    "processed/tiles/BOS_8a2a3067184ffff.png.json": "63af69b4deda2d3126210bfd85884e78ad2bea4ad689dcb496a20c40a9474b87",
+    "processed/tiles/BOS_8a2a3067194ffff.png": "62fb070bc14fe9d580e9fea0441d2d9c7bd07e3174ea2245c38ed51bfe05ae73",
+    "processed/tiles/BOS_8a2a3067194ffff.png.json": "fe2f8ac9a5d5ceb37d3a2670ba75413141dd3dc3e7c3fc86dd75e0b99a5f3ea6",
+    "processed/tiles/BOS_8a2a30671957fff.png": "6b9ad6c7d87396dcd97aff7e8ce625a66b98b83ba262f0dff9a2d2dbaf7eb24a",
+    "processed/tiles/BOS_8a2a30671957fff.png.json": "9f14661f0507d1029d4a956fa5874ebb0fbac2cb6b9a1b5bebd8b0b5f5a3e5dd",
+    "processed/tiles/BOS_8a2a30671d4ffff.png": "878b91c6c5c410a6c9d235fdefdcd70449ba698c1190de0b48179a76a2affdee",
+    "processed/tiles/BOS_8a2a30671d4ffff.png.json": "8d928887aeb62b556832a1d51a9e9a03e9f08551edf09d34d8c07a1d6384e696",
+    "processed/tiles/BOS_8a2a306750c7fff.png": "61771e2cebafcbc93529f93b271ff96b94d0181544eb4b9908cd2be259451dad",
+    "processed/tiles/BOS_8a2a306750c7fff.png.json": "e229e88ee713bdf4f0cb9c1a21cb2c68a664a6b82b7f569478a5e62d5dee8233",
+    "processed/tiles/BOS_8a2a306756c7fff.png": "6bc16ad3f4d7b2063c1a5d9dca527c5e7d927055fd2c4472921f78d07ad0879a",
+    "processed/tiles/BOS_8a2a306756c7fff.png.json": "3a9510a62a7f461df23f88a46199739b42e273d245493a634038bc19e332e397",
+    "processed/cells.parquet": "b9bdb12de0de78d81d4a86832efc4c1a84c6fd7869c952d5bbd2719c2dc0830e"
+  },
+  "implementation_sha256": "61ad98aea3283eee92f17bfa9a8f749fbb0291ef8d44fbd49cbb41fd274b6e5e",
+  "notebook_sources": {
+    "en_01_streetview.ipynb": {
+      "sha256": "c8d48c772b3285d6c087d5aa7d03c5346b02b617cb4ddb7d5d70a372b6fe2043",
+      "role": "Extraction reference only; not read during execution",
+      "repository_path": "docs/notebooks/en_01_streetview.ipynb"
+    },
+    "en_02_tiles.ipynb": {
+      "sha256": "68cfea456cf69d679433428545848ebc4f1839fe7c81aefcc44ea7ede80d3506",
+      "role": "Extraction reference only; not read during execution",
+      "repository_path": "docs/notebooks/en_02_tiles.ipynb"
+    },
+    "en_03_osm_features.ipynb": {
+      "sha256": "19d22c614c653e49f6f8871b1b6550d0ee960e651f0282e8ba4304bbf809e31b",
+      "role": "Extraction reference only; not read during execution",
+      "repository_path": "docs/notebooks/en_03_osm_features.ipynb"
+    },
+    "en_04_labeling.ipynb": {
+      "sha256": "937ae7e112a5acdd28158f945189b2126113d10c5201ea3483ec5710d72ccfaa",
+      "role": "Extraction reference only; not read during execution",
+      "repository_path": "docs/notebooks/en_04_labeling.ipynb"
+    }
+  },
+  "execution": "standalone_python",
+  "human_validation": "pending"
+}
+{"stage": "features", "source_version": "boston-pilot-v2", "data_root": "/data"}
+50 cells, each summarizing a 154 m × 154 m square
+UTM zone: EPSG:32619 | OSM read extent: [np.float64(-71.1286), np.float64(42.3267), np.float64(-71.0438), np.float64(42.3896)]
+Downloading https://download.geofabrik.de/north-america/us/massachusetts-latest.osm.pbf
+
+massachusetts-latest.osm.pbf:   0%|          | 0.00/311M [00:00<?, ?B/s]
+massachusetts-latest.osm.pbf:   0%|          | 1.05M/311M [00:00<03:35, 1.44MB/s]
+massachusetts-latest.osm.pbf:   1%|          | 2.10M/311M [00:00<01:48, 2.84MB/s]
+massachusetts-latest.osm.pbf:   1%|▏         | 4.19M/311M [00:00<00:53, 5.76MB/s]
+massachusetts-latest.osm.pbf:   2%|▏         | 6.29M/311M [00:01<00:39, 7.69MB/s]
+massachusetts-latest.osm.pbf:   3%|▎         | 8.39M/311M [00:01<00:38, 7.92MB/s]
+massachusetts-latest.osm.pbf:   3%|▎         | 9.44M/311M [00:01<00:39, 7.72MB/s]
+massachusetts-latest.osm.pbf:   3%|▎         | 10.5M/311M [00:01<00:39, 7.58MB/s]
+massachusetts-latest.osm.pbf:   4%|▎         | 11.5M/311M [00:01<00:39, 7.54MB/s]
+massachusetts-latest.osm.pbf:   4%|▍         | 12.6M/311M [00:01<00:40, 7.36MB/s]
+massachusetts-latest.osm.pbf:   4%|▍         | 13.6M/311M [00:02<00:39, 7.47MB/s]
+massachusetts-latest.osm.pbf:   5%|▍         | 14.7M/311M [00:02<00:37, 7.96MB/s]
+massachusetts-latest.osm.pbf:   5%|▌         | 16.8M/311M [00:02<00:35, 8.27MB/s]
+massachusetts-latest.osm.pbf:   6%|▋         | 19.9M/311M [00:02<00:26, 11.0MB/s]
+massachusetts-latest.osm.pbf:   7%|▋         | 22.0M/311M [00:02<00:26, 10.9MB/s]
+massachusetts-latest.osm.pbf:   8%|▊         | 24.1M/311M [00:03<00:25, 11.1MB/s]
+massachusetts-latest.osm.pbf:   8%|▊         | 26.2M/311M [00:03<00:25, 11.0MB/s]
+massachusetts-latest.osm.pbf:   9%|▉         | 28.3M/311M [00:03<00:26, 10.9MB/s]
+massachusetts-latest.osm.pbf:  10%|▉         | 30.4M/311M [00:03<00:25, 11.2MB/s]
+massachusetts-latest.osm.pbf:  10%|█         | 32.5M/311M [00:03<00:25, 10.8MB/s]
+massachusetts-latest.osm.pbf:  11%|█         | 34.6M/311M [00:04<00:32, 8.48MB/s]
+massachusetts-latest.osm.pbf:  12%|█▏        | 36.7M/311M [00:04<00:29, 9.19MB/s]
+massachusetts-latest.osm.pbf:  12%|█▏        | 37.7M/311M [00:04<00:32, 8.35MB/s]
+massachusetts-latest.osm.pbf:  12%|█▏        | 38.8M/311M [00:04<00:34, 7.79MB/s]
+massachusetts-latest.osm.pbf:  13%|█▎        | 39.8M/311M [00:04<00:38, 6.98MB/s]
+massachusetts-latest.osm.pbf:  13%|█▎        | 40.9M/311M [00:05<00:39, 6.78MB/s]
+massachusetts-latest.osm.pbf:  13%|█▎        | 41.9M/311M [00:05<00:40, 6.72MB/s]
+massachusetts-latest.osm.pbf:  14%|█▍        | 43.0M/311M [00:05<00:41, 6.41MB/s]
+massachusetts-latest.osm.pbf:  14%|█▍        | 44.0M/311M [00:05<00:41, 6.51MB/s]
+massachusetts-latest.osm.pbf:  14%|█▍        | 45.1M/311M [00:05<00:40, 6.62MB/s]
+massachusetts-latest.osm.pbf:  15%|█▍        | 46.1M/311M [00:05<00:40, 6.57MB/s]
+massachusetts-latest.osm.pbf:  15%|█▌        | 47.2M/311M [00:06<00:40, 6.52MB/s]
+massachusetts-latest.osm.pbf:  16%|█▌        | 48.2M/311M [00:06<00:39, 6.58MB/s]
+massachusetts-latest.osm.pbf:  16%|█▌        | 49.3M/311M [00:06<00:40, 6.53MB/s]
+massachusetts-latest.osm.pbf:  16%|█▌        | 50.3M/311M [00:06<00:39, 6.67MB/s]
+massachusetts-latest.osm.pbf:  17%|█▋        | 51.4M/311M [00:06<00:38, 6.80MB/s]
+massachusetts-latest.osm.pbf:  17%|█▋        | 52.4M/311M [00:06<00:37, 6.82MB/s]
+massachusetts-latest.osm.pbf:  17%|█▋        | 53.5M/311M [00:07<00:37, 6.81MB/s]
+massachusetts-latest.osm.pbf:  18%|█▊        | 54.5M/311M [00:07<00:37, 6.91MB/s]
+massachusetts-latest.osm.pbf:  18%|█▊        | 55.6M/311M [00:07<00:36, 6.95MB/s]
+massachusetts-latest.osm.pbf:  18%|█▊        | 56.6M/311M [00:07<00:36, 7.03MB/s]
+massachusetts-latest.osm.pbf:  19%|█▊        | 57.7M/311M [00:07<00:36, 6.97MB/s]
+massachusetts-latest.osm.pbf:  19%|█▉        | 58.7M/311M [00:07<00:36, 6.85MB/s]
+massachusetts-latest.osm.pbf:  19%|█▉        | 59.8M/311M [00:07<00:38, 6.51MB/s]
+massachusetts-latest.osm.pbf:  20%|█▉        | 60.8M/311M [00:08<00:39, 6.34MB/s]
+massachusetts-latest.osm.pbf:  20%|█▉        | 61.9M/311M [00:08<00:42, 5.85MB/s]
+massachusetts-latest.osm.pbf:  20%|██        | 62.9M/311M [00:08<00:43, 5.75MB/s]
+massachusetts-latest.osm.pbf:  21%|██        | 64.0M/311M [00:08<00:44, 5.50MB/s]
+massachusetts-latest.osm.pbf:  21%|██        | 65.0M/311M [00:08<00:45, 5.47MB/s]
+massachusetts-latest.osm.pbf:  21%|██        | 66.1M/311M [00:09<00:44, 5.50MB/s]
+massachusetts-latest.osm.pbf:  22%|██▏       | 67.1M/311M [00:09<00:45, 5.35MB/s]
+massachusetts-latest.osm.pbf:  22%|██▏       | 68.2M/311M [00:09<00:45, 5.39MB/s]
+massachusetts-latest.osm.pbf:  22%|██▏       | 69.2M/311M [00:09<00:44, 5.42MB/s]
+massachusetts-latest.osm.pbf:  23%|██▎       | 70.3M/311M [00:09<00:43, 5.53MB/s]
+massachusetts-latest.osm.pbf:  23%|██▎       | 71.3M/311M [00:10<00:43, 5.51MB/s]
+massachusetts-latest.osm.pbf:  23%|██▎       | 72.4M/311M [00:10<00:42, 5.66MB/s]
+massachusetts-latest.osm.pbf:  24%|██▎       | 73.4M/311M [00:10<00:43, 5.52MB/s]
+massachusetts-latest.osm.pbf:  24%|██▍       | 74.4M/311M [00:10<00:41, 5.67MB/s]
+massachusetts-latest.osm.pbf:  24%|██▍       | 75.5M/311M [00:10<00:41, 5.71MB/s]
+massachusetts-latest.osm.pbf:  25%|██▍       | 76.5M/311M [00:10<00:40, 5.74MB/s]
+massachusetts-latest.osm.pbf:  25%|██▍       | 77.6M/311M [00:11<00:40, 5.78MB/s]
+massachusetts-latest.osm.pbf:  25%|██▌       | 78.6M/311M [00:11<00:40, 5.75MB/s]
+massachusetts-latest.osm.pbf:  26%|██▌       | 79.7M/311M [00:11<00:40, 5.79MB/s]
+massachusetts-latest.osm.pbf:  26%|██▌       | 80.7M/311M [00:11<00:40, 5.64MB/s]
+massachusetts-latest.osm.pbf:  26%|██▋       | 81.8M/311M [00:11<00:40, 5.67MB/s]
+massachusetts-latest.osm.pbf:  27%|██▋       | 82.8M/311M [00:12<00:40, 5.70MB/s]
+massachusetts-latest.osm.pbf:  27%|██▋       | 83.9M/311M [00:12<00:39, 5.80MB/s]
+massachusetts-latest.osm.pbf:  27%|██▋       | 84.9M/311M [00:12<00:38, 5.89MB/s]
+massachusetts-latest.osm.pbf:  28%|██▊       | 86.0M/311M [00:12<00:39, 5.77MB/s]
+massachusetts-latest.osm.pbf:  28%|██▊       | 87.0M/311M [00:12<00:38, 5.86MB/s]
+massachusetts-latest.osm.pbf:  28%|██▊       | 88.1M/311M [00:12<00:37, 5.97MB/s]
+massachusetts-latest.osm.pbf:  29%|██▊       | 89.1M/311M [00:13<00:37, 5.97MB/s]
+massachusetts-latest.osm.pbf:  29%|██▉       | 90.2M/311M [00:13<00:36, 6.00MB/s]
+massachusetts-latest.osm.pbf:  29%|██▉       | 91.2M/311M [00:13<00:37, 5.81MB/s]
+massachusetts-latest.osm.pbf:  30%|██▉       | 92.3M/311M [00:13<00:37, 5.91MB/s]
+massachusetts-latest.osm.pbf:  30%|██▉       | 93.3M/311M [00:13<00:36, 5.93MB/s]
+massachusetts-latest.osm.pbf:  30%|███       | 94.4M/311M [00:14<00:37, 5.86MB/s]
+massachusetts-latest.osm.pbf:  31%|███       | 95.4M/311M [00:14<00:36, 5.85MB/s]
+massachusetts-latest.osm.pbf:  31%|███       | 96.5M/311M [00:14<00:36, 5.90MB/s]
+massachusetts-latest.osm.pbf:  31%|███▏      | 97.5M/311M [00:14<00:36, 5.87MB/s]
+massachusetts-latest.osm.pbf:  32%|███▏      | 98.6M/311M [00:14<00:35, 5.97MB/s]
+massachusetts-latest.osm.pbf:  32%|███▏      | 99.6M/311M [00:14<00:35, 6.01MB/s]
+massachusetts-latest.osm.pbf:  32%|███▏      | 101M/311M [00:15<00:36, 5.79MB/s] 
+massachusetts-latest.osm.pbf:  33%|███▎      | 102M/311M [00:15<00:37, 5.64MB/s]
+massachusetts-latest.osm.pbf:  33%|███▎      | 103M/311M [00:15<00:36, 5.65MB/s]
+massachusetts-latest.osm.pbf:  33%|███▎      | 104M/311M [00:15<00:36, 5.66MB/s]
+massachusetts-latest.osm.pbf:  34%|███▎      | 105M/311M [00:15<00:35, 5.77MB/s]
+massachusetts-latest.osm.pbf:  34%|███▍      | 106M/311M [00:16<00:34, 5.89MB/s]
+massachusetts-latest.osm.pbf:  34%|███▍      | 107M/311M [00:16<00:34, 5.95MB/s]
+massachusetts-latest.osm.pbf:  35%|███▍      | 108M/311M [00:16<00:33, 6.01MB/s]
+massachusetts-latest.osm.pbf:  35%|███▌      | 109M/311M [00:16<00:34, 5.90MB/s]
+massachusetts-latest.osm.pbf:  35%|███▌      | 110M/311M [00:16<00:34, 5.81MB/s]
+massachusetts-latest.osm.pbf:  36%|███▌      | 111M/311M [00:16<00:33, 5.99MB/s]
+massachusetts-latest.osm.pbf:  36%|███▌      | 112M/311M [00:17<00:33, 5.98MB/s]
+massachusetts-latest.osm.pbf:  36%|███▋      | 113M/311M [00:17<00:32, 6.06MB/s]
+massachusetts-latest.osm.pbf:  37%|███▋      | 114M/311M [00:17<00:32, 6.14MB/s]
+massachusetts-latest.osm.pbf:  37%|███▋      | 115M/311M [00:17<00:32, 6.04MB/s]
+massachusetts-latest.osm.pbf:  37%|███▋      | 116M/311M [00:17<00:31, 6.14MB/s]
+massachusetts-latest.osm.pbf:  38%|███▊      | 117M/311M [00:17<00:31, 6.23MB/s]
+massachusetts-latest.osm.pbf:  38%|███▊      | 118M/311M [00:18<00:31, 6.17MB/s]
+massachusetts-latest.osm.pbf:  38%|███▊      | 120M/311M [00:18<00:32, 5.97MB/s]
+massachusetts-latest.osm.pbf:  39%|███▉      | 121M/311M [00:18<00:31, 6.15MB/s]
+massachusetts-latest.osm.pbf:  39%|███▉      | 122M/311M [00:18<00:30, 6.23MB/s]
+massachusetts-latest.osm.pbf:  39%|███▉      | 123M/311M [00:18<00:30, 6.23MB/s]
+massachusetts-latest.osm.pbf:  40%|███▉      | 124M/311M [00:18<00:29, 6.26MB/s]
+massachusetts-latest.osm.pbf:  40%|████      | 125M/311M [00:19<00:29, 6.39MB/s]
+massachusetts-latest.osm.pbf:  40%|████      | 126M/311M [00:19<00:28, 6.44MB/s]
+massachusetts-latest.osm.pbf:  41%|████      | 127M/311M [00:19<00:27, 6.59MB/s]
+massachusetts-latest.osm.pbf:  41%|████      | 128M/311M [00:19<00:27, 6.55MB/s]
+massachusetts-latest.osm.pbf:  41%|████▏     | 129M/311M [00:19<00:27, 6.55MB/s]
+massachusetts-latest.osm.pbf:  42%|████▏     | 130M/311M [00:19<00:27, 6.66MB/s]
+massachusetts-latest.osm.pbf:  42%|████▏     | 131M/311M [00:20<00:26, 6.71MB/s]
+massachusetts-latest.osm.pbf:  42%|████▏     | 132M/311M [00:20<00:26, 6.77MB/s]
+massachusetts-latest.osm.pbf:  43%|████▎     | 133M/311M [00:20<00:25, 6.87MB/s]
+massachusetts-latest.osm.pbf:  43%|████▎     | 134M/311M [00:20<00:25, 6.87MB/s]
+massachusetts-latest.osm.pbf:  43%|████▎     | 135M/311M [00:20<00:25, 7.03MB/s]
+massachusetts-latest.osm.pbf:  44%|████▍     | 136M/311M [00:20<00:25, 6.86MB/s]
+massachusetts-latest.osm.pbf:  44%|████▍     | 137M/311M [00:20<00:24, 7.07MB/s]
+massachusetts-latest.osm.pbf:  44%|████▍     | 138M/311M [00:21<00:24, 7.17MB/s]
+massachusetts-latest.osm.pbf:  45%|████▍     | 139M/311M [00:21<00:23, 7.23MB/s]
+massachusetts-latest.osm.pbf:  45%|████▌     | 141M/311M [00:21<00:23, 7.34MB/s]
+massachusetts-latest.osm.pbf:  45%|████▌     | 142M/311M [00:21<00:22, 7.43MB/s]
+massachusetts-latest.osm.pbf:  46%|████▌     | 143M/311M [00:21<00:22, 7.59MB/s]
+massachusetts-latest.osm.pbf:  46%|████▌     | 144M/311M [00:21<00:21, 7.73MB/s]
+massachusetts-latest.osm.pbf:  47%|████▋     | 145M/311M [00:21<00:21, 7.90MB/s]
+massachusetts-latest.osm.pbf:  47%|████▋     | 146M/311M [00:21<00:20, 8.04MB/s]
+massachusetts-latest.osm.pbf:  47%|████▋     | 147M/311M [00:22<00:20, 8.18MB/s]
+massachusetts-latest.osm.pbf:  48%|████▊     | 148M/311M [00:22<00:20, 7.93MB/s]
+massachusetts-latest.osm.pbf:  48%|████▊     | 149M/311M [00:22<00:19, 8.15MB/s]
+massachusetts-latest.osm.pbf:  48%|████▊     | 150M/311M [00:22<00:19, 8.42MB/s]
+massachusetts-latest.osm.pbf:  49%|████▊     | 151M/311M [00:22<00:18, 8.59MB/s]
+massachusetts-latest.osm.pbf:  49%|████▉     | 152M/311M [00:22<00:18, 8.67MB/s]
+massachusetts-latest.osm.pbf:  49%|████▉     | 153M/311M [00:22<00:18, 8.70MB/s]
+massachusetts-latest.osm.pbf:  50%|████▉     | 154M/311M [00:22<00:17, 8.73MB/s]
+massachusetts-latest.osm.pbf:  50%|████▉     | 155M/311M [00:23<00:17, 8.91MB/s]
+massachusetts-latest.osm.pbf:  50%|█████     | 156M/311M [00:23<00:17, 9.09MB/s]
+massachusetts-latest.osm.pbf:  51%|█████     | 157M/311M [00:23<00:16, 9.14MB/s]
+massachusetts-latest.osm.pbf:  51%|█████     | 158M/311M [00:23<00:16, 9.39MB/s]
+massachusetts-latest.osm.pbf:  51%|█████     | 159M/311M [00:23<00:15, 9.63MB/s]
+massachusetts-latest.osm.pbf:  52%|█████▏    | 160M/311M [00:23<00:15, 9.54MB/s]
+massachusetts-latest.osm.pbf:  52%|█████▏    | 161M/311M [00:23<00:15, 9.40MB/s]
+massachusetts-latest.osm.pbf:  53%|█████▎    | 164M/311M [00:23<00:15, 9.44MB/s]
+massachusetts-latest.osm.pbf:  53%|█████▎    | 165M/311M [00:24<00:15, 9.55MB/s]
+massachusetts-latest.osm.pbf:  54%|█████▎    | 167M/311M [00:24<00:14, 10.1MB/s]
+massachusetts-latest.osm.pbf:  54%|█████▍    | 169M/311M [00:24<00:13, 10.5MB/s]
+massachusetts-latest.osm.pbf:  55%|█████▍    | 171M/311M [00:24<00:13, 10.4MB/s]
+massachusetts-latest.osm.pbf:  56%|█████▌    | 173M/311M [00:24<00:12, 10.8MB/s]
+massachusetts-latest.osm.pbf:  56%|█████▋    | 175M/311M [00:24<00:12, 11.3MB/s]
+massachusetts-latest.osm.pbf:  57%|█████▋    | 177M/311M [00:25<00:11, 11.6MB/s]
+massachusetts-latest.osm.pbf:  58%|█████▊    | 179M/311M [00:25<00:11, 12.0MB/s]
+massachusetts-latest.osm.pbf:  58%|█████▊    | 181M/311M [00:25<00:10, 12.3MB/s]
+massachusetts-latest.osm.pbf:  59%|█████▉    | 184M/311M [00:25<00:10, 12.3MB/s]
+massachusetts-latest.osm.pbf:  60%|█████▉    | 186M/311M [00:25<00:09, 12.7MB/s]
+massachusetts-latest.osm.pbf:  60%|██████    | 188M/311M [00:25<00:09, 12.5MB/s]
+massachusetts-latest.osm.pbf:  61%|██████    | 190M/311M [00:26<00:09, 12.9MB/s]
+massachusetts-latest.osm.pbf:  62%|██████▏   | 192M/311M [00:26<00:08, 13.4MB/s]
+massachusetts-latest.osm.pbf:  62%|██████▏   | 194M/311M [00:26<00:08, 13.7MB/s]
+massachusetts-latest.osm.pbf:  63%|██████▎   | 196M/311M [00:26<00:08, 14.3MB/s]
+massachusetts-latest.osm.pbf:  64%|██████▎   | 198M/311M [00:26<00:07, 14.6MB/s]
+massachusetts-latest.osm.pbf:  64%|██████▍   | 200M/311M [00:26<00:07, 14.5MB/s]
+massachusetts-latest.osm.pbf:  65%|██████▌   | 202M/311M [00:26<00:07, 14.6MB/s]
+massachusetts-latest.osm.pbf:  66%|██████▌   | 204M/311M [00:27<00:07, 14.4MB/s]
+massachusetts-latest.osm.pbf:  66%|██████▋   | 207M/311M [00:27<00:07, 14.6MB/s]
+massachusetts-latest.osm.pbf:  67%|██████▋   | 209M/311M [00:27<00:07, 14.5MB/s]
+massachusetts-latest.osm.pbf:  68%|██████▊   | 211M/311M [00:27<00:06, 14.7MB/s]
+massachusetts-latest.osm.pbf:  68%|██████▊   | 213M/311M [00:27<00:06, 14.8MB/s]
+massachusetts-latest.osm.pbf:  69%|██████▉   | 215M/311M [00:27<00:06, 14.9MB/s]
+massachusetts-latest.osm.pbf:  70%|██████▉   | 217M/311M [00:27<00:05, 15.9MB/s]
+massachusetts-latest.osm.pbf:  70%|███████   | 219M/311M [00:28<00:05, 16.5MB/s]
+massachusetts-latest.osm.pbf:  71%|███████   | 221M/311M [00:28<00:05, 17.1MB/s]
+massachusetts-latest.osm.pbf:  72%|███████▏  | 223M/311M [00:28<00:05, 16.6MB/s]
+massachusetts-latest.osm.pbf:  72%|███████▏  | 225M/311M [00:28<00:05, 17.0MB/s]
+massachusetts-latest.osm.pbf:  73%|███████▎  | 228M/311M [00:28<00:04, 17.6MB/s]
+massachusetts-latest.osm.pbf:  74%|███████▍  | 230M/311M [00:28<00:04, 18.4MB/s]
+massachusetts-latest.osm.pbf:  74%|███████▍  | 232M/311M [00:28<00:04, 18.6MB/s]
+massachusetts-latest.osm.pbf:  75%|███████▌  | 234M/311M [00:28<00:04, 19.1MB/s]
+massachusetts-latest.osm.pbf:  76%|███████▌  | 236M/311M [00:28<00:03, 18.8MB/s]
+massachusetts-latest.osm.pbf:  76%|███████▋  | 238M/311M [00:29<00:03, 18.4MB/s]
+massachusetts-latest.osm.pbf:  77%|███████▋  | 240M/311M [00:29<00:03, 18.0MB/s]
+massachusetts-latest.osm.pbf:  78%|███████▊  | 242M/311M [00:29<00:03, 18.4MB/s]
+massachusetts-latest.osm.pbf:  79%|███████▊  | 244M/311M [00:29<00:03, 18.3MB/s]
+massachusetts-latest.osm.pbf:  79%|███████▉  | 246M/311M [00:29<00:03, 18.6MB/s]
+massachusetts-latest.osm.pbf:  80%|███████▉  | 249M/311M [00:29<00:03, 18.2MB/s]
+massachusetts-latest.osm.pbf:  81%|████████  | 251M/311M [00:29<00:03, 17.8MB/s]
+massachusetts-latest.osm.pbf:  81%|████████  | 253M/311M [00:29<00:03, 18.1MB/s]
+massachusetts-latest.osm.pbf:  82%|████████▏ | 255M/311M [00:29<00:03, 18.2MB/s]
+massachusetts-latest.osm.pbf:  83%|████████▎ | 257M/311M [00:30<00:02, 18.4MB/s]
+massachusetts-latest.osm.pbf:  83%|████████▎ | 259M/311M [00:30<00:02, 19.1MB/s]
+massachusetts-latest.osm.pbf:  84%|████████▍ | 261M/311M [00:30<00:02, 19.5MB/s]
+massachusetts-latest.osm.pbf:  85%|████████▍ | 264M/311M [00:30<00:02, 20.4MB/s]
+massachusetts-latest.osm.pbf:  86%|████████▌ | 266M/311M [00:30<00:02, 20.1MB/s]
+massachusetts-latest.osm.pbf:  87%|████████▋ | 269M/311M [00:30<00:02, 15.5MB/s]
+massachusetts-latest.osm.pbf:  87%|████████▋ | 272M/311M [00:30<00:02, 16.2MB/s]
+massachusetts-latest.osm.pbf:  88%|████████▊ | 274M/311M [00:31<00:02, 15.9MB/s]
+massachusetts-latest.osm.pbf:  89%|████████▊ | 276M/311M [00:31<00:02, 16.1MB/s]
+massachusetts-latest.osm.pbf:  89%|████████▉ | 278M/311M [00:31<00:02, 16.6MB/s]
+massachusetts-latest.osm.pbf:  90%|████████▉ | 280M/311M [00:31<00:01, 17.1MB/s]
+massachusetts-latest.osm.pbf:  91%|█████████ | 282M/311M [00:31<00:01, 17.1MB/s]
+massachusetts-latest.osm.pbf:  91%|█████████▏| 284M/311M [00:31<00:01, 17.6MB/s]
+massachusetts-latest.osm.pbf:  92%|█████████▏| 286M/311M [00:31<00:01, 17.6MB/s]
+massachusetts-latest.osm.pbf:  93%|█████████▎| 288M/311M [00:31<00:01, 17.6MB/s]
+massachusetts-latest.osm.pbf:  93%|█████████▎| 290M/311M [00:32<00:01, 17.8MB/s]
+massachusetts-latest.osm.pbf:  94%|█████████▍| 293M/311M [00:32<00:01, 18.5MB/s]
+massachusetts-latest.osm.pbf:  95%|█████████▍| 295M/311M [00:32<00:00, 17.8MB/s]
+massachusetts-latest.osm.pbf:  95%|█████████▌| 297M/311M [00:32<00:00, 18.1MB/s]
+massachusetts-latest.osm.pbf:  96%|█████████▌| 299M/311M [00:32<00:00, 17.9MB/s]
+massachusetts-latest.osm.pbf:  97%|█████████▋| 301M/311M [00:32<00:00, 18.5MB/s]
+massachusetts-latest.osm.pbf:  97%|█████████▋| 303M/311M [00:32<00:00, 18.7MB/s]
+massachusetts-latest.osm.pbf:  98%|█████████▊| 305M/311M [00:32<00:00, 19.2MB/s]
+massachusetts-latest.osm.pbf:  99%|█████████▊| 307M/311M [00:32<00:00, 19.2MB/s]
+massachusetts-latest.osm.pbf:  99%|█████████▉| 309M/311M [00:33<00:00, 18.4MB/s]
+massachusetts-latest.osm.pbf: 100%|██████████| 311M/311M [00:33<00:00, 16.4MB/s]
+massachusetts-latest.osm.pbf: 100%|██████████| 311M/311M [00:33<00:00, 9.38MB/s]
+OSM snapshot: Sun, 18 Oct 2026 23:10:40 GMT  (311 MB)
+
+Reading OSM:   0%|           0/5 [00:00] 
+Reading OSM:   0%|           0/5 [00:00] , reading: road network
+                                                                
+Reading massachusetts-latest.osm.pbf took 00:20
+
+Reading OSM:   0%|           0/5 [00:20] , reading: road network
+Reading OSM:  20%|██         1/5 [00:20] , reading: road network
+                                                                
+
+Reading OSM:  20%|██         1/5 [00:20] , reading: road network  ✓ road network (21 s)
+
+Reading OSM:  20%|██         1/5 [00:20] , reading: water       /opt/venv/lib/python3.11/site-packages/pyrosm/engine/geoparquet.py:103: UserWarning: 3 relation(s) extend beyond the bounding box and were returned with incomplete geometry (some member ways fall outside the box). Pass complete_relations=True to OSM(...) to fetch their full member set.
+  gdf = _assemble_chunk(
+
+                                                         
+Reading massachusetts-latest.osm.pbf took 00:09
+
+Reading OSM:  20%|██         1/5 [00:29] , reading: water
+Reading OSM:  40%|████       2/5 [00:29] , reading: water
+                                                         
+
+Reading OSM:  40%|████       2/5 [00:29] , reading: water
+Reading OSM:  40%|████       2/5 [00:29] , reading: green space  ✓ water (9 s)
+/opt/venv/lib/python3.11/site-packages/pyrosm/engine/geoparquet.py:103: UserWarning: 5 relation(s) extend beyond the bounding box and were returned with incomplete geometry (some member ways fall outside the box). Pass complete_relations=True to OSM(...) to fetch their full member set.
+  gdf = _assemble_chunk(
+
+                                                               
+Reading massachusetts-latest.osm.pbf took 00:09
+
+Reading OSM:  40%|████       2/5 [00:38] , reading: green space
+Reading OSM:  60%|██████     3/5 [00:38] , reading: green space
+                                                               
+
+Reading OSM:  60%|██████     3/5 [00:38] , reading: green space
+Reading OSM:  60%|██████     3/5 [00:38] , reading: buildings    ✓ green space (9 s)
+/opt/venv/lib/python3.11/site-packages/pyrosm/engine/geoparquet.py:103: UserWarning: 8 relation(s) extend beyond the bounding box and were returned with incomplete geometry (some member ways fall outside the box). Pass complete_relations=True to OSM(...) to fetch their full member set.
+  gdf = _assemble_chunk(
+
+                                                             
+Reading massachusetts-latest.osm.pbf took 00:15
+
+Reading OSM:  60%|██████     3/5 [00:54] , reading: buildings
+Reading OSM:  80%|████████   4/5 [00:54] , reading: buildings
+                                                             
+
+Reading OSM:  80%|████████   4/5 [00:54] , reading: buildings
+Reading OSM:  80%|████████   4/5 [00:54] , reading: POI        ✓ buildings (15 s)
+/opt/venv/lib/python3.11/site-packages/pyrosm/engine/geoparquet.py:103: UserWarning: 5 relation(s) extend beyond the bounding box and were returned with incomplete geometry (some member ways fall outside the box). Pass complete_relations=True to OSM(...) to fetch their full member set.
+  gdf = _assemble_chunk(
+
+                                                       
+Reading massachusetts-latest.osm.pbf took 00:10
+
+Reading OSM:  80%|████████   4/5 [01:04] , reading: POI
+Reading OSM: 100%|██████████ 5/5 [01:04] , reading: POI
+                                                       
+
+Reading OSM: 100%|██████████ 5/5 [01:04] , reading: POI
+Reading OSM: 100%|██████████ 5/5 [01:04] , done          ✓ POI (10 s)
+
+Reading OSM: 100%|██████████ 5/5 [01:04] , done
+Roads: 183089 segments, 43612 intersection nodes
+water 66 | green 3012 | buildings 37872 | POI 16148
+Found 1 WorldCover images
+
+v200_N42W072:   0%|          | 0/50 [00:00<?, ?it/s]
+v200_N42W072:   2%|▏         | 1/50 [00:00<00:21,  2.23it/s]
+v200_N42W072:   8%|▊         | 4/50 [00:00<00:05,  8.00it/s]
+v200_N42W072:  30%|███       | 15/50 [00:00<00:01, 21.55it/s]
+v200_N42W072:  46%|████▌     | 23/50 [00:01<00:00, 29.37it/s]
+v200_N42W072: 100%|██████████| 50/50 [00:01<00:00, 46.87it/s]
+WorldCover covers 50 / 50 cells
+osm_features.parquet: 50 rows, 26 feature columns
+Columns with the most missing values:
+lanes_avg       5
+maxspeed_avg    4
+cell_id         0
+wc_tree_frac    0
+wc_dominant     0
+{
+  "step": "03_osm_features",
+  "input_cells": 50,
+  "output_rows": 50,
+  "ground_m": 154.0,
+  "osm_bbox": [
+    -71.12856,
+    42.32667,
+    -71.04381,
+    42.3896
+  ],
+  "osm_road_segments": 183089,
+  "osm_buildings": 37872,
+  "osm_pois": 16148,
+  "worldcover_year": 2021,
+  "worldcover_cells": 50,
+  "worldcover_items": [
+    "ESA_WorldCover_10m_2021_v200_N42W072"
+  ],
+  "attribution": "© OpenStreetMap contributors (ODbL); ESA WorldCover 2021 v200 (CC BY 4.0)",
+  "osm_snapshot": {
+    "url": "https://download.geofabrik.de/north-america/us/massachusetts-latest.osm.pbf",
+    "last_modified": "Sun, 18 Oct 2026 23:10:40 GMT",
+    "downloaded_at": "2026-10-19T07:01:05+00:00",
+    "size_bytes": 311187872,
+    "sha256": "4f2b2dece15fbc61c2c2fc9cebcd11d89ec0e65f751f14009decde3953dfee1d"
+  },
+  "pyrosm_version": "0.19.1",
+  "outputs": [
+    "processed/osm_features.parquet"
+  ],
+  "finished_at": "2026-10-19T07:02:48+00:00",
+  "input_sha256": {
+    "processed/cells.parquet": "b9bdb12de0de78d81d4a86832efc4c1a84c6fd7869c952d5bbd2719c2dc0830e"
+  },
+  "source_version": "boston-pilot-v2",
+  "config_sha256": "8abb490f3ebef2b1b62450eb6d88db4c6f56d08826c03218cf87ea87a1e8bb74",
+  "configuration": {
+    "ground_m": 154,
+    "osm_pad_deg": 0.004,
+    "worldcover_year": 2021,
+    "osm_pbf_url": "https://download.geofabrik.de/north-america/us/massachusetts-latest.osm.pbf"
+  },
+  "output_sha256": {
+    "processed/osm_features.parquet": "05b26df3e41270ee42dc9db9406dd92c843019b63bdab238bfa57c09b8cdc831"
+  },
+  "implementation_sha256": "418d3756d8de134fa3c845123400512af04723d70f2baf149cdbbb5cf2e09b1f",
+  "notebook_sources": {
+    "en_01_streetview.ipynb": {
+      "sha256": "c8d48c772b3285d6c087d5aa7d03c5346b02b617cb4ddb7d5d70a372b6fe2043",
+      "role": "Extraction reference only; not read during execution",
+      "repository_path": "docs/notebooks/en_01_streetview.ipynb"
+    },
+    "en_02_tiles.ipynb": {
+      "sha256": "68cfea456cf69d679433428545848ebc4f1839fe7c81aefcc44ea7ede80d3506",
+      "role": "Extraction reference only; not read during execution",
+      "repository_path": "docs/notebooks/en_02_tiles.ipynb"
+    },
+    "en_03_osm_features.ipynb": {
+      "sha256": "19d22c614c653e49f6f8871b1b6550d0ee960e651f0282e8ba4304bbf809e31b",
+      "role": "Extraction reference only; not read during execution",
+      "repository_path": "docs/notebooks/en_03_osm_features.ipynb"
+    },
+    "en_04_labeling.ipynb": {
+      "sha256": "937ae7e112a5acdd28158f945189b2126113d10c5201ea3483ec5710d72ccfaa",
+      "role": "Extraction reference only; not read during execution",
+      "repository_path": "docs/notebooks/en_04_labeling.ipynb"
+    }
+  },
+  "execution": "standalone_python",
+  "human_validation": "pending"
+}
+{"stage": "labeling", "source_version": "boston-pilot-v2", "data_root": "/data"}
+Project organic-victory-508017-v9 · region us-central1 · model gemini-2.5-flash
+To process: 193 street photos, 50 cells
+0 current photos cached; at most 193 new photos selected
+
+scoring:   0%|          | 0/193 [00:00<?, ?it/s]
+scoring:   1%|          | 1/193 [00:01<05:14,  1.64s/it]
+scoring:   1%|          | 2/193 [00:02<03:12,  1.01s/it]
+scoring:   2%|▏         | 3/193 [00:03<03:25,  1.08s/it]
+scoring:   2%|▏         | 4/193 [00:03<02:19,  1.36it/s]
+scoring:   3%|▎         | 5/193 [00:05<03:12,  1.03s/it]
+scoring:   3%|▎         | 6/193 [00:05<02:16,  1.37it/s]
+scoring:   4%|▎         | 7/193 [00:06<02:35,  1.20it/s]
+scoring:   4%|▍         | 8/193 [00:06<02:15,  1.36it/s]
+scoring:   5%|▍         | 9/193 [00:08<03:19,  1.08s/it]
+scoring:   5%|▌         | 10/193 [00:08<02:29,  1.22it/s]
+scoring:   6%|▌         | 11/193 [00:10<03:05,  1.02s/it]
+scoring:   6%|▌         | 12/193 [00:12<03:37,  1.20s/it]
+scoring:   7%|▋         | 13/193 [00:12<03:10,  1.06s/it]
+scoring:   7%|▋         | 14/193 [00:13<02:50,  1.05it/s]
+scoring:   8%|▊         | 15/193 [00:14<02:49,  1.05it/s]
+scoring:   8%|▊         | 16/193 [00:15<02:36,  1.13it/s]
+scoring:   9%|▉         | 17/193 [00:16<03:11,  1.09s/it]
+scoring:   9%|▉         | 18/193 [00:16<02:23,  1.22it/s]
+scoring:  10%|▉         | 19/193 [00:18<02:42,  1.07it/s]
+scoring:  10%|█         | 20/193 [00:18<02:17,  1.25it/s]
+scoring:  11%|█         | 21/193 [00:19<02:27,  1.16it/s]
+scoring:  11%|█▏        | 22/193 [00:20<02:13,  1.28it/s]
+scoring:  12%|█▏        | 23/193 [00:21<02:51,  1.01s/it]
+scoring:  12%|█▏        | 24/193 [00:23<03:27,  1.23s/it]
+scoring:  13%|█▎        | 25/193 [00:25<03:57,  1.41s/it]
+scoring:  13%|█▎        | 26/193 [00:26<04:01,  1.45s/it]
+scoring:  14%|█▍        | 27/193 [00:28<04:15,  1.54s/it]
+scoring:  15%|█▍        | 28/193 [00:30<04:13,  1.53s/it]
+scoring:  15%|█▌        | 29/193 [00:31<04:17,  1.57s/it]
+scoring:  16%|█▌        | 30/193 [00:33<04:14,  1.56s/it]
+scoring:  16%|█▌        | 31/193 [00:34<04:09,  1.54s/it]
+scoring:  17%|█▋        | 32/193 [00:36<04:04,  1.52s/it]
+scoring:  17%|█▋        | 33/193 [00:36<03:24,  1.28s/it]
+scoring:  18%|█▊        | 34/193 [00:37<02:52,  1.08s/it]
+scoring:  18%|█▊        | 35/193 [00:38<02:41,  1.02s/it]
+scoring:  19%|█▊        | 36/193 [00:38<02:03,  1.27it/s]
+scoring:  19%|█▉        | 37/193 [00:39<02:05,  1.25it/s]
+scoring:  20%|█▉        | 38/193 [00:40<02:04,  1.24it/s]
+scoring:  20%|██        | 39/193 [00:41<01:58,  1.30it/s]
+scoring:  21%|██        | 40/193 [00:42<02:19,  1.09it/s]
+scoring:  22%|██▏       | 42/193 [00:43<02:10,  1.15it/s]
+scoring:  23%|██▎       | 44/193 [00:45<01:58,  1.26it/s]
+scoring:  23%|██▎       | 45/193 [00:45<01:36,  1.53it/s]
+scoring:  24%|██▍       | 46/193 [00:46<01:55,  1.27it/s]
+scoring:  25%|██▍       | 48/193 [00:48<01:50,  1.31it/s]
+scoring:  25%|██▌       | 49/193 [00:48<01:30,  1.60it/s]
+scoring:  26%|██▌       | 50/193 [00:49<01:52,  1.27it/s]
+scoring:  26%|██▋       | 51/193 [00:50<01:49,  1.30it/s]
+scoring:  27%|██▋       | 52/193 [00:51<01:48,  1.30it/s]
+scoring:  27%|██▋       | 53/193 [00:51<01:49,  1.27it/s]
+scoring:  28%|██▊       | 54/193 [00:52<01:42,  1.35it/s]
+scoring:  28%|██▊       | 55/193 [00:53<01:59,  1.16it/s]
+scoring:  29%|██▉       | 56/193 [00:54<01:42,  1.33it/s]
+scoring:  30%|██▉       | 57/193 [00:55<02:02,  1.11it/s]
+scoring:  30%|███       | 58/193 [00:55<01:34,  1.43it/s]
+scoring:  31%|███       | 59/193 [00:56<01:55,  1.16it/s]
+scoring:  31%|███       | 60/193 [00:57<01:44,  1.27it/s]
+scoring:  32%|███▏      | 61/193 [00:58<01:54,  1.16it/s]
+scoring:  32%|███▏      | 62/193 [00:58<01:25,  1.52it/s]
+scoring:  33%|███▎      | 63/193 [00:59<01:50,  1.18it/s]
+scoring:  34%|███▎      | 65/193 [01:01<01:44,  1.23it/s]
+scoring:  34%|███▍      | 66/193 [01:01<01:21,  1.56it/s]
+scoring:  35%|███▍      | 67/193 [01:03<01:43,  1.21it/s]
+scoring:  36%|███▌      | 69/193 [01:04<01:35,  1.29it/s]
+scoring:  37%|███▋      | 71/193 [01:06<01:36,  1.27it/s]
+scoring:  37%|███▋      | 72/193 [01:06<01:32,  1.31it/s]
+scoring:  38%|███▊      | 73/193 [01:07<01:39,  1.21it/s]
+scoring:  38%|███▊      | 74/193 [01:07<01:20,  1.47it/s]
+scoring:  39%|███▉      | 75/193 [01:09<01:42,  1.15it/s]
+scoring:  39%|███▉      | 76/193 [01:10<01:34,  1.23it/s]
+scoring:  40%|███▉      | 77/193 [01:11<01:45,  1.10it/s]
+scoring:  40%|████      | 78/193 [01:11<01:36,  1.19it/s]
+scoring:  41%|████      | 79/193 [01:12<01:34,  1.21it/s]
+scoring:  41%|████▏     | 80/193 [01:13<01:40,  1.12it/s]
+scoring:  42%|████▏     | 81/193 [01:14<01:23,  1.33it/s]
+scoring:  42%|████▏     | 82/193 [01:15<01:42,  1.08it/s]
+scoring:  43%|████▎     | 83/193 [01:17<02:05,  1.14s/it]
+scoring:  44%|████▎     | 84/193 [01:18<02:16,  1.26s/it]
+scoring:  44%|████▍     | 85/193 [01:20<02:25,  1.34s/it]
+scoring:  45%|████▍     | 86/193 [01:21<02:22,  1.33s/it]
+scoring:  45%|████▌     | 87/193 [01:23<02:35,  1.47s/it]
+scoring:  46%|████▌     | 88/193 [01:24<02:42,  1.54s/it]
+scoring:  46%|████▌     | 89/193 [01:26<02:41,  1.55s/it]
+scoring:  47%|████▋     | 90/193 [01:27<02:31,  1.47s/it]
+scoring:  47%|████▋     | 91/193 [01:29<02:39,  1.57s/it]
+scoring:  48%|████▊     | 92/193 [01:31<02:52,  1.71s/it]
+scoring:  48%|████▊     | 93/193 [01:32<02:17,  1.37s/it]
+scoring:  49%|████▊     | 94/193 [01:33<02:10,  1.32s/it]
+scoring:  49%|████▉     | 95/193 [01:34<01:49,  1.12s/it]
+scoring:  50%|████▉     | 96/193 [01:35<01:42,  1.06s/it]
+scoring:  50%|█████     | 97/193 [01:36<01:52,  1.17s/it]
+scoring:  51%|█████     | 98/193 [01:37<01:50,  1.16s/it]
+scoring:  51%|█████▏    | 99/193 [01:39<01:59,  1.27s/it]
+scoring:  52%|█████▏    | 100/193 [01:40<02:03,  1.32s/it]
+scoring:  52%|█████▏    | 101/193 [01:42<02:05,  1.36s/it]
+scoring:  53%|█████▎    | 102/193 [01:43<02:05,  1.38s/it]
+scoring:  53%|█████▎    | 103/193 [01:45<02:21,  1.57s/it]
+scoring:  54%|█████▍    | 104/193 [01:47<02:27,  1.66s/it]
+scoring:  54%|█████▍    | 105/193 [01:48<02:21,  1.61s/it]
+scoring:  55%|█████▍    | 106/193 [01:50<02:21,  1.63s/it]
+scoring:  55%|█████▌    | 107/193 [01:52<02:28,  1.73s/it]
+scoring:  56%|█████▌    | 108/193 [01:53<02:04,  1.46s/it]
+scoring:  56%|█████▋    | 109/193 [01:54<01:45,  1.26s/it]
+scoring:  57%|█████▋    | 110/193 [01:54<01:33,  1.13s/it]
+scoring:  58%|█████▊    | 111/193 [01:55<01:24,  1.03s/it]
+scoring:  58%|█████▊    | 112/193 [01:56<01:20,  1.01it/s]
+scoring:  59%|█████▊    | 113/193 [01:57<01:16,  1.05it/s]
+scoring:  59%|█████▉    | 114/193 [01:58<01:07,  1.17it/s]
+scoring:  60%|█████▉    | 115/193 [01:59<01:10,  1.11it/s]
+scoring:  60%|██████    | 116/193 [01:59<01:04,  1.19it/s]
+scoring:  61%|██████    | 117/193 [02:00<01:10,  1.08it/s]
+scoring:  61%|██████    | 118/193 [02:01<01:01,  1.23it/s]
+scoring:  62%|██████▏   | 119/193 [02:02<01:01,  1.20it/s]
+scoring:  62%|██████▏   | 120/193 [02:02<00:53,  1.38it/s]
+scoring:  63%|██████▎   | 121/193 [02:03<00:59,  1.21it/s]
+scoring:  63%|██████▎   | 122/193 [02:04<00:53,  1.32it/s]
+scoring:  64%|██████▎   | 123/193 [02:05<01:01,  1.14it/s]
+scoring:  64%|██████▍   | 124/193 [02:06<00:50,  1.36it/s]
+scoring:  65%|██████▍   | 125/193 [02:07<00:56,  1.20it/s]
+scoring:  65%|██████▌   | 126/193 [02:07<00:40,  1.63it/s]
+scoring:  66%|██████▌   | 127/193 [02:08<00:55,  1.19it/s]
+scoring:  66%|██████▋   | 128/193 [02:09<00:46,  1.39it/s]
+scoring:  67%|██████▋   | 129/193 [02:10<00:57,  1.11it/s]
+scoring:  67%|██████▋   | 130/193 [02:10<00:46,  1.36it/s]
+scoring:  68%|██████▊   | 131/193 [02:12<01:01,  1.01it/s]
+scoring:  68%|██████▊   | 132/193 [02:12<00:46,  1.30it/s]
+scoring:  69%|██████▉   | 133/193 [02:13<00:52,  1.13it/s]
+scoring:  69%|██████▉   | 134/193 [02:13<00:39,  1.48it/s]
+scoring:  70%|██████▉   | 135/193 [02:15<00:49,  1.16it/s]
+scoring:  70%|███████   | 136/193 [02:15<00:46,  1.22it/s]
+scoring:  71%|███████   | 137/193 [02:17<00:51,  1.10it/s]
+scoring:  72%|███████▏  | 138/193 [02:17<00:41,  1.31it/s]
+scoring:  72%|███████▏  | 139/193 [02:18<00:53,  1.01it/s]
+scoring:  73%|███████▎  | 141/193 [02:20<00:48,  1.06it/s]
+scoring:  74%|███████▍  | 143/193 [02:21<00:39,  1.26it/s]
+scoring:  75%|███████▍  | 144/193 [02:22<00:36,  1.33it/s]
+scoring:  75%|███████▌  | 145/193 [02:23<00:38,  1.26it/s]
+scoring:  76%|███████▌  | 146/193 [02:23<00:33,  1.40it/s]
+scoring:  76%|███████▌  | 147/193 [02:25<00:40,  1.14it/s]
+scoring:  77%|███████▋  | 148/193 [02:25<00:34,  1.29it/s]
+scoring:  77%|███████▋  | 149/193 [02:27<00:41,  1.07it/s]
+scoring:  78%|███████▊  | 150/193 [02:27<00:37,  1.14it/s]
+scoring:  78%|███████▊  | 151/193 [02:28<00:35,  1.19it/s]
+scoring:  79%|███████▉  | 152/193 [02:29<00:33,  1.22it/s]
+scoring:  79%|███████▉  | 153/193 [02:30<00:39,  1.02it/s]
+scoring:  80%|███████▉  | 154/193 [02:31<00:32,  1.21it/s]
+scoring:  80%|████████  | 155/193 [02:32<00:32,  1.17it/s]
+scoring:  81%|████████  | 156/193 [02:32<00:28,  1.32it/s]
+scoring:  81%|████████▏ | 157/193 [02:33<00:27,  1.30it/s]
+scoring:  82%|████████▏ | 158/193 [02:34<00:28,  1.24it/s]
+scoring:  82%|████████▏ | 159/193 [02:34<00:23,  1.44it/s]
+scoring:  83%|████████▎ | 160/193 [02:36<00:29,  1.13it/s]
+scoring:  83%|████████▎ | 161/193 [02:36<00:24,  1.33it/s]
+scoring:  84%|████████▍ | 162/193 [02:37<00:29,  1.06it/s]
+scoring:  85%|████████▍ | 164/193 [02:39<00:26,  1.09it/s]
+scoring:  85%|████████▌ | 165/193 [02:40<00:22,  1.24it/s]
+scoring:  86%|████████▌ | 166/193 [02:40<00:21,  1.27it/s]
+scoring:  87%|████████▋ | 167/193 [02:41<00:20,  1.30it/s]
+scoring:  87%|████████▋ | 168/193 [02:42<00:17,  1.46it/s]
+scoring:  88%|████████▊ | 169/193 [02:43<00:22,  1.06it/s]
+scoring:  89%|████████▊ | 171/193 [02:44<00:17,  1.27it/s]
+scoring:  89%|████████▉ | 172/193 [02:45<00:14,  1.42it/s]
+scoring:  90%|████████▉ | 173/193 [02:46<00:17,  1.12it/s]
+scoring:  90%|█████████ | 174/193 [02:48<00:19,  1.01s/it]
+scoring:  91%|█████████ | 175/193 [02:48<00:13,  1.29it/s]
+scoring:  91%|█████████ | 176/193 [02:49<00:17,  1.03s/it]
+scoring:  92%|█████████▏| 178/193 [02:51<00:13,  1.12it/s]
+scoring:  93%|█████████▎| 179/193 [02:51<00:09,  1.40it/s]
+scoring:  93%|█████████▎| 180/193 [02:52<00:10,  1.20it/s]
+scoring:  94%|█████████▍| 181/193 [02:53<00:08,  1.39it/s]
+scoring:  94%|█████████▍| 182/193 [02:54<00:09,  1.20it/s]
+scoring:  95%|█████████▍| 183/193 [02:55<00:08,  1.17it/s]
+scoring:  95%|█████████▌| 184/193 [02:55<00:07,  1.23it/s]
+scoring:  96%|█████████▌| 185/193 [02:56<00:06,  1.15it/s]
+scoring:  96%|█████████▋| 186/193 [02:57<00:05,  1.34it/s]
+scoring:  97%|█████████▋| 187/193 [02:58<00:05,  1.04it/s]
+scoring:  97%|█████████▋| 188/193 [02:58<00:03,  1.39it/s]
+scoring:  98%|█████████▊| 189/193 [03:00<00:04,  1.02s/it]
+scoring:  98%|█████████▊| 190/193 [03:01<00:02,  1.19it/s]
+scoring:  99%|█████████▉| 191/193 [03:02<00:01,  1.10it/s]
+scoring:  99%|█████████▉| 192/193 [03:02<00:00,  1.20it/s]
+scoring: 100%|██████████| 193/193 [03:03<00:00,  1.35it/s]
+scoring: 100%|██████████| 193/193 [03:03<00:00,  1.05it/s]
+{"current_cached_images": 193, "failed_this_run": 0, "input_tokens": 468180, "output_tokens": 24503, "estimated_cost_usd": null}
+labels_cell.parquet: 50 cells, of which 50 have labels (usable photos ≥ 2)
+
+Generating thumbnails:   0%|          | 0/193 [00:00<?, ?it/s]
+Generating thumbnails:  10%|▉         | 19/193 [00:00<00:00, 188.55it/s]
+Generating thumbnails:  20%|██        | 39/193 [00:00<00:00, 188.71it/s]
+Generating thumbnails:  31%|███       | 60/193 [00:00<00:00, 196.53it/s]
+Generating thumbnails:  41%|████▏     | 80/193 [00:00<00:00, 196.34it/s]
+Generating thumbnails:  52%|█████▏    | 100/193 [00:00<00:00, 195.48it/s]
+Generating thumbnails:  62%|██████▏   | 120/193 [00:00<00:00, 193.18it/s]
+Generating thumbnails:  73%|███████▎  | 140/193 [00:00<00:00, 186.81it/s]
+Generating thumbnails:  84%|████████▍ | 162/193 [00:00<00:00, 196.65it/s]
+Generating thumbnails:  96%|█████████▌| 185/193 [00:00<00:00, 204.66it/s]
+Generating thumbnails: 100%|██████████| 193/193 [00:00<00:00, 197.01it/s]
+Gallery generated: processed/labels_gallery.html (193 photos, 6.3 MB)
+Open in a browser: /data/processed/labels_gallery.html
+
+Copying photos:   0%|          | 0/150 [00:00<?, ?it/s]
+Copying photos:  69%|██████▉   | 104/150 [00:00<00:00, 1034.98it/s]
+Copying photos: 100%|██████████| 150/150 [00:00<00:00, 1039.05it/s]
+Exported 150 photos and a blank scoring sheet: processed/qa/human_label_sheet.csv
+Each rater who scores should copy the sheet and fill in their own name under rater.
+{
+  "step": "04_labeling",
+  "model": "gemini-2.5-flash",
+  "location": "us-central1",
+  "prompt_version": "v2",
+  "prompt_sha": "f8e50b7d0a0334f3f407453032c7f192d76927b9147bae261f39c399a2152cda",
+  "images_total": 193,
+  "images_scored_cached": 193,
+  "images_failed_this_run": 0,
+  "images_usable": 193,
+  "cells_total": 50,
+  "cells_labeled": 50,
+  "input_tokens": 468180,
+  "output_tokens": 24503,
+  "est_cost_usd": null,
+  "outputs": [
+    "processed/labels_image.parquet",
+    "processed/labels_cell.parquet",
+    "processed/labels_meta.json",
+    "processed/qa/human_label_sheet.csv"
+  ],
+  "finished_at": "2026-10-19T07:05:54+00:00",
+  "input_sha256": {
+    "processed/cells.parquet": "b9bdb12de0de78d81d4a86832efc4c1a84c6fd7869c952d5bbd2719c2dc0830e",
+    "processed/streetview.parquet": "6c55a77cc9a04c0761887a237168da22b94b24178a1bd8e3a9b21a34763a8bd5",
+    "processed/osm_features.parquet": "05b26df3e41270ee42dc9db9406dd92c843019b63bdab238bfa57c09b8cdc831"
+  },
+  "source_version": "boston-pilot-v2",
+  "config_sha256": "8abb490f3ebef2b1b62450eb6d88db4c6f56d08826c03218cf87ea87a1e8bb74",
+  "configuration": {
+    "prompt_version": "v2",
+    "model": "gemini-2.5-flash",
+    "thinking_budget": 0,
+    "workers": 2,
+    "min_usable_images": 2,
+    "max_images": 8,
+    "qa_n": 150,
+    "thumb_px": 480,
+    "gallery_max_images": 1000,
+    "seed": 42,
+    "price_in_per_m": null,
+    "price_out_per_m": null
+  },
+  "output_sha256": {
+    "processed/labels_image.parquet": "6215306ab1369a074996e5e91c490d47d5faf61d3a81cc447270bde54cf7f6e9",
+    "processed/labels_cell.parquet": "6c95c3b154bba1595d3353bfaf759591ef93f048ce742b66c5317cec8ba806a2",
+    "processed/labels_meta.json": "bb80049e1d7847624b8b252ac686453d5533e3d6c7571dca7b2ff5b86c71b866",
+    "processed/qa/human_label_sheet.csv": "4bbc2dbe7cc54b670930063e0ce42e353a657a89301149b9634cc7a759063d86"
+  },
+  "implementation_sha256": "802c7665ab89c72c236ff4a7e79b6f04ea020da5ec55852b508d96ad61aa6c44",
+  "notebook_sources": {
+    "en_01_streetview.ipynb": {
+      "sha256": "c8d48c772b3285d6c087d5aa7d03c5346b02b617cb4ddb7d5d70a372b6fe2043",
+      "role": "Extraction reference only; not read during execution",
+      "repository_path": "docs/notebooks/en_01_streetview.ipynb"
+    },
+    "en_02_tiles.ipynb": {
+      "sha256": "68cfea456cf69d679433428545848ebc4f1839fe7c81aefcc44ea7ede80d3506",
+      "role": "Extraction reference only; not read during execution",
+      "repository_path": "docs/notebooks/en_02_tiles.ipynb"
+    },
+    "en_03_osm_features.ipynb": {
+      "sha256": "19d22c614c653e49f6f8871b1b6550d0ee960e651f0282e8ba4304bbf809e31b",
+      "role": "Extraction reference only; not read during execution",
+      "repository_path": "docs/notebooks/en_03_osm_features.ipynb"
+    },
+    "en_04_labeling.ipynb": {
+      "sha256": "937ae7e112a5acdd28158f945189b2126113d10c5201ea3483ec5710d72ccfaa",
+      "role": "Extraction reference only; not read during execution",
+      "repository_path": "docs/notebooks/en_04_labeling.ipynb"
+    }
+  },
+  "execution": "standalone_python",
+  "human_validation": "pending"
+}

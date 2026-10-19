@@ -1,0 +1,13 @@
+# Opt in to ADC for the combined upstream job or a standalone labeling command.
+# All stages share one container; the credential mount is available throughout it.
+services:
+  data-source:
+    volumes:
+      - type: bind
+        source: ${ADC_FILE:?Set ADC_FILE to your authorized ADC JSON file}
+        target: /gcp/adc.json
+        read_only: true
+        bind:
+          create_host_path: false
+    environment:
+      GOOGLE_APPLICATION_CREDENTIALS: /gcp/adc.json

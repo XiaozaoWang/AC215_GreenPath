@@ -1,0 +1,36 @@
+{
+  "dataset_version": "pipeline-smoke-v1",
+  "mode": "smoke",
+  "counts": {
+    "train": 32,
+    "val": 8,
+    "test": 8
+  },
+  "full_filtered_counts": {
+    "train": 651,
+    "val": 173,
+    "test": 188
+  },
+  "funnel": {
+    "merged_cells": 1126,
+    "usable_aerial_image": 1126,
+    "at_least_one_labeled_target": 1116,
+    "year_gap_at_most_3": 1091,
+    "osm_features_present": 1091,
+    "after_one_ring_test_buffer": 1012
+  },
+  "source_version": "boston-processed-v1",
+  "source_manifest_sha256": "78ad5125b76f26d6568ce8788c95783d371fc5b0cdd16082ddf919aba32bcba9",
+  "parameters": {
+    "block_resolution": 8,
+    "seed": 42,
+    "buffer_rings": 1,
+    "folds": 5,
+    "max_year_gap": 3
+  },
+  "scope": "Notebook-05-equivalent joins, filtering and spatial splits over cached notebook-01-04 products. No fresh collection, OSM extraction or teacher calls.",
+  "metrics_scope": "Smoke mode is a pipeline check, not a replacement for the historical 188-cell evaluation.",
+  "label_validation": "Teacher-generated labels; human agreement remains pending.",
+  "local_tests_passed": 10,
+  "source_uri": "gs://ac215-greenpath/pipeline-inputs/boston-processed-v1"
+}

@@ -34,4 +34,5 @@ def test_mismatch_rejected(returned):
 
 # Run the current fake model through predict(): the gatekeeper lets it pass
 def test_predict_passes_check():
-    assert len(model_client.predict(TILES)) == 3
+    from api.model_bundle import get_bundle
+    assert len(model_client.predict(get_bundle().tiles[:3])) == 3

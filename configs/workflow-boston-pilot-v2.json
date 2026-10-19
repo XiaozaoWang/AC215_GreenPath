@@ -1,0 +1,11 @@
+{
+  "format_version": "greenpath-workflow-v1",
+  "source_config": "configs/source-boston-pilot-v2.json",
+  "source_directory": ".artifacts/sources/boston-pilot-v2",
+  "snapshot_version": "boston-pilot-v2-frozen-v1",
+  "training_config": "configs/training-clip-ridge.json",
+  "mode": "full",
+  "max_new_label_images": 200,
+  "result_label": "boston-pilot-v2: 50-cell pilot",
+  "scope_note": "Use all qualifying prepared rows from 50-cell pilot; collection filters still apply."
+}

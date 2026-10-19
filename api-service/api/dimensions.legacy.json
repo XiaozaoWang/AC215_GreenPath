@@ -1,0 +1,70 @@
+{
+  "_note": "The scenery dimension table shared by the whole team (JSON can't have comments, so the notes go here). The labeling script, model training and api-service all read this one file. If you change the dimensions (add, remove, rename), bump schema_version by one; labels and models should both record which version they use. score_range is the range of the model's output scores; the team agreed on 0-1. description is sent to Gemini as is, so write it clearly in English. The M2 dimensions are placeholders; the final list is still up to the team.",
+  "schema_version": "smartpath-dims-0.1",
+  "score_range": [
+    0,
+    1
+  ],
+  "dimensions": {
+    "water": {
+      "description": "Rivers, lakes, ponds or coastline visible from the path"
+    },
+    "tree_canopy": {
+      "description": "Trees lining or shading the path"
+    },
+    "park": {
+      "description": "Public parks and green lawns"
+    },
+    "open_field": {
+      "description": "Wide open grass or meadow with long views"
+    },
+    "farmland": {
+      "description": "Crop fields, orchards or pastures"
+    },
+    "forest": {
+      "description": "Dense woods"
+    },
+    "hills": {
+      "description": "Hills or elevation changes giving views"
+    },
+    "sky_view": {
+      "description": "Open sky, not boxed in by tall buildings"
+    },
+    "gardens": {
+      "description": "Flower beds and planted gardens"
+    },
+    "historic_buildings": {
+      "description": "Old or historic architecture"
+    },
+    "cultural_street": {
+      "description": "Lively streets with shops, cafes and street life"
+    },
+    "modern_architecture": {
+      "description": "Contemporary buildings and skylines"
+    },
+    "public_art": {
+      "description": "Murals, sculptures and installations"
+    },
+    "landmark": {
+      "description": "Well-known landmarks or points of interest"
+    },
+    "quiet_residential": {
+      "description": "Calm residential streets"
+    },
+    "industrial": {
+      "description": "Warehouses, factories, rail yards"
+    },
+    "traffic": {
+      "description": "Heavy car traffic near the path"
+    },
+    "bike_lane": {
+      "description": "Dedicated or protected bike lanes"
+    },
+    "crowds": {
+      "description": "Many pedestrians on or near the path"
+    },
+    "cleanliness": {
+      "description": "Clean, well-kept surroundings"
+    }
+  }
+}

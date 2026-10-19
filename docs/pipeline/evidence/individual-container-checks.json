@@ -1,0 +1,26 @@
+[
+  {
+    "component": "data-processor",
+    "exit_code": 0,
+    "network": "none",
+    "user": "501:20"
+  },
+  {
+    "component": "feature-encoder",
+    "exit_code": 0,
+    "network": "none",
+    "user": "501:20"
+  },
+  {
+    "component": "model-training",
+    "exit_code": 0,
+    "network": "none",
+    "user": "501:20"
+  },
+  {
+    "component": "model-deploy",
+    "exit_code": 0,
+    "network": "none",
+    "user": "501:20"
+  }
+]

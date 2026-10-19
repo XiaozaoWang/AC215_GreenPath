@@ -1,185 +1,351 @@
-# GreenPath · 数据管道（notebook 阶段）
+# GreenPath
 
-GreenPath 的核心思路是"老师教学生"：老师（VLM，如 Gemini）看**街景**给出"骑过这里感觉如何"的分数（标签 Y），学生（我们的模型）只看**卫星图 + OSM 特征**（输入 X）去学这些分数。街景只在训练时用来生成 Y，推理时不需要。
+GreenPath predicts eight ride-experience scores for Boston H3 cells. A Gemini teacher
+labels street-view images; the current student uses fixed CLIP aerial-image features
+and Ridge regression. The app displays saved predictions through a FastAPI backend and
+Next.js frontend. It does not run image inference on each user request.
 
-这个目录里的 notebook 负责把原始数据变成一张"每个格子一行"的训练表。目前完成 01–07，之后的计划见文末。
+## Contents
 
-```
-01 街景 ──► 格子主表 cells.parquet ──► 02 卫星图 ──► 03 OSM / WorldCover 特征
-                    └──► 04 VLM 标注（Gemini 看街景打分，生成标签 Y）
-                                          └──► 05 合并 X、Y，划分 train / val / test，登记版本
-                                                   ├──► 06 提取卫星图特征（PyTorch，只用 torch）
-                                                   └──► 07 基线与线性探针（LightGBM / sklearn，不用 torch）
-```
+- [1. Setup](#1-setup)
+- [2. Credentials](#2-credentials)
+- [3. Open the app and select saved results](#3-open-the-app-and-select-saved-results)
+  - [Download a shared result from GCS](#download-a-shared-result-from-gcs)
+- [4. Train from an existing snapshot](#4-train-from-an-existing-snapshot)
+- [5. Run collection through the app](#5-run-collection-through-the-app)
+- [6. API and frontend operation](#6-api-and-frontend-operation)
+- [7. Check results and stop services](#7-check-results-and-stop-services)
+- [8. Publish a completed run to GCS](#8-publish-a-completed-run-to-gcs)
+- [Documentation and evidence](#documentation-and-evidence)
 
-**流程方向是"街景优先"**：先抓街景，由街景所在位置决定哪些 H3 格子进入数据集，再给这些格子补卫星图和 OSM 特征。这样不会浪费算力给没有街景的格子，也能直接看到真实覆盖率。
+| Read | Purpose |
+| --- | --- |
+| [ML pipeline](docs/ML_PIPELINE.md) | Containers, code folders, notebook mapping and orchestration |
+| [Data and model versioning](docs/DATA_AND_MODEL_VERSIONING.md) | What is stored where, input reuse and version selection |
+| [Experiments](docs/EXPERIMENTS.md) | Baselines, key settings, results and verification limits |
+| [API component](api-service/README.md) / [application notes](docs/app/README.md) | Backend configuration and app context |
+| [App design](docs/APP_DESIGN.md) | Wireframe and implementation-driven UI changes |
 
----
+## Choose a run path
 
-## 快速开始
+| Command | Starts from | Produces |
+| --- | --- | --- |
+| `make app-versions` | Existing serving results | Running API/frontend; no training |
+| `make run` | Existing snapshot (historical GCS input by default) | New dataset preparation, features, model, predictions and app |
+| `make run-all` | Source configuration/workspace, reusing valid outputs | 01-04, frozen snapshot, downstream ML and app |
 
-1. **环境**：Python 3.11，项目自带的 `.venv`；VS Code 里选 `.venv` 作为 kernel。依赖见各 notebook 第一格（Colab 里会自动安装，本地需提前装好）。
-2. **Mapillary token**（只有 01 需要）：复制 `.env.example` 为 `.env`，填入 Mapillary 的 **Access Token**（形如 `MLY|数字|字符串`，不是 App ID，也不是 Client secret）。`.env` 已被 `.gitignore` 忽略，不要提交。
-3. **按顺序运行**：01 → 02 → 03，每个都是 **Run All**。后面的 notebook 读前面写出的文件，所以不能乱序。
-4. **数据位置**：默认写到 `./data/`。可以用环境变量 `GREENPATH_ROOT` 指定别的目录；每个 notebook 开头的 `STORAGE` 也可以改成 `"gcs"` 或 `"drive"`。
+**Complete pipeline and full-size collection are different.** The default 50-cell pilot
+runs the complete source-to-app workflow. `mode: full` uses all qualifying prepared rows
+from that pilot. `sample_size: 0` instead selects all eligible cells in the configured
+bounding box; it does not mean the entire city.
 
-所有 notebook 都**可以断点续跑**：已经下载或生成的文件会自动跳过。
+## 1. Setup
 
----
+1. Clone the repository and enter the integration branch:
 
-## 三个 notebook 分别做什么
+   ```sh
+   git clone git@github.com:XiaozaoWang/green-path.git
+   cd green-path
+   git switch milestone2-integration
+   ```
 
-| | 做什么 | 读 | 写 |
-|---|---|---|---|
-| **01** `01_streetview.ipynb` | 用 Mapillary 矢量瓦片批量下载试点区域的街景元数据，过滤，落到 H3 格子，抽样并下载图片 | Mapillary API | `processed/cells.parquet`、`processed/streetview.parquet`、`raw/mapillary/…`、`raw/grid/…` |
-| **02** `02_tiles.ipynb` | 给 01 选出的每个格子，从 NAIP 航拍裁一张 256×256 的卫星图 | `cells.parquet` | `processed/tiles/*.png`；给 `cells.parquet` 补卫星图相关的列 |
-| **03** `03_osm_features.ipynb` | 统计每个格子对应地面的 OSM 与 WorldCover 客观特征 | `cells.parquet`、`tiles` | `processed/osm_features.parquet` |
-| **04** `04_labeling.ipynb` | 用 Gemini（Vertex AI）给每张街景按 8 个维度打 1–5 分，按格子聚合成标签 Y，并导出人工标注表 | `streetview.parquet`、街景图片、`prompts/v1.txt` | `processed/labels_image.parquet`、`labels_cell.parquet`、`labels_meta.json`、`qa/` |
-| **05** `05_build_dataset.ipynb` | 合并格子、OSM 特征、标签，过滤，按空间区块划分 train / val / test（带缓冲区和交叉验证折），登记版本 | `cells`、`osm_features`、`labels_cell` | `datasets/{版本}/`（`dataset.parquet`、`train/val/test.parquet`、`schema.json`、`manifest.json`、`DATASET_CARD.md`） |
-| **06** `06_embeddings.ipynb` | 用预训练编码器（ResNet-50、DINOv2-S、CLIP ViT-B/16）把每张卫星图变成特征向量并缓存 | `datasets/v1/`、卫星图 | `embeddings/v1/*.parquet`、`meta.json` |
-| **07** `07_baselines.ipynb` | B0（均值）、B1（OSM + LightGBM）、M1（冻结编码器 + Ridge）、M3（图像特征 + OSM 融合）；交叉验证选模型，测试集只评估一次 | `datasets/v1/`、`embeddings/v1/` | `results/{run_id}/`、`docs/EXPERIMENTS.md`（实验日志，每次追加一节） |
+2. Start Docker Desktop. On Linux, use Docker Engine with Compose. Check:
 
-### 01 · 街景 → 格子
+   ```sh
+   docker info
+   docker compose version
+   python3 --version
+   make --version
+   ```
 
-1. 把试点区域（`BBOX`）切成 zoom 14 的 Mapillary 矢量瓦片，下载全部街景点的元数据（位置、拍摄时间、朝向、是否全景、质量分）。不用 Mapillary 的 bbox 搜索接口，因为它在市中心这种街景密集的地方会报"数据太多"，返回条数也不稳定。
-2. 过滤：2019 年以后、排除 12–3 月（落叶季会让树荫等分数偏低）、排除全景图、要有朝向。notebook 会打印每一步剩多少张（"漏斗"）。
-3. 每张图用 `h3.latlng_to_cell` 算出所在格子（H3 分辨率 10，每格约 130 m 宽）。
-4. 每个格子挑最多 4 张**朝向分散**的图（4 个象限各取最新的一张）。
-5. 铺出试点区域的完整网格，统计覆盖率：多少格子有街景、多少"合格"（≥ 2 张）。
-6. 从合格格子里随机抽 `SAMPLE_SIZE` 个，多线程下载 1024 px 的缩略图，写出格子主表。
+   Host requirements: Python 3.9+, make and Docker Compose v2+. Allow approximately
+   8 GiB of Docker memory. Docker Desktop supplies the local Linux VM; no separate
+   cloud VM is required for this run path.
 
-波士顿试点区（Boston + Cambridge，3,532 个格子）的实际结果：Mapillary 共 166 万张街景点，过滤后约 10 万张可用，合格格子 **1,127 个（31.9%）**。最大的损失来自"排除冬季"，这是以后放宽条件的第一个选择。
+3. Create local configuration only if it does not exist:
 
-### 02 · 卫星图
+   ```sh
+   test -f .env || cp .env.example .env
+   ```
 
-读 `cells.parquet`，在 Microsoft Planetary Computer 上查 NAIP（美国农业部航拍，公有领域），给每个格子挑**完整覆盖它的、年份最新的**一幅，裁出以格子中心为中心、边长 154 m 的方块，重采样成 256×256 的 PNG。同一幅影像里的格子一起处理，只打开一次文件。
+Python dependencies are installed inside images using pinned uv and committed
+`pyproject.toml` / `uv.lock` files. Do not activate the research notebook environment.
+The frontend uses Node and `npm ci` inside its container. First builds need internet.
 
-补充到 `cells.parquet` 的列：`naip_item`、`naip_year`、`tile_path`、`nodata_frac`、`tile_ok` 等。空白像素超过 5% 的图会标为不可用。notebook 还会显示 NAIP 年份与街景拍摄年份的差距，因为差太多时（新建了楼、砍了树）标签和输入会对不上。
+## 2. Credentials
 
-### 03 · OSM + WorldCover 特征
+| Operation | Required access |
+| --- | --- |
+| View bundled or locally saved results | No cloud credentials |
+| Download a shared serving result | Your own ADC with bucket read access |
+| Online training from a snapshot | ADC with read access to the team's private GCS inputs and encoder |
+| New collection and labeling | Mapillary Client Token; Vertex AI project access, billing and ADC |
+| Publish artifacts | ADC with write access to the destination bucket |
 
-OSM 数据来自 Geofabrik 的**本地快照文件**（`raw/osm/massachusetts-latest.osm.pbf`，约 300 MB，第一次运行时自动下载，之后直接读本地），不再向 Overpass 公共服务器请求（它经常拒绝连接或排队很久）。快照是固定的一份，实验可复现；下载日期和文件信息记在 `raw/osm/*.meta.json` 和运行记录里。整个 notebook 约一分钟。
+For the team's authorized GCP project, configure ADC on your machine:
 
-对每个格子，在和卫星图**同样大小的方块**里统计客观地理特征：
-
-- **道路**：按等级分 4 类的长度（主干道、次干道、居住区街道、步道/自行车道）、自行车道长度、平均车道数、平均限速、路口数。
-- **OSM 要素**：POI 数量；水体、绿地、建筑的面积占比。
-- **WorldCover 土地覆盖**：树、灌木、草地、农田、建成区、水体等各类占比，以及占比最大的类别。
-
-它们有两个用途：作为模型输入 X 的一部分（也是强基线 B1 的全部输入，用来证明卫星图是否提供了 OSM 没有的信息）；以后给路线打分时，水体、绿地、自行车道这类客观维度直接用它们，不需要模型预测。
-
----
-
-### 04 · VLM 标注（"老师"）
-
-Gemini 看每张街景，按 `prompts/v1.txt` 里的规则，对 8 个维度各打 1–5 分：`traffic_intensity`（交通强度）、`quietness`（安静）、`shade`（树荫）、`naturalness`（自然感）、`scenic_appeal`（景观吸引力）、`historic_character`（历史风貌）、`liveliness`（活力）、`visual_openness`（视野开阔）。同时让它判断这张图能不能用（车内、模糊、夜间等标为不可用）。
-
-- 通过 Vertex AI 调用（走 GCP 账单），输出用结构化 JSON 约束，temperature 为 0。
-- 结果按（图片、prompt 版本、模型）**缓存**，重跑或放大样本不会重复调用、不会重复花钱；改打分规则就升版本号，旧标签不会被覆盖。
-- 按格子聚合：只用可用图，取均值并归一化到 0–1；可用图少于 2 张的格子标签为缺失（NaN），训练时跳过。
-- **图库**：04 会生成单文件 `processed/labels_gallery.html`，用浏览器打开即可浏览所有图片和打分（缩略图嵌入，点击打开原图），支持按可用性、格子、维度分数筛选，按维度排序，按格子分组，并能对比不同 prompt 版本的打分。
-- 自带质检：分数分布（防止全挤在 3）、和 OSM / WorldCover 的客观核对，并导出 150 张图和空白打分表，供组员做 **E1（人机一致性）**。
-
-使用前要完成 Vertex AI 的准备（项目、账单、启用 API、`gcloud auth application-default login`、`.env` 里加 `GOOGLE_CLOUD_PROJECT`），清单在 04 第 2 节。
-
----
-
-### 05 · 构建数据集与划分
-
-把格子表、OSM 特征、标签按 `h3_index` 合成一张"每个格子一行"的 xy 表，过滤（卫星图不可用、没有标签、街景和卫星图年份相差太多、OSM 特征缺失），再划分数据：
-
-- **按空间区块划分，不是随机划分**。相邻格子几乎一样，随机划分会让测试分数虚高。所以先把地图切成 H3 区块（分辨率 8，约 0.7 km²），整块分给 train / val / test；紧挨着测试区块的训练 / 验证格子丢掉一圈作为缓冲，防止边界泄漏。
-- 另外给 train+val 的区块分 5 折（`fold` 列），样本少时做分组交叉验证；数据多了不用这一列就行。
-- 以后有第二座城市时，设 `TEST_CITIES = ["providence"]`，整座城市当测试集，才是真正的跨城测试。
-- **数据集版本是冻结的**：同一个版本号已存在时拒绝覆盖，改了数据或参数就升版本号。`manifest.json` 记录输入文件的哈希、prompt 版本、OSM 快照日期、过滤条件和划分参数；`DATASET_CARD.md` 是自动生成的说明卡。
-- 测试集只在最终报告时看一次。
-
----
-
-### 06 / 07 · 特征提取与基线
-
-**为什么拆成两个 notebook**：PyTorch 和 LightGBM 在 Mac 上不能放进同一个进程（两者各带一份 OpenMP 库，同时加载会崩溃）。所以提特征（只用 torch）和训练基线（只用 LightGBM / sklearn）分开，也对应以后的两个容器。
-
-**06**：预训练编码器是别人在海量图片上训练好的"看图专家"，我们**不训练它**（冻结），只让它把每张卫星图变成一串几百维的数字。每张图做 8 种旋转 / 翻转取平均（俯视图没有方向）。特征缓存后，07 不再碰图片。
-
-**07**：
-- **B0** 预测均值；**B1** 只用 OSM / WorldCover 特征（LightGBM）；**M1** 只用卫星图特征（Ridge 线性回归）；**M3** 卫星图特征（PCA 压缩）加 OSM 特征（LightGBM）。
-- 编码器、正则强度、LightGBM 参数、PCA 维度全部由 **train+val 上按区块分组的 5 折交叉验证**自动选出；**测试集只在最后评估一次**。
-- 指标是逐维度 Spearman，置信区间用按区块的自助法；两个模型的差距也给区间，不含 0 才算真的有差别。
-- 关键对照是 **M3 − B1**：卫星图能否提供 OSM 没有的信息。
-
----
-
-## 数据长什么样
-
-```
-data/
-├── raw/
-│   ├── grid/boston_h3r10.parquet           # 完整网格（含没有街景的格子）
-│   ├── osm/massachusetts-latest.osm.pbf    # OSM 快照（Geofabrik，约 300 MB）
-│   └── mapillary/
-│       ├── metadata/boston/tile_z14_*.parquet   # 街景元数据，按瓦片缓存
-│       └── images/{image_id}.jpg                # 街景图片
-├── processed/
-│   ├── cells.parquet           # 格子主表：每个格子一行
-│   ├── streetview.parquet      # 入选的街景：每张图一行
-│   ├── tiles/{cell_id}.png     # 卫星图
-│   ├── osm_features.parquet    # OSM / WorldCover 特征：每个格子一行
-│   ├── labels_image.parquet    # Gemini 对每张街景的打分（缓存，键：图片+prompt版本+模型）
-│   ├── labels_cell.parquet     # 每个格子的标签 Y（8 维，0–1；缺失为 NaN）
-│   ├── labels_meta.json        # 模型、prompt 版本、token 数、花费
-│   ├── labels_gallery.html     # 图库：浏览所有图片和打分
-│   └── qa/                     # 人工标注用的图片和空白打分表
-├── embeddings/v1/              # 06 提取的卫星图特征（每个编码器一个文件）
-├── results/{run_id}/           # 07 的指标、差值、预测、配置
-├── datasets/v1/                # 冻结的数据集版本
-│   ├── dataset.parquet  train.parquet  val.parquet  test.parquet
-│   └── schema.json  manifest.json  DATASET_CARD.md
-└── runs/{时间戳}/*_manifest.json    # 每步的运行记录（配置、数量、时间）
+```sh
+gcloud auth application-default login
+gcloud auth application-default set-quota-project organic-victory-508017-v9
 ```
 
-- **主键是 `h3_index`**。`cell_id` 由它派生（`BOS_<h3_index>`），换范围或样本数都不会变。
-- 文件路径都存成**相对数据根目录**的路径，换机器、搬进容器或 GCS 都不用改表。
-- 街景（Y 的原料）和卫星图 / OSM 特征（X）通过 `h3_index` 对齐。
+Edit the ignored root `.env`; replace the placeholders with your own values:
 
----
+```dotenv
+GOOGLE_CLOUD_PROJECT=organic-victory-508017-v9
+GOOGLE_CLOUD_LOCATION=us-central1
+ADC_FILE=/absolute/path/to/.config/gcloud/application_default_credentials.json
+MAPILLARY_TOKEN=YOUR_MAPILLARY_CLIENT_TOKEN
+```
 
-## 数据来源与许可
+The bucket `gs://ac215-greenpath` is private; ask the team for access. ADC login alone
+does not grant bucket or Vertex permissions. Launchers read `.env`; exported shell
+variables take precedence. Never commit tokens, ADC files or `.env`.
 
-| 数据 | 来源 | 许可 / 注意 |
-|---|---|---|
-| 街景 | Mapillary | CC-BY-SA 4.0；成果中要注明来源，发布派生数据集要看 Share-Alike |
-| 卫星图 | NAIP（经 Planetary Computer） | 公有领域 |
-| 道路、水体、POI 等 | OpenStreetMap（Geofabrik 每日快照） | ODbL；注明 © OpenStreetMap contributors |
-| 土地覆盖 | ESA WorldCover 2021 v200 | CC-BY 4.0 |
+## 3. Open the app and select saved results
 
-只有 Mapillary 需要 token，并且免费；01–03 不需要 GCP，也不产生费用。04 通过 Vertex AI 调用 Gemini，会产生费用（每张图约千分之几美元，具体看型号，04 会估算）。
+From the repository root:
 
----
+```sh
+make app-versions APP_ARGS="--version boston-heldout-en-v2"
+```
 
-## 接下来
+Open **http://localhost:3000**; API docs are **http://localhost:9000/docs**.
+The historical version contains predictions for **188 held-out test cells**.
 
-- **E1：人工标注验证标签**（`processed/qa/` 里已有 150 张图和空白打分表）：只对通过的维度下结论。
-- **M2 微调**、遥感专用编码器（SatlasPretrain）；放宽冬季过滤的消融；第二座城市（Providence）做真正的跨城测试。
-- 把 notebook 整理成 `.py` 并容器化（一条命令跑完整条流程），补 SETUP 文档、DVC、W&B。
+Use the frontend **Result version** selector to inspect another locally registered
+result. To list IDs and set the default explicitly:
 
-## 已知局限
+```sh
+make catalog-refresh
+python3 tools/manage_artifacts.py list
+make app-versions APP_ARGS="--version serving-historical-smoke-001"
+```
 
-- Mapillary 的矢量瓦片是公开子集，不保证包含全部街景。
-- OSM 是某一天的快照；新建的路、新开的店不会出现。换城市时需要换成对应州的 `.pbf`（改 03 配置里的 `OSM_PBF_URL`）。
-- 目前只覆盖波士顿一座城市，跨城泛化要等加入第二个城市后才能测。
-- 过滤条件（年份、月份、全景、质量分）都是可调参数，改动前先看 01 的漏斗和覆盖率图。
-- 全景图暂时排除；以后可以切成 4 个 90° 视角再加回来。
+The last command requires the run in section 4 to have succeeded. Without `--version`,
+`make app-versions` retains the saved catalog default. Changing the dropdown only changes
+the displayed selection. Neither operation retrains a model or overwrites old results.
 
-## App (api-service + frontend)
+### Download a shared result from GCS
 
-A local web app: type the scenery you want, get a heatmap of matching tiles.
-Full docs: [docs/app/README.md](docs/app/README.md)
+Obtain the **training run ID**, **serving version ID**, publication root and bucket read
+access from the producer. Complete setup and configure your own ADC (section 2).
+The result must have been published before downloading. These are example values:
 
-Quick start (key file goes in `../secrets/`, outside the repo):
+```sh
+SHARED_RUN_ID=boston-pilot-v2
+SHARED_VERSION=serving-boston-pilot-v2
 
-    docker compose up --build
+python3 tools/manage_artifacts.py fetch-serving \
+  --run-id "$SHARED_RUN_ID" --version "$SHARED_VERSION"
+make app-versions APP_ARGS="--version $SHARED_VERSION"
+```
 
-- Page: http://localhost:3000
-- API docs: http://localhost:9000/docs
-- No key? `LLM_PROVIDER=mock docker compose up --build`
+Default publication root: `gs://ac215-greenpath/artifacts`. For another root, add
+`--gcs-root gs://YOUR_BUCKET/artifacts` to the download command.
+Cloud `pipeline/runs/<run-id>/serving/` restores to the identical relative path under
+local `.artifacts/`, and is verified/registered automatically. Open **http://localhost:3000**
+and check version/model/cell count against the producer's summary. The example has 49 cells.
+
+Viewing needs only serving, not raw images, model weights or training. `make app-versions`
+does not download missing versions. Old explicit `--uri` downloads remain supported;
+legacy flat serving URLs use `.artifacts/serving/<version>/`. Bundled fixtures need no cloud
+access. Result schemas must match the API/frontend version.
+
+To restore the complete published training run, snapshot and encoder instead:
+
+```sh
+make fetch-run RUN_ID="$SHARED_RUN_ID"
+# Also restore its raw collection/labeling workspace, if included in the release:
+make fetch-run RUN_ID="$SHARED_RUN_ID" FETCH_ARGS="--include-upstream"
+```
+
+Restore refuses conflicting local files and can complete a prior serving-only download.
+It registers serving without replacing your local catalog/default or running any models.
+Source/run/snapshot paths match the cloud layout; encoder weights use a local shared cache.
+Workspaces, caches and the catalog on your machine are not overwritten by another user's
+catalog or runtime locks.
+
+## 4. Train from an existing snapshot
+
+With GCS credentials configured:
+
+```sh
+make run PIPELINE_ARGS="--run-id historical-smoke-001"
+```
+
+This skips 01-04, downloads or reuses the historical `boston-processed-v1` snapshot and
+CLIP weights, then runs preparation, fresh encoding, training, prediction and the app.
+Default smoke size is **32 train + 8 val + 8 test = 48 cells**; the map shows all 48.
+Outputs: `.artifacts/pipeline/runs/historical-smoke-001/`.
+Use a new run ID for another run; existing run directories are refused.
+
+To use a new local snapshot after section 5 has created it:
+
+```sh
+make run PIPELINE_MODE=full PIPELINE_ARGS="--run-id pilot-refit-001 --source-dir .artifacts/snapshots/sources/boston-source-local-v1-frozen-v1"
+```
+
+`full` means all qualifying cells in the selected input, not all Boston geography.
+For historical full mode, use `make run PIPELINE_MODE=full`.
+Add `--no-app` for ML only. Use `--offline` only after all required inputs are cached;
+use `--no-build` only when images match the current code.
+
+## 5. Run collection through the app
+
+Review `configs/workflow-boston-small.json` and `configs/source-boston.example.json`, then:
+
+```sh
+make run-all WORKFLOW_ARGS="--run-id pilot-e2e-001 --allow-labeling"
+```
+
+The configured pilot selects up to 50 cells. One upstream container runs 01-04, reusing
+verified outputs, then the launcher freezes inputs, runs the downstream jobs and opens
+the app with the new result selected. A matching frozen snapshot skips upstream work.
+It never substitutes historical data when the pilot fails.
+
+`--allow-labeling` permits paid requests: the supplied config caps new labeled images at
+200 per invocation, excluding retries. Partial results are saved, but incomplete labeling
+blocks freezing. Resume explicitly:
+
+```sh
+make run-all WORKFLOW_ARGS="--run-id pilot-e2e-001 --resume --allow-labeling"
+```
+
+For a fresh collection without reusing the default pilot workspace, generate new paired
+configs once (this command does not run the pipeline):
+
+```sh
+python3 tools/create_workflow_config.py boston-pilot-v3
+make run-all WORKFLOW_CONFIG=configs/workflow-boston-pilot-v3.json WORKFLOW_ARGS="--run-id boston-pilot-v3 --allow-labeling"
+```
+
+The generator defaults to 50 cells and 200 new labeled images per invocation. Optional
+`--sample-size 0` selects all eligible cells in the same bounding box; `--label-limit N`
+sets a positive batch limit. It refuses existing config/data paths. It inherits the
+Boston source rules, bbox and training settings; inspect the generated JSON before use.
+The new name identifies a new source workspace, snapshot and workflow. Changing only
+a run ID does not force recollection. Generate configs once; reuse them for subsequent
+invocations. Choose another unused name if `boston-pilot-v3` already exists.
+
+Insufficient spatially separated data can still stop preparation. See
+[the pipeline guide](docs/ML_PIPELINE.md) for individual stage commands.
+**Verified pilot:** `boston-pilot-v2` completed the consolidated source-to-app workflow
+on 2026-10-19: 193 labeled street photos, 50 labeled cells, 49 prepared/predicted cells
+(31 train / 10 val / 8 test), and successful API/frontend checks. One cell was removed by
+the imagery/street-view year-gap filter. This is a pilot validation, not full-size collection.
+
+## 6. API and frontend operation
+
+`make app-versions` manages both services in Compose project `greenpath-pipeline-app`.
+Do not start a second default Compose app on the same ports.
+
+```sh
+# Inspect service state and recent logs.
+docker compose -p greenpath-pipeline-app -f docker-compose.yml ps
+docker compose -p greenpath-pipeline-app -f docker-compose.yml logs --tail=80 api-service frontend
+
+# After editing API/frontend code, rebuild and recreate the app.
+make app-versions
+```
+
+API: `api-service/api/service.py` attaches the routes. Check `GET /versions`,
+`GET /capabilities` and `GET /preview` in Swagger UI. `POST /score` accepts preference
+text and an optional `version_id`; Swagger provides the current request schema.
+Default preference parsing is offline (`mock`); the displayed vision scores are real
+saved model predictions.
+
+Frontend: `frontend/src/app/page.jsx` manages version selection and the map;
+`frontend/src/services/DataService.js` calls the API. Select a version, inspect its
+preview, then enter a preference such as `A quiet ride with shade, avoid traffic`.
+The API reads saved serving data and computes preference matching.
+
+## 7. Check results and stop services
+
+```sh
+cat .artifacts/pipeline/runs/historical-smoke-001/run-summary.json
+cat .artifacts/workflows/pilot-e2e-001/workflow-summary.json
+```
+
+Read only the summary for the command you ran. For run-all retries, use the workflow's
+actual `training_run_id` to locate the ML run. Check success, split counts, reload
+validation, selected model/version and the frontend's matching cell count.
+
+```sh
+docker compose -p greenpath-pipeline-app -f docker-compose.yml down
+```
+
+This stops the app without deleting `.artifacts`. If 3000/9000 is occupied, identify and
+stop the owning process or explicitly choose alternate launcher ports.
+
+## 8. Publish a completed run to GCS
+
+After reviewing a successful run, publish its saved results. Docker must be running;
+ADC needs bucket write access. Use the actual `training_run_id` from the workflow summary
+(or the successful `make run` ID). The value below is an example:
+
+```sh
+PUBLISH_RUN_ID=boston-pilot-v2
+make publish-run RUN_ID="$PUBLISH_RUN_ID" PUBLISH_ARGS="--include-upstream"
+```
+
+This uploads existing data without collection, labeling or training. `--include-upstream`
+adds the source workspace's actual files under `sources/<source-version>/`, without a tar
+wrapper. It requires new-pipeline lineage and unchanged frozen input files. Omit it for
+historical snapshots without a source workspace. Publication filters machine locks/hidden
+files, keeps stage manifests unchanged and publishes the release last.
+
+Cloud paths under `gs://ac215-greenpath/artifacts/` mirror local formal artifact paths:
+
+| Cloud path | Matching local path under `.artifacts/` |
+| --- | --- |
+| `sources/<source-version>/` | Same: raw images, geographic inputs, label caches and records |
+| `snapshots/sources/<snapshot-version>/` | Same: fixed input package |
+| `pipeline/runs/<run-id>/` | Same: prepared, embeddings, model, predictions, serving, logs and summary |
+| `releases/mirrored-v1/<run-id>/` | Same: checksummed version/restore links |
+| `encoders/<encoder-version>/` | `pipeline/cache/encoders/<encoder-version>/`: reusable weight cache |
+
+To publish to another root, add `GCS_ROOT=gs://YOUR_BUCKET/artifacts` to the Make command.
+No catalog, archived data or temporary cache is automatically uploaded; app deployment is
+separate. Ordinary `make run` / `make run-all` still do not publish automatically.
+
+```sh
+cat ".artifacts/catalog/publications/mirrored-v1/$PUBLISH_RUN_ID.json"
+```
+
+The receipt includes serving/release identities and URIs. Retry interrupted uploads with
+the same run, root and options; existing different contents are refused. Give viewers the
+run ID, serving version, publication root and bucket read access so they can follow
+[the download steps](#download-a-shared-result-from-gcs).
+
+Existing legacy GCS prefixes remain as read-compatible backups. Historical standalone
+artifacts are copied into `artifacts/reference/`; bundled historical serving results live
+under `artifacts/serving/`. The migration script is `tools/migrate_cloud_layout.py`;
+without `--apply` it prints a plan only. Migration does not delete old cloud data.
+
+## Documentation and evidence
+
+- [New pilot workflow summary](docs/pipeline/evidence/boston-pilot-v2/workflow-summary.json),
+  [run summary](docs/pipeline/evidence/boston-pilot-v2/run-summary.json),
+  [upstream log](docs/pipeline/evidence/boston-pilot-v2/01-04_sources.log),
+  [ML log](docs/pipeline/evidence/boston-pilot-v2/ml.log),
+  [sample request](docs/pipeline/evidence/boston-pilot-v2/sample-request.json) and
+  [response](docs/pipeline/evidence/boston-pilot-v2/sample-response.json) record the completed
+  source-to-app pilot. The response identifies `serving-boston-pilot-v2` and all 49 map cells.
+
+- [Recorded smoke summary](docs/pipeline/evidence/run-summary.json),
+  [ML log](docs/pipeline/evidence/pipeline-ml.log),
+  [sample request](docs/pipeline/evidence/sample-request.json),
+  [response preview](docs/pipeline/evidence/sample-response-preview.json) and
+  [app screenshot](docs/pipeline/evidence/ui-preview.jpg) document an earlier successful run.
+- [Wireframe](docs/app/m2-wireframe.svg) and [design notes](docs/APP_DESIGN.md).
+  The team still needs to attach its actual M1 feedback/design reference and a current
+  screenshot of running local/cloud instances for submission.
+- Optional user-run checks: `make source-test`, `make pipeline-test`, `make test`.
+  Host component tests require uv and the appropriate Python versions.
+- [Research notebooks](docs/notebooks/README.md) are archived references; containers execute
+  `src/` scripts. Component READMEs and [dependency details](docs/DEPENDENCIES.md) provide implementation references.
+
+The earlier smoke logs predate consolidation; the new `boston-pilot-v2` evidence covers
+the shared upstream image and source-to-app path. Neither run establishes city-wide scale
+or strong generalization from eight pilot test cells.

@@ -15,3 +15,9 @@ secrets/
 docker-volumes/
 # the rule "data/" above would also hide the fake model scores the app needs
 !/api-service/data/
+
+# Downloaded immutable artifacts and local validation evidence
+.artifacts/
+*.egg-info/
+build/
+dist/

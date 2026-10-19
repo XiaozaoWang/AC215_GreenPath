@@ -1,0 +1,1 @@
+{"artifact_version": "docker-prepared-v1", "dataset_version": "pipeline-smoke-v1", "counts": {"train": 32, "val": 8, "test": 8}, "full_filtered_counts": {"train": 651, "val": 173, "test": 188}}

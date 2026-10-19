@@ -1,0 +1,25 @@
+[project]
+name = "greenpath-data"
+version = "0.1.0"
+description = "Versioned cached-source ingestion and notebook-equivalent dataset preparation"
+requires-python = ">=3.11,<3.13"
+dependencies = ["greenpath-model", "h3>=4,<5", "pillow==12.3.0", "google-auth>=2.40", "requests>=2.32"]
+
+[project.scripts]
+greenpath-data = "greenpath_data.cli:main"
+
+[tool.uv.sources]
+greenpath-model = { path = "../model-deploy", editable = true }
+
+[build-system]
+requires = ["setuptools>=84"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["greenpath_data*"]
+
+[dependency-groups]
+dev = ["pytest>=9"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

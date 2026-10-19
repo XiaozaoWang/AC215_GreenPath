@@ -1,56 +1,70 @@
-# When score calls return pipeline.run_score(request.text, request.region_id), this arranges the flow: call each module in order and turn one sentence and the vision model results into a heatmap.
-# It's split out of score so we can test the whole flow without starting the server
-
+"""Online request flow. The batch training pipeline is a separate development step."""
 import time
 from api import agent, model_client, score_math, tiles
+from api.dimensions import PROVIDER, SCHEMA_VERSION, SPEC
 from api.schemas import ScoreResponse
 
-# Raise this error when the region id is unknown; the router catches it and turns it into HTTP 404
-# A separate error type is defined here so other ValueErrors (like data check failures) aren't mistaken for 404 too
+
 class UnknownRegionError(Exception):
     pass
 
 
-# Full flow: user's words + region scores already processed by the vision model → heatmap + the intermediate results of every step
-# get_preference can be swapped for a fake one: tests don't call Gemini and cost nothing
-def run_score(text: str, region_id: str, get_preference=agent.get_preference) -> ScoreResponse:
-    timings = {}
+def capabilities(version_id=None):
+    if PROVIDER == 'bundle':
+        from api.model_bundle import get_bundle
+        bundle = get_bundle(version_id)
+        m = bundle.manifest
+        from api.versions import resolve
+        entry, _ = resolve(m['artifact_version'])
+        regions = [{'id': m['region_id'], 'label': m['region_name']}]
+        model = {k: m[k] for k in ['model_version', 'dataset_version', 'prediction_source', 'description']}
+        model.update({'version_id': m['artifact_version'], 'source_version': bundle.provenance.get('source_workspace_version') or bundle.provenance.get('source_version', m.get('source_version')), 'snapshot_version': bundle.provenance.get('snapshot_version') or bundle.provenance.get('source_version'), 'run_id': bundle.provenance.get('run_id') or entry.get('run_id') or m.get('run_id'), 'n_cells': len(bundle.tiles), 'mode': bundle.provenance.get('mode', 'historical-heldout'), 'evaluation_note': bundle.provenance.get('evaluation_note', 'Historical held-out predictions; see experiment provenance.')})
+        model['rmse_source'] = 'model' if m.get('rmse') is not None else f'placeholder: {score_math.PLACEHOLDER_RMSE:g} (5% of score range, not measured error)'
+    else:
+        if version_id not in (None, 'legacy-fake'):
+            from api.versions import UnknownVersionError
+            raise UnknownVersionError('Unknown legacy version')
+        regions = [{'id': 'demo', 'label': 'Legacy simulated square grid'}]
+        model = {'version_id': 'legacy-fake', 'n_cells': 10000, 'mode': 'simulated', 'model_version': 'legacy-fake', 'dataset_version': 'legacy-demo', 'prediction_source': 'simulated', 'description': 'Simulated scores; not real model inference.', 'rmse_source': 'placeholder: 0.05'}
+    return {'schema_version': SCHEMA_VERSION, 'dimensions': SPEC['dimensions'], 'score_range': SPEC['score_range'], 'examples': SPEC.get('examples', []), 'regions': regions, 'default_region_id': regions[0]['id'], **model}
 
-    # Small timing tool: record how many milliseconds the current step took into the timings dict; used after every step below
-    clock = [time.perf_counter()]
-    def lap(name):
-        now = time.perf_counter()
-        timings[name] = round((now - clock[0]) * 1000, 1)
-        clock[0] = now
 
-    # 1. User's words → agent.get_preference wraps llm.ask as a harness, asks Gemini and checks the reply
-    agent_result = get_preference(text)
-    weights = agent_result.preference.as_vector() #a method defined in preference: only pull out the weights part and turn it into a dict; missing items are filled with 0
-    lap("agent")
-
-    # 2. Build an empty table from the region name (unknown region → UnknownRegionError)
+def run_score(text: str, region_id: str | None = None, get_preference=agent.get_preference, version_id: str | None = None) -> ScoreResponse:
+    meta = capabilities(version_id)
+    region_id = region_id or meta['default_region_id']
     try:
-        tile_list = tiles.get_tiles(region_id)
-    except ValueError as e:
-        raise UnknownRegionError(str(e)) from e
-    lap("tiles")
+        tile_list = tiles.get_tiles(region_id, meta.get("version_id")) if PROVIDER == "bundle" else tiles.get_tiles(region_id)
+    except ValueError as error:
+        raise UnknownRegionError(str(error)) from error
+    timings = {}
+    clock = time.perf_counter()
+    result = get_preference(text)
+    timings['agent'] = round((time.perf_counter() - clock) * 1000, 1)
+    weights = result.preference.as_vector()
+    clock = time.perf_counter()
+    scores = model_client.predict(tile_list, meta.get("version_id")) if PROVIDER == "bundle" else model_client.predict(tile_list)
+    timings['model'] = round((time.perf_counter() - clock) * 1000, 1)
+    clock = time.perf_counter()
+    if PROVIDER == 'bundle':
+        from api.model_bundle import get_bundle
+        values, stats = score_math.score_values(scores, weights, result.preference.must_have, get_bundle(meta.get('version_id')).manifest.get('rmse'))
+        features = [{'type': 'Feature', 'id': t.tile_id, 'geometry': t.geometry, 'properties': {'cell_id': t.tile_id, 'h3_index': t.h3_index, 'value': v, 'scores': t.scores}} for t, v in zip(scores, values)]
+        heatmap, rows, cols = None, 0, 0
+    else:
+        heatmap, stats = score_math.combine(scores, weights, result.preference.must_have)
+        features, rows, cols = [], len(heatmap), len(heatmap[0])
+    timings['score'] = round((time.perf_counter() - clock) * 1000, 1)
+    return ScoreResponse(version_id=meta.get("version_id"), dataset_version=meta.get("dataset_version"), source_version=meta.get("source_version"), snapshot_version=meta.get("snapshot_version"), run_id=meta.get("run_id"), region_id=region_id, agent=result, weights=weights, stats=stats,
+        timings_ms=timings, features=features, rows=rows, cols=cols, heatmap=heatmap,
+        schema_version=SCHEMA_VERSION, model_version=meta['model_version'], prediction_source=meta['prediction_source'], description=meta['description'], rmse_source=meta['rmse_source'])
 
-    # 3. Fill the scores from the vision model into the empty tile list made in the step above
-    tile_scores = model_client.predict(tile_list)
-    lap("model")
 
-    # 4. Raw scores + weights → heatmap
-    heatmap, stats = score_math.combine(tile_scores, weights, agent_result.preference.must_have)
-    lap("score")
-
-    # 5. Return to score.py
-    return ScoreResponse(
-        region_id=region_id,
-        agent=agent_result,
-        weights=weights,
-        rows=len(heatmap),
-        cols=len(heatmap[0]),
-        heatmap=heatmap,
-        stats=stats,
-        timings_ms=timings,
-    )
+def preview(version_id=None):
+    """Display a saved model dimension without calling a preference model."""
+    from api.schemas import AgentResult, DimensionWeight, Preference
+    dimension = 'shade' if 'shade' in SPEC['dimensions'] else next(iter(SPEC['dimensions']))
+    parsed = AgentResult(preference=Preference(weights=[DimensionWeight(
+        dimension=dimension, weight=1, reason='Saved prediction preview; no preference model was called')]),
+        attempts=[], used_fallback=False)
+    result = run_score('', get_preference=lambda _: parsed, version_id=version_id)
+    return result.model_copy(update={'preview': True})

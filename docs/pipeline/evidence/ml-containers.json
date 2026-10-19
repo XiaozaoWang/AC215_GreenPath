@@ -1,0 +1,38 @@
+[
+  {
+    "Service": "data-processor",
+    "Name": "gp-ml-smoke-20261018-02-data-processor-1",
+    "Image": "greenpath-data-processor:ml",
+    "ID": "95752abf725c",
+    "State": "exited",
+    "ExitCode": 0,
+    "Status": "Exited (0) 42 seconds ago"
+  },
+  {
+    "Service": "feature-encoder",
+    "Name": "gp-ml-smoke-20261018-02-feature-encoder-1",
+    "Image": "greenpath-feature-encoder:ml",
+    "ID": "f7b6c0eda670",
+    "State": "exited",
+    "ExitCode": 0,
+    "Status": "Exited (0) 4 seconds ago"
+  },
+  {
+    "Service": "model-deploy",
+    "Name": "gp-ml-smoke-20261018-02-model-deploy-1",
+    "Image": "greenpath-model-deploy:ml",
+    "ID": "87784a969a7a",
+    "State": "exited",
+    "ExitCode": 0,
+    "Status": "Exited (0) Less than a second ago"
+  },
+  {
+    "Service": "model-training",
+    "Name": "gp-ml-smoke-20261018-02-model-training-1",
+    "Image": "greenpath-model-training:ml",
+    "ID": "d2dc91cc359a",
+    "State": "exited",
+    "ExitCode": 0,
+    "Status": "Exited (0) Less than a second ago"
+  }
+]

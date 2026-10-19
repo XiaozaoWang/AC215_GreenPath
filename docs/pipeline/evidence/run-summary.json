@@ -1,0 +1,56 @@
+{
+  "run_id": "smoke-20261018-02",
+  "mode": "smoke",
+  "ml_compose_project": "gp-ml-smoke-20261018-02",
+  "success": true,
+  "started_at": "2026-10-18T15:32:34.982841+00:00",
+  "offline": false,
+  "code_sha256": {
+    "src/data-processor/greenpath_data/dataset.py": "c8a9ce40861954f7ea2f3359472390cfee988e8f59d22d09eb6028516d8ff828",
+    "src/feature-encoder/greenpath_encoder/encode.py": "bf40bc333d60a621a874a9d0a5fe38e5e03bb547e105705b59f76763873aa49e",
+    "src/model-training/greenpath_training/train.py": "46b722d5f6e4ecb654545ce743b0bc7c7bb583bccd41db96d75d75c8d106fb99",
+    "src/model-deploy/greenpath_model/region.py": "370242695c32e50df7d6ba05db119bf6b67bc3d9e1e5b400d884fb087cd6cc59",
+    "docker-compose.ml.yml": "7a03e2aa9c82823a8e5c229bf557d7fd46401a5a4313036efa1d5855973ac176",
+    "tools/run_pipeline.py": "cde8f18b23c29b9a8e114b662a1c0dbd5acea718c90383199362032a49d4472f"
+  },
+  "ml": {
+    "counts": {
+      "train": 32,
+      "val": 8,
+      "test": 8
+    },
+    "dataset_version": "pipeline-smoke-v1",
+    "n_cells": 48,
+    "model_version": "model-smoke-20261018-02",
+    "serving_version": "serving-smoke-20261018-02",
+    "fresh_encoding": true,
+    "artifact_checksums_verified": true,
+    "reload_validation": {
+      "reference_max_abs_error": null,
+      "reference_tolerance": null,
+      "reference_policy": "none",
+      "n_test": 8,
+      "no_test_rows_used_for_fit": true,
+      "reload_max_abs_error": 5.960464477539063e-08,
+      "fresh_process_max_abs_error": 5.960464477539063e-08,
+      "reload_tolerance": 1e-06,
+      "fresh_process_verified": true
+    }
+  },
+  "app": {
+    "verified": true,
+    "n_cells": 48,
+    "api_url": "http://127.0.0.1:9030",
+    "prediction_source": "batch_inference_reloaded_model",
+    "frontend_url": "http://localhost:3030"
+  },
+  "elapsed_seconds": 92.57,
+  "finished_at": "2026-10-18T15:34:07.549288+00:00",
+  "tests": {
+    "ml_and_launcher": 45,
+    "api": 59,
+    "total": 104
+  },
+  "browser_verified": true,
+  "scope": "Online GCS ingestion plus fresh 48-image smoke pipeline and local API/frontend. Full preparation counts verified; full-mode encoding/training was not run."
+}

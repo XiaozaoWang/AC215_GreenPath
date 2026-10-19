@@ -1,0 +1,10 @@
+{
+  "source_version": "boston-pilot-v2",
+  "success": true,
+  "stages": {
+    "01_streetview": "completed",
+    "02_tiles": "completed",
+    "03_osm_features": "completed",
+    "04_labeling": "complete_selected_workspace"
+  }
+}

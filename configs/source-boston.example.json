@@ -1,0 +1,23 @@
+{
+  "format_version": "greenpath-source-config-v1",
+  "source_version": "boston-source-local-v1",
+  "streetview": {
+    "city": "boston", "city_prefix": "BOS",
+    "bbox": [-71.13, 42.33, -71.03, 42.39], "h3_res": 10,
+    "tile_zoom": 14, "min_quality": 0.0, "min_year": 2019,
+    "exclude_months": [12, 1, 2, 3], "allow_pano": false,
+    "min_images_per_cell": 2, "max_images_per_cell": 4,
+    "sample_size": 50, "seed": 42, "download_images": true, "download_workers": 8
+  },
+  "tiles": {"tile_px": 256, "ground_m": 154, "naip_min_year": 2018, "max_nodata_frac": 0.05, "seed": 42},
+  "features": {
+    "ground_m": 154, "osm_pad_deg": 0.004, "worldcover_year": 2021,
+    "osm_pbf_url": "https://download.geofabrik.de/north-america/us/massachusetts-latest.osm.pbf"
+  },
+  "labeling": {
+    "prompt_version": "v2", "model": "gemini-2.5-flash", "thinking_budget": 0,
+    "workers": 2, "min_usable_images": 2, "max_images": 8,
+    "qa_n": 150, "thumb_px": 480, "gallery_max_images": 1000, "seed": 42,
+    "price_in_per_m": null, "price_out_per_m": null
+  }
+}

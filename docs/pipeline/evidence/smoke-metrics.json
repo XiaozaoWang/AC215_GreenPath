@@ -1,0 +1,54 @@
+{
+  "split": "held_out_test",
+  "use": "Reproduction report only, not hyperparameter selection or serving error calibration.",
+  "per_dimension": {
+    "traffic_intensity": {
+      "n": 8,
+      "mae": 0.11915180459618568,
+      "rmse": 0.14439139107472257,
+      "spearman": 0.6918326955503612
+    },
+    "quietness": {
+      "n": 8,
+      "mae": 0.09038403257727623,
+      "rmse": 0.1148384097679406,
+      "spearman": 0.6918326955503612
+    },
+    "shade": {
+      "n": 8,
+      "mae": 0.17183653265237808,
+      "rmse": 0.20007226754625995,
+      "spearman": -0.37581969985087577
+    },
+    "naturalness": {
+      "n": 8,
+      "mae": 0.09342840686440468,
+      "rmse": 0.12748084370515644,
+      "spearman": 0.6386005678432409
+    },
+    "scenic_appeal": {
+      "n": 8,
+      "mae": 0.0735413171350956,
+      "rmse": 0.10586410008748674,
+      "spearman": 0.3829788136082356
+    },
+    "historic_character": {
+      "n": 8,
+      "mae": 0.20757758617401123,
+      "rmse": 0.23965562379471905,
+      "spearman": 0.20483414440254896
+    },
+    "liveliness": {
+      "n": 8,
+      "mae": 0.14031572546809912,
+      "rmse": 0.17828934491042722,
+      "spearman": 0.7229440390678199
+    },
+    "visual_openness": {
+      "n": 8,
+      "mae": 0.031072068959474564,
+      "rmse": 0.03721522742686446,
+      "spearman": 0.0
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "model": "gemini-2.5-flash",
+  "prompt_version": "v2",
+  "prompt_sha": "f8e50b7d0a0334f3f407453032c7f192d76927b9147bae261f39c399a2152cda",
+  "location": "us-central1",
+  "thinking_budget": 0,
+  "temperature": 0.0,
+  "min_usable_images": 2,
+  "images_scored": 193,
+  "images_usable": 193,
+  "input_tokens": 468180,
+  "output_tokens": 24503,
+  "est_cost_usd": null,
+  "request_spec_sha256": "15690faa71d596da84c821719086f14e3975b41c4fa34c09748a25aaaf68540e",
+  "pricing_note": "User-supplied token rates only; null means no pricing estimate configured",
+  "images_pending": 0,
+  "complete": true,
+  "cells_total": 50,
+  "cells_labeled": 50,
+  "created_at": "2026-10-19T07:05:52+00:00"
+}

@@ -1,70 +1,55 @@
-# Scoring math. Goal: model raw scores X + preference weights w → total score t per tile.
-# Steps: z-score within the region (σ has a floor) → clip → t = Z·w → must_have gate → put back on the grid.
+"""Region standardization and preference scoring, independent of display geometry."""
+import math
 import numpy as np
-
-from api.dimensions import DIMENSION_NAMES
+from api.dimensions import DIMENSION_NAMES, SCORE_MIN, SCORE_MAX
 from api.schemas import ScoreStats, TileScore
 
-# σ floor: a difference smaller than the model error doesn't count as a difference.
-# PLACEHOLDER: M2 doesn't have the real model's per-dimension RMSE yet, so for now assume the model is off by 0.05 on average (score range 0-1);
-# later read it from the model's metrics.json
-PLACEHOLDER_RMSE = 0.05
-# z-score clip range: keep a few extreme tiles from taking over
+PLACEHOLDER_RMSE = 0.05 * (SCORE_MAX - SCORE_MIN)
 Z_CLIP = 3.0
-# must_have gate: tiles whose raw score on this dimension is below this value are out right away (0-1 range, same as 10 points before)
-MUST_HAVE_MIN = 0.1
+MUST_HAVE_MIN = SCORE_MIN + 0.1 * (SCORE_MAX - SCORE_MIN)
 
 
-# Take the list from model_client.predict, where each item holds all the info of one tile,
-# and turn it into a 10000 rows * 20 cols matrix, dropping the id info
-def to_matrix(tile_scores: list[TileScore]) -> np.ndarray:
-    return np.array([[ts.scores[name] for name in DIMENSION_NAMES] for ts in tile_scores], dtype=float)
+def to_matrix(tile_scores):
+    return np.array([[t.scores[name] for name in DIMENSION_NAMES] for t in tile_scores], dtype=float)
 
 
-# Standardize within the region: for each dimension subtract the region mean, divide by σ (σ is at least RMSE), then clip to ±Z_CLIP
-def standardize(X: np.ndarray, rmse: np.ndarray):
+def standardize(X, rmse):
+    if not np.isfinite(X).all() or not np.isfinite(rmse).all() or (rmse < 0).any():
+        raise ValueError('scores/errors must be finite; errors must be nonnegative')
     mu = X.mean(axis=0)
-    sigma = np.maximum(X.std(axis=0), rmse)
-    Z = np.clip((X - mu) / sigma, -Z_CLIP, Z_CLIP)
-    return Z, mu, sigma
+    sigma = np.maximum(np.maximum(X.std(axis=0), rmse), 1e-12)
+    return np.clip((X - mu) / sigma, -Z_CLIP, Z_CLIP), mu, sigma
 
 
-# Main function: raw scores + weights → heatmap (heatmap[row][col], tiles that didn't pass the gate are None) + intermediate numbers
-def combine(
-    tile_scores: list[TileScore],
-    weights: dict[str, float],
-    must_have: list[str] = (),
-    rmse: dict[str, float] | None = None,
-) -> tuple[list[list[float | None]], ScoreStats]:
-    # Standardize: turn each dimension into "how many σ above/below the region average"
+def score_values(tile_scores, weights, must_have=(), rmse=None):
+    if not tile_scores:
+        raise ValueError('cannot score an empty region')
+    if set(weights) - set(DIMENSION_NAMES) or set(must_have) - set(DIMENSION_NAMES):
+        raise ValueError('unsupported scoring dimension')
+    if any(not math.isfinite(v) or not -1 <= v <= 1 for v in weights.values()):
+        raise ValueError('weights must be finite and in [-1,1]')
     X = to_matrix(tile_scores)
     rmse_vec = np.array([(rmse or {}).get(name, PLACEHOLDER_RMSE) for name in DIMENSION_NAMES])
     Z, mu, sigma = standardize(X, rmse_vec)
-
-    # Weighted sum: t = Z·w, one total score per tile
-    w = np.array([weights.get(name, 0.0) for name in DIMENSION_NAMES])
-    t = Z @ w
-
-    # must_have gate: use the raw scores to guard the gate (not Z, because Z only says relatively high or low)
+    t = Z @ np.array([weights.get(name, 0.0) for name in DIMENSION_NAMES])
     passed = np.ones(len(t), dtype=bool)
     for name in must_have:
         passed &= X[:, DIMENSION_NAMES.index(name)] >= MUST_HAVE_MIN
-
-    # Put back on the grid
-    rows = max(ts.row for ts in tile_scores) + 1
-    cols = max(ts.col for ts in tile_scores) + 1
-    heatmap = [[None] * cols for _ in range(rows)]
-    for ts, value, ok in zip(tile_scores, t, passed):
-        heatmap[ts.row][ts.col] = round(float(value), 3) if ok else None
-
-    # Intermediate numbers: for the page to show and for people to check
-    stats = ScoreStats(
-        n_tiles=len(t),
-        n_excluded=int((~passed).sum()),
+    values = [round(float(value), 3) if ok else None for value, ok in zip(t, passed)]
+    stats = ScoreStats(n_tiles=len(t), n_excluded=int((~passed).sum()),
         t_min=round(float(t[passed].min()), 3) if passed.any() else None,
         t_max=round(float(t[passed].max()), 3) if passed.any() else None,
-        # Keep 4 decimals for the 0-1 range (it was 2 decimals back with 0-100)
-        mean={name: round(float(m), 4) for name, m in zip(DIMENSION_NAMES, mu)},
-        sigma={name: round(float(s), 4) for name, s in zip(DIMENSION_NAMES, sigma)},
-    )
+        mean=dict(zip(DIMENSION_NAMES, np.round(mu, 4).tolist())),
+        sigma=dict(zip(DIMENSION_NAMES, np.round(sigma, 4).tolist())))
+    return values, stats
+
+
+def combine(tile_scores: list[TileScore], weights: dict[str, float], must_have=(), rmse=None):
+    """Legacy rectangular renderer; geographic rendering uses score_values directly."""
+    values, stats = score_values(tile_scores, weights, must_have, rmse)
+    if any(t.row is None or t.col is None for t in tile_scores):
+        raise ValueError('grid combine requires explicit row/col positions')
+    heatmap = [[None] * (max(t.col for t in tile_scores) + 1) for _ in range(max(t.row for t in tile_scores) + 1)]
+    for tile, value in zip(tile_scores, values):
+        heatmap[tile.row][tile.col] = value
     return heatmap, stats
