@@ -24,14 +24,7 @@ is the next step. **Milestone 2 track: Vision.**
   - [Run collection through prediction](#run-collection-through-prediction)
   - [Example pipeline outputs](#example-pipeline-outputs)
   - [Model training and results: partial fine-tuning](#model-training-and-results-partial-fine-tuning)
-    - [1. Data and evaluation protocol](#1-data-and-evaluation-protocol)
-    - [2. Model configurations](#2-model-configurations)
-    - [3. Held-out test comparison (54 cells)](#3-held-out-test-comparison-54-cells)
-    - [4. Detailed comparison by target dimension](#4-detailed-comparison-by-target-dimension)
-    - [5. Interpretation and limitations](#5-interpretation-and-limitations)
-    - [6. Reproducibility](#6-reproducibility)
   - [Data and model versions](#data-and-model-versions)
-- [Milestone 2 evidence](#milestone-2-evidence)
 
 ## Repository at a glance
 
@@ -280,17 +273,23 @@ and ESA WorldCover 2021 (CC BY 4.0).
 
 ### Model training and results: partial fine-tuning
 
-**The results below use the ten-target Notebook 08 experiment.** The runnable app and
-five-container workflow still use the existing frozen CLIP + Ridge serving path; these
-fine-tuned checkpoints have not been integrated into that path.
+**Notebook 08 compares models predicting ten scenery scores.** These are research
+results; the app still uses its existing frozen CLIP + Ridge model.
 
-This experiment asks whether partially updating pretrained visual encoders improves prediction of cycling-environment attributes from overhead imagery. It compares frozen and partially fine-tuned models within the **same ten-target dataset (`v1`) and fixed spatial train/validation/test split**. All ten targets are generated from street-view photographs by Gemini; they are **pseudo-labels, not independently validated cyclist ratings**.
+**Question: does fine-tuning help?** We compare keeping pretrained image encoders
+unchanged (frozen) with updating their final layers (partial fine-tuning). All models
+use the same data split and Gemini-generated labels, which have not been human-validated.
 
 #### 1. Data and evaluation protocol
 
-The pipeline produced 1,127 geographic cells, of which 175 received labels; 160 remained after spatial filtering. The fixed dataset has **67 training, 39 validation, and 54 held-out test cells**. The targets are `tree_canopy`, `greenery`, `water_visibility`, `open_landscape`, `urban_density`, `historic_character`, `commercial_activity`, `bike_infrastructure`, `road_environment`, and `scenic_appeal` (each normalized to [0, 1]).
+After filtering, **160 cells** remain: **67 train, 39 validation and 54 test**.
+Ten scores cover trees, greenery, water, openness, urban density, historic character,
+commercial activity, cycling infrastructure, road environment and scenic appeal (0–1).
 
-Models are selected by **validation MAE**, with early stopping based on that metric. The held-out test split is used for final evaluation. We report the **mean across the ten dimensions** of MAE and RMSE (lower is better) and Spearman rank correlation (higher is better). Missing targets are masked in the loss and evaluation. With only 67 training cells, these comparisons are preliminary.
+Validation error selects the model checkpoint; test cells are reserved for evaluation.
+Metrics average the ten targets and ignore missing labels:
+**MAE** is average absolute error, **RMSE** emphasizes large errors (both lower is better),
+and **Spearman** measures agreement in area rankings (higher is better).
 
 #### 2. Model configurations
 
@@ -309,9 +308,11 @@ Models are selected by **validation MAE**, with early stopping based on that met
 | Batch size / maximum epochs | 8 / 25 | 8 / 25 |
 | Early stopping | Patience 6; select minimum validation MAE | Same |
 
-Training also uses CUDA mixed precision where available and gradient clipping (`max_norm=1.0`). The completed Google Drive notebook records `DRY_RUN=False`; its outputs show 25 ResNet50 epochs and 15 DINOv2 epochs (the latter stopped early). The saved checkpoints are reloaded for evaluation.
+ResNet50 ran for 25 epochs; DINOv2 stopped early after 15. Saved checkpoints were
+reloaded for evaluation. Training uses mixed precision when available and gradient clipping.
 
-**Important comparison caveat:** Notebook 07's *frozen* models use a **Ridge regression probe on cached encoder embeddings**, whereas Notebook 08's partially fine-tuned models use a **new neural regression head**. The performance differences cannot be attributed exclusively to unfreezing the encoder.
+**Comparison limit:** frozen models use Ridge; fine-tuned models use a new neural head.
+Because both the encoder and head change, differences are not due only to fine-tuning.
 
 #### 3. Held-out test comparison (54 cells)
 
@@ -328,7 +329,7 @@ Training also uses CUDA mixed precision where available and gradient clipping (`
 
 ![Overall model comparison: MAE, RMSE, and Spearman](docs/experiments/finetuning/Figures/model_comparison.png)
 
-*Figure 1. Overall model comparison. Connected points compare frozen and partially fine-tuned versions of ResNet50 and DINOv2. CLIP has the lowest RMSE among image-only models, while OSM + LightGBM has the highest Spearman overall.*
+*Figure 1. Connected points show before/after fine-tuning; leftward is better for error, rightward for ranking.*
 
 ##### Frozen vs partial fine-tuning: direct comparison
 
@@ -337,44 +338,51 @@ Training also uses CUDA mixed precision where available and gradient clipping (`
 | ResNet50 | 0.132 | 0.174 | **+0.042** | 0.170 | 0.209 | **+0.039** | 0.403 | 0.215 | **−0.188** |
 | DINOv2-S | 0.132 | 0.125 | **−0.007** | 0.164 | 0.161 | **−0.003** | 0.468 | 0.441 | **−0.027** |
 
-DINOv2-S partial FT slightly reduces absolute prediction error, but does not improve ranking agreement. ResNet50 partial FT is worse than its frozen Ridge baseline on all three metrics. These are **descriptive test-set differences**, not claims of statistical significance.
+DINOv2 reduces error but worsens ranking. ResNet50 worsens on all three metrics.
+These observed differences are not claims of statistical significance.
 
 ![Frozen vs partial fine-tuning on the held-out test set](docs/experiments/finetuning/Figures/heldout_test_set.png)
 
-*Figure 2. Focused comparison of ResNet50 and DINOv2-S before and after fine-tuning across all three metrics.*
+*Figure 2. Each encoder before and after fine-tuning.*
 
 #### 4. Detailed comparison by target dimension
 
-Aggregate results can hide differences across the ten target attributes. The following figures compare the same four image-only configurations at the **per-dimension** level. The underlying results were calculated by the notebook from the saved test predictions and Notebook 07's `per_dimension_metrics.csv`.
+The next two figures show which individual targets improve or worsen, rather than
+only reporting an overall average.
 
 ##### Change in MAE
 
 ![Per-dimension change in MAE after fine-tuning](docs/experiments/finetuning/Figures/Finetuning_effect.png)
 
-*Figure 3. Change in MAE (partial FT minus frozen) for each target. Negative values indicate lower prediction error after fine-tuning; positive values indicate deterioration.*
+*Figure 3. Error change after fine-tuning: negative = improved, positive = worse.*
 
 ##### Ranking agreement
 
 ![Per-dimension Spearman ranking agreement](docs/experiments/finetuning/Figures/Ranking_agreement.png)
 
-*Figure 4. Per-dimension Spearman correlation for frozen and partially fine-tuned ResNet50 and DINOv2-S. Higher values indicate closer agreement with the Gemini-generated label ranking.*
+*Figure 4. Ranking agreement for each target; higher is better.*
 
-The notebook also exports `ft_per_dimension_comparison.csv` (ten dimensions × four models, with MAE, RMSE, Spearman, and sample counts) and `ft_four_model_summary.csv`. These provide exact numeric values behind Figures 2–4 without crowding this page with a 40-row table.
+Detailed CSV output names are listed in the [full report](docs/experiments/finetuning/FINETUNING.md).
 
 #### 5. Interpretation and limitations
 
-- **DINOv2-S**: Partial fine-tuning gives the lowest overall MAE (0.125) among the compared models, but its Spearman decreases from 0.468 to 0.441.
-- **ResNet50**: Partial fine-tuning increases MAE from 0.132 to 0.174 and reduces Spearman from 0.403 to 0.215. Notably, the configured `layer4` fine-tuning still makes **63.7% of this implementation's parameters trainable**.
-- **Frozen CLIP**: Remains competitive without encoder updates (MAE 0.126, RMSE 0.158, Spearman 0.519).
-- **OSM baseline**: OSM + LightGBM gives the highest Spearman (0.553), suggesting map-derived features are a strong comparator for route ranking.
+- **DINOv2-S:** lowest MAE (0.125), but ranking agreement decreases.
+- **ResNet50:** fine-tuning performs worse than its frozen baseline.
+- **Frozen CLIP:** lowest RMSE (0.158), without updating the encoder.
+- **OSM + LightGBM:** best ranking agreement (Spearman 0.553).
 
-The main limitations are the small number of labeled training cells, pseudo-label uncertainty, the overhead-vs-street-view domain gap, and differences between Ridge and neural regression heads. The next step is to **label more collected street-view images and expand the geographic coverage beyond Boston**, then rerun all models with a consistent spatial split. A frozen-encoder + neural-head control would better isolate the effect of unfreezing pretrained layers.
+Only 67 training cells and unverified teacher labels limit these findings. Aerial images
+also cannot capture everything visible from the street. Next: human-check labels, expand
+data beyond Boston, and compare frozen/fine-tuned encoders with the same head design.
 
 #### 6. Reproducibility
 
-Run `05_build_dataset.ipynb` → `06_embeddings.ipynb` → `07_baselines.ipynb` → [**`08_finetuning.ipynb`**](docs/experiments/finetuning/08_finetuning.ipynb). Notebook 08 is designed for Google Colab with a T4 GPU and reads data from the configured Google Drive project directory. It saves checkpoints, `training_history.csv`, `validation_per_dimension.csv`, `test_per_dimension_finetuning.csv`, `test_model_comparison_with_finetuning.csv`, `config.json`, and plots under `data/results/finetuning-*/`.
+Run notebooks 05 → 06 → 07 → [08](docs/experiments/finetuning/08_finetuning.ipynb) with
+the matching ten-target data. Notebook 08 uses Google Colab/T4 and Google Drive, saving
+checkpoints, metrics, settings and plots under `data/results/finetuning-*/`.
 
-**Files:** The [standalone report](docs/experiments/finetuning/FINETUNING.md), Notebook 08 and all four original figures are stored together in `docs/experiments/finetuning/`. Configure preceding notebooks for this ten-target dataset; the app's bundled inputs are not interchangeable. Referenced raw CSVs/checkpoints are notebook outputs and were not included in the supplied package.
+[Full report and settings](docs/experiments/finetuning/FINETUNING.md). Notebook and figures
+are included; raw CSVs/checkpoints are not. This dataset is separate from the app's bundled data.
 
 ### Data and model versions
 
