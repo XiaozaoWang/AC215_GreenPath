@@ -55,20 +55,22 @@ Docker Desktop supplies the local Linux VM. Python containers use `pyproject.tom
 
 ## Quick Start: try the MVP
 
-Requires Git and a running Docker Desktop (or Docker Engine with Compose v2).
+Requires Git, make and a running Docker Desktop (or Docker Engine with Compose v2).
 Keep ports **3000/9000** free. Internet is needed for builds and map imagery.
 
 ```sh
-git clone --branch 10.19 https://github.com/XiaozaoWang/green-path.git
+git clone --branch milestone2 https://github.com/XiaozaoWang/green-path.git
 cd green-path
 cp .env.example .env
 make app
 ```
 
+Wait for the API and frontend to finish starting; keep the terminal running.
 Open **http://localhost:3000** and enter **`I want a quiet ride with open views`**.
 API documentation: **http://localhost:9000/docs**. Stop with `docker compose down`.
-The default demo uses bundled real predictions and local keyword parsing, so no cloud
-credentials are needed.
+The demo reads bundled predictions for 188 historical test cells and uses local keyword
+parsing; no cloud credentials are needed. It does not run the ML pipeline or the ten-target
+fine-tuning experiment described below.
 
 ## API Service
 
