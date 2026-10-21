@@ -59,8 +59,8 @@ Requires Git, make and a running Docker Desktop (or Docker Engine with Compose v
 Keep ports **3000/9000** free. Internet is needed for builds and map imagery.
 
 ```sh
-git clone --branch milestone2 https://github.com/XiaozaoWang/green-path.git
-cd green-path
+git clone --branch milestone2 https://github.com/XiaozaoWang/AC215_GreenPath.git
+cd AC215_GreenPath
 cp .env.example .env
 make app
 ```
