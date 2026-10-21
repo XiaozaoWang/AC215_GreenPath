@@ -1,352 +1,392 @@
 # GreenPath
 
-GreenPath predicts eight ride-experience scores for Boston H3 cells. A Gemini teacher
-labels street-view images; the current student uses fixed CLIP aerial-image features
-and Ridge regression. The app displays saved predictions through a FastAPI backend and
-Next.js frontend. It does not run image inference on each user request.
+GreenPath aims to personalize cycling routes around the scenery and street environment
+riders want to experience, complementing route planners focused on feasibility and
+popularity. We use street-view images to generate training labels and train a vision
+model to predict multidimensional experience scores from aerial imagery. Our Boston MVP lets
+riders describe their preferences and explore matching areas on a map; route adjustment
+is the next step. **Milestone 2 track: Vision.**
 
 ## Contents
 
-- [1. Setup](#1-setup)
-- [2. Credentials](#2-credentials)
-- [3. Open the app and select saved results](#3-open-the-app-and-select-saved-results)
-  - [Download a shared result from GCS](#download-a-shared-result-from-gcs)
-- [4. Train from an existing snapshot](#4-train-from-an-existing-snapshot)
-- [5. Run collection through the app](#5-run-collection-through-the-app)
-- [6. API and frontend operation](#6-api-and-frontend-operation)
-- [7. Check results and stop services](#7-check-results-and-stop-services)
-- [8. Publish a completed run to GCS](#8-publish-a-completed-run-to-gcs)
-- [Documentation and evidence](#documentation-and-evidence)
+- [Repository at a glance](#repository-at-a-glance)
+- [Quick Start: try the MVP](#quick-start-try-the-mvp)
+- [API Service](#api-service)
+  - [Application directory](#application-directory)
+  - [Run and try](#run-and-try)
+  - [Using the real Gemini](#using-the-real-gemini)
+  - [Backend modules](#backend-modules)
+  - [Result versions](#result-versions)
+  - [FAQ](#faq)
+- [Frontend](#frontend)
+  - [Planned Route Recommendation](#planned-route-recommendation)
+- [ML Pipeline](#ml-pipeline)
+  - [Run collection through prediction](#run-collection-through-prediction)
+  - [Example pipeline outputs](#example-pipeline-outputs)
+  - [Model training and results: partial fine-tuning](#model-training-and-results-partial-fine-tuning)
+    - [1. Data and evaluation protocol](#1-data-and-evaluation-protocol)
+    - [2. Model configurations](#2-model-configurations)
+    - [3. Held-out test comparison (54 cells)](#3-held-out-test-comparison-54-cells)
+    - [4. Detailed comparison by target dimension](#4-detailed-comparison-by-target-dimension)
+    - [5. Interpretation and limitations](#5-interpretation-and-limitations)
+    - [6. Reproducibility](#6-reproducibility)
+  - [Data and model versions](#data-and-model-versions)
+- [Milestone 2 evidence](#milestone-2-evidence)
 
-| Read | Purpose |
-| --- | --- |
-| [ML pipeline](docs/ML_PIPELINE.md) | Containers, code folders, notebook mapping and orchestration |
-| [Data and model versioning](docs/DATA_AND_MODEL_VERSIONING.md) | What is stored where, input reuse and version selection |
-| [Experiments](docs/EXPERIMENTS.md) | Baselines, key settings, results and verification limits |
-| [API component](src/api-service/README.md) / [application notes](docs/app/README.md) | Backend configuration and app context |
-| [App design](docs/APP_DESIGN.md) | Wireframe and implementation-driven UI changes |
+## Repository at a glance
 
-## Choose a run path
+Two connected parts: the **ML pipeline builds a model and saves predictions**; the
+**application reads those predictions and matches them to riding preferences**.
 
-| Command | Starts from | Produces |
-| --- | --- | --- |
-| `make app-versions` | Existing serving results | Running API/frontend; no training |
-| `make run` | Existing snapshot (historical GCS input by default) | New dataset preparation, features, model, predictions and app |
-| `make run-all` | Source configuration/workspace, reusing valid outputs | 01-04, frozen snapshot, downstream ML and app |
+```text
+src/
+├── data-collector/   Collection, preprocessing and teacher labels
+├── data-processor/  Dataset preparation and spatial splits
+├── feature-encoder/ Fixed CLIP image features
+├── model-training/  Ridge training and model export
+├── model-deploy/    Reload, predict and package a serving bundle
+├── ml-workflow/     Pipeline orchestration and artifact management
+├── api-service/     FastAPI: preferences + saved predictions → map scores
+└── frontend-app/    Next.js: preference input and interactive H3 map
+```
 
-**Complete pipeline and full-size collection are different.** The default 50-cell pilot
-runs the complete source-to-app workflow. `mode: full` uses all qualifying prepared rows
-from that pilot. `sample_size: 0` instead selects all eligible cells in the configured
-bounding box; it does not mean the entire city.
+```text
+Street views + aerial images + geographic data
+  → five ML containers → saved serving bundle → API → frontend map
+                                               ↑
+                                         user preferences
+```
 
-## 1. Setup
+Docker Desktop supplies the local Linux VM. Python containers use `pyproject.toml` and
+`uv.lock`; the frontend uses `npm ci`. Compose defines services; Python orchestrates ML jobs.
 
-1. Clone the repository and enter the integration branch:
+## Quick Start: try the MVP
 
-   ```sh
-   git clone git@github.com:XiaozaoWang/green-path.git
-   cd green-path
-   git switch milestone2-integration
-   ```
+Requires Git and a running Docker Desktop (or Docker Engine with Compose v2).
+Keep ports **3000/9000** free. Internet is needed for builds and map imagery.
 
-2. Start Docker Desktop. On Linux, use Docker Engine with Compose. Check:
+```sh
+git clone --branch 10.19 https://github.com/XiaozaoWang/green-path.git
+cd green-path
+cp .env.example .env
+make app
+```
 
-   ```sh
-   docker info
-   docker compose version
-   python3 --version
-   make --version
-   ```
+Open **http://localhost:3000** and enter **`I want a quiet ride with open views`**.
+API documentation: **http://localhost:9000/docs**. Stop with `docker compose down`.
+The default demo uses bundled real predictions and local keyword parsing, so no cloud
+credentials are needed.
 
-   Host requirements: Python 3.9+, make and Docker Compose v2+. Allow approximately
-   8 GiB of Docker memory. Docker Desktop supplies the local Linux VM; no separate
-   cloud VM is required for this run path.
+## API Service
 
-3. Create local configuration only if it does not exist:
+The user describes the riding style they want in one sentence. The backend asks Gemini
+to turn this preference into weights (by default it uses a keyword stand-in), combines
+those weights with the vision model's saved results, and highlights the best-matching
+areas on the map.
 
-   ```sh
-   test -f .env || cp .env.example .env
-   ```
+**The frontend and backend do not run the vision model.** They read a result bundle
+computed in advance: cell shapes, per-cell scores and dimension definitions. A replacement
+model can use the same integration when its bundle follows the supported format and schema.
 
-Python dependencies are installed inside images using pinned uv and committed
-`pyproject.toml` / `uv.lock` files. Do not activate the research notebook environment.
-The frontend uses Node and `npm ci` inside its container. First builds need internet.
+### Application directory
 
-## 2. Credentials
+```text
+src/
+├── api-service/                      Backend (FastAPI, port 9000)
+│   ├── api/                          Code
+│   ├── fixtures/                     Bundled result: 188 test cells
+│   └── tests/                        Unit tests
+└── frontend-app/                     Frontend (Next.js, port 3000)
+    └── src/
+        ├── app/page.jsx              Page: iPhone mockup + input box
+        ├── components/HexMap.jsx     Map: satellite basemap + H3 hexagons
+        └── services/DataService.js   Calls the backend
+```
 
-| Operation | Required access |
-| --- | --- |
-| View bundled or locally saved results | No cloud credentials |
-| Download a shared serving result | Your own ADC with bucket read access |
-| Online training from a snapshot | ADC with read access to the team's private GCS inputs and encoder |
-| New collection and labeling | Mapillary Client Token; Vertex AI project access, billing and ADC |
-| Publish artifacts | ADC with write access to the destination bucket |
+### Run and try
 
-For the team's authorized GCP project, configure ADC on your machine:
+Follow [Quick Start](#quick-start-try-the-mvp) to start both services with `make app`.
+Open **http://localhost:3000** and enter **`I want a quiet ride with open views`**.
+Inspect or try API requests at **http://localhost:9000/docs**.
+
+### Using the real Gemini
+
+The default keyword stand-in only recognizes fixed keywords. For broader natural-language
+understanding, use Gemini with an authorized project and billing enabled.
+
+Add to `.env`:
+
+```dotenv
+COMPOSE_FILE=docker-compose.yml:docker-compose.gcp.yml
+LLM_PROVIDER=gemini
+```
+
+**Option 1: team project (recommended).** Requires Vertex AI access on the team project;
+usage is billed to that project. If `ADC_FILE` is set in `.env`, it must point to your
+valid credentials; otherwise Compose uses the default local ADC file.
 
 ```sh
 gcloud auth application-default login
 gcloud auth application-default set-quota-project organic-victory-508017-v9
+docker compose up --build
 ```
 
-Edit the ignored root `.env`; replace the placeholders with your own values:
+**Option 2: your own project.** Enable Vertex AI and billing on your project, and set:
 
 ```dotenv
-GOOGLE_CLOUD_PROJECT=organic-victory-508017-v9
-GOOGLE_CLOUD_LOCATION=us-central1
-ADC_FILE=/absolute/path/to/.config/gcloud/application_default_credentials.json
-MAPILLARY_TOKEN=YOUR_MAPILLARY_CLIENT_TOKEN
+GCP_PROJECT=your-project-id
+# Optional: only set this when using an existing authorized credential file.
+# ADC_FILE=/full/path/to/your-service-account-key.json
 ```
 
-The bucket `gs://ac215-greenpath` is private; ask the team for access. ADC login alone
-does not grant bucket or Vertex permissions. Launchers read `.env`; exported shell
-variables take precedence. Never commit tokens, ADC files or `.env`.
+Without a credential file, leave `ADC_FILE` unset and authenticate locally:
 
-## 3. Open the app and select saved results
+```sh
+gcloud auth application-default login
+gcloud auth application-default set-quota-project YOUR_PROJECT_ID
+docker compose up --build
+```
 
-From the repository root:
+Never commit `.env` or credentials to Git.
+
+### Backend modules
+
+| File | Role |
+| --- | --- |
+| `agent.py` | Asks Gemini and checks the format; retries invalid replies and falls back to all-zero weights after three failures. |
+| `llm.py` | Calls Gemini; `LLM_PROVIDER` switches between Gemini and the stand-in. |
+| `prompts.py` | Gemini instructions: dimensions and weighting rules. |
+| `fake_llm.py` | Offline keyword stand-in; no key needed. |
+| `schemas.py` | Data format definitions and validation. |
+| `dimensions.py` | Reads the dimension table. |
+| `tiles.py` | Returns the cells for a region. |
+| `model_client.py` | Reads per-cell scores and checks one-to-one cell alignment. |
+| `score_math.py` | Standardizes scores, clips extremes, applies weights and must-have thresholds. |
+| `pipeline.py` | Runs the modules in order. |
+| `service.py` | FastAPI entry point and endpoints. |
+| `routers/score.py` | Receives preference/scoring requests and returns results. |
+| `routers/source.py` | Read-only backend source viewer endpoint. |
+| `model_bundle.py`, `versions.py`, `artifacts.py` | Load bundles, resolve versions, and provide GCS transfer utilities. |
+
+### Result versions
+
+A fresh checkout shows the bundled 188 cells. After `make run` trains a model, the new
+result becomes the default. To return to the bundled result:
 
 ```sh
 make app-versions APP_ARGS="--version boston-heldout-en-v2"
 ```
 
-Open **http://localhost:3000**; API docs are **http://localhost:9000/docs**.
-The historical version contains predictions for **188 held-out test cells**.
+### FAQ
 
-The page shows the default result version. To list locally registered results and choose
-which one the app shows:
-
-```sh
-make catalog-refresh
-python3 src/ml-workflow/manage_artifacts.py list
-make app-versions APP_ARGS="--version serving-historical-smoke-001"
-```
-
-The last command requires the run in section 4 to have succeeded. Without `--version`,
-`make app-versions` retains the saved catalog default. Neither operation retrains a model
-or overwrites old results.
-
-### Download a shared result from GCS
-
-Obtain the **training run ID**, **serving version ID**, publication root and bucket read
-access from the producer. Complete setup and configure your own ADC (section 2).
-The result must have been published before downloading. These are example values:
-
-```sh
-SHARED_RUN_ID=boston-pilot-v2
-SHARED_VERSION=serving-boston-pilot-v2
-
-python3 src/ml-workflow/manage_artifacts.py fetch-serving \
-  --run-id "$SHARED_RUN_ID" --version "$SHARED_VERSION"
-make app-versions APP_ARGS="--version $SHARED_VERSION"
-```
-
-Default publication root: `gs://ac215-greenpath/artifacts`. For another root, add
-`--gcs-root gs://YOUR_BUCKET/artifacts` to the download command.
-Cloud `pipeline/runs/<run-id>/serving/` restores to the identical relative path under
-local `.artifacts/`, and is verified/registered automatically. Open **http://localhost:3000**
-and check version/model/cell count against the producer's summary. The example has 49 cells.
-
-Viewing needs only serving, not raw images, model weights or training. `make app-versions`
-does not download missing versions. Old explicit `--uri` downloads remain supported;
-legacy flat serving URLs use `.artifacts/serving/<version>/`. Bundled fixtures need no cloud
-access. Result schemas must match the API/frontend version.
-
-To restore the complete published training run, snapshot and encoder instead:
-
-```sh
-make fetch-run RUN_ID="$SHARED_RUN_ID"
-# Also restore its raw collection/labeling workspace, if included in the release:
-make fetch-run RUN_ID="$SHARED_RUN_ID" FETCH_ARGS="--include-upstream"
-```
-
-Restore refuses conflicting local files and can complete a prior serving-only download.
-It registers serving without replacing your local catalog/default or running any models.
-Source/run/snapshot paths match the cloud layout; encoder weights use a local shared cache.
-Workspaces, caches and the catalog on your machine are not overwritten by another user's
-catalog or runtime locks.
-
-## 4. Train from an existing snapshot
-
-With GCS credentials configured:
-
-```sh
-make run PIPELINE_ARGS="--run-id historical-smoke-001"
-```
-
-This skips 01-04, downloads or reuses the historical `boston-processed-v1` snapshot and
-CLIP weights, then runs preparation, fresh encoding, training, prediction and the app.
-Default smoke size is **32 train + 8 val + 8 test = 48 cells**; the map shows all 48.
-Outputs: `.artifacts/pipeline/runs/historical-smoke-001/`.
-Use a new run ID for another run; existing run directories are refused.
-
-To use a new local snapshot after section 5 has created it:
-
-```sh
-make run PIPELINE_MODE=full PIPELINE_ARGS="--run-id pilot-refit-001 --source-dir .artifacts/snapshots/sources/boston-source-local-v1-frozen-v1"
-```
-
-`full` means all qualifying cells in the selected input, not all Boston geography.
-For historical full mode, use `make run PIPELINE_MODE=full`.
-Add `--no-app` for ML only. Use `--offline` only after all required inputs are cached;
-use `--no-build` only when images match the current code.
-
-## 5. Run collection through the app
-
-Review `configs/workflow-boston-small.json` and `configs/source-boston.example.json`, then:
-
-```sh
-make run-all WORKFLOW_ARGS="--run-id pilot-e2e-001 --allow-labeling"
-```
-
-The configured pilot selects up to 50 cells. One upstream container runs 01-04, reusing
-verified outputs, then the launcher freezes inputs, runs the downstream jobs and opens
-the app with the new result selected. A matching frozen snapshot skips upstream work.
-It never substitutes historical data when the pilot fails.
-
-`--allow-labeling` permits paid requests: the supplied config caps new labeled images at
-200 per invocation, excluding retries. Partial results are saved, but incomplete labeling
-blocks freezing. Resume explicitly:
-
-```sh
-make run-all WORKFLOW_ARGS="--run-id pilot-e2e-001 --resume --allow-labeling"
-```
-
-For a fresh collection without reusing the default pilot workspace, generate new paired
-configs once (this command does not run the pipeline):
-
-```sh
-python3 src/ml-workflow/create_workflow_config.py boston-pilot-v3
-make run-all WORKFLOW_CONFIG=configs/workflow-boston-pilot-v3.json WORKFLOW_ARGS="--run-id boston-pilot-v3 --allow-labeling"
-```
-
-The generator defaults to 50 cells and 200 new labeled images per invocation. Optional
-`--sample-size 0` selects all eligible cells in the same bounding box; `--label-limit N`
-sets a positive batch limit. It refuses existing config/data paths. It inherits the
-Boston source rules, bbox and training settings; inspect the generated JSON before use.
-The new name identifies a new source workspace, snapshot and workflow. Changing only
-a run ID does not force recollection. Generate configs once; reuse them for subsequent
-invocations. Choose another unused name if `boston-pilot-v3` already exists.
-
-Insufficient spatially separated data can still stop preparation. See
-[the pipeline guide](docs/ML_PIPELINE.md) for individual stage commands.
-**Verified pilot:** `boston-pilot-v2` completed the consolidated source-to-app workflow
-on 2026-10-19: 193 labeled street photos, 50 labeled cells, 49 prepared/predicted cells
-(31 train / 10 val / 8 test), and successful API/frontend checks. One cell was removed by
-the imagery/street-view year-gap filter. This is a pilot validation, not full-size collection.
-
-## 6. API and frontend operation
-
-`make app-versions` manages both services in Compose project `greenpath-pipeline-app`.
-Do not start a second default Compose app on the same ports.
-
-```sh
-# Inspect service state and recent logs.
-docker compose -p greenpath-pipeline-app -f docker-compose.yml ps
-docker compose -p greenpath-pipeline-app -f docker-compose.yml logs --tail=80 api-service frontend
-
-# After editing API/frontend code, rebuild and recreate the app.
-make app-versions
-```
-
-API: `src/api-service/api/service.py` attaches the routes. Check `GET /versions`,
-`GET /capabilities` and `GET /preview` in Swagger UI. `POST /score` accepts preference
-text and an optional `version_id`; Swagger provides the current request schema.
-Default preference parsing is offline (`mock`); the displayed vision scores are real
-saved model predictions.
-
-Frontend: `src/frontend-app/src/app/page.jsx` draws an iPhone mockup with one prompt box and
-a zoomable map (`src/components/HexMap.jsx`: satellite imagery, H3 cells; colored = predicted,
-gray = no prediction). `src/frontend-app/src/services/DataService.js` calls the API. Enter a
-preference such as `A quiet ride with shade, avoid traffic`.
-The API reads saved serving data and computes preference matching.
-
-## 7. Check results and stop services
-
-```sh
-cat .artifacts/pipeline/runs/historical-smoke-001/run-summary.json
-cat .artifacts/workflows/pilot-e2e-001/workflow-summary.json
-```
-
-Read only the summary for the command you ran. For run-all retries, use the workflow's
-actual `training_run_id` to locate the ML run. Check success, split counts, reload
-validation, selected model/version and the frontend's matching cell count.
-
-```sh
-docker compose -p greenpath-pipeline-app -f docker-compose.yml down
-```
-
-This stops the app without deleting `.artifacts`. If 3000/9000 is occupied, identify and
-stop the owning process or explicitly choose alternate launcher ports.
-
-## 8. Publish a completed run to GCS
-
-After reviewing a successful run, publish its saved results. Docker must be running;
-ADC needs bucket write access. Use the actual `training_run_id` from the workflow summary
-(or the successful `make run` ID). The value below is an example:
-
-```sh
-PUBLISH_RUN_ID=boston-pilot-v2
-make publish-run RUN_ID="$PUBLISH_RUN_ID" PUBLISH_ARGS="--include-upstream"
-```
-
-This uploads existing data without collection, labeling or training. `--include-upstream`
-adds the source workspace's actual files under `sources/<source-version>/`, without a tar
-wrapper. It requires new-pipeline lineage and unchanged frozen input files. Omit it for
-historical snapshots without a source workspace. Publication filters machine locks/hidden
-files, keeps stage manifests unchanged and publishes the release last.
-
-Cloud paths under `gs://ac215-greenpath/artifacts/` mirror local formal artifact paths:
-
-| Cloud path | Matching local path under `.artifacts/` |
+| Symptom | Cause / fix |
 | --- | --- |
-| `sources/<source-version>/` | Same: raw images, geographic inputs, label caches and records |
-| `snapshots/sources/<snapshot-version>/` | Same: fixed input package |
-| `pipeline/runs/<run-id>/` | Same: prepared, embeddings, model, predictions, serving, logs and summary |
-| `releases/mirrored-v1/<run-id>/` | Same: checksummed version/restore links |
-| `encoders/<encoder-version>/` | `pipeline/cache/encoders/<encoder-version>/`: reusable weight cache |
+| The map does not change after input | Try the example keywords; the stand-in does not understand every phrasing. With Gemini, check logs for `LLM call failed`. |
+| Credentials not found | Check that `docker-compose.gcp.yml` is included through `COMPOSE_FILE`, and that the ADC file exists and is mounted. |
+| Port already in use | Stop the containers owning the port. For this app, run `docker compose down` before restarting. |
 
-To publish to another root, add `GCS_ROOT=gs://YOUR_BUCKET/artifacts` to the Make command.
-No catalog, archived data or temporary cache is automatically uploaded; app deployment is
-separate. Ordinary `make run` / `make run-all` still do not publish automatically.
+## Frontend
 
-```sh
-cat ".artifacts/catalog/publications/mirrored-v1/$PUBLISH_RUN_ID.json"
-```
+Next.js/React + Leaflet provides a phone-style prompt box and zoomable H3 map. It calls
+`/preview` on load and `/score` on submission; colored cells have predictions and gray
+cells do not. After Quick Start, enter a preference at **http://localhost:3000**.
+[Frontend files and configuration](src/frontend-app/README.md).
 
-The receipt includes serving/release identities and URIs. Retry interrupted uploads with
-the same run, root and options; existing different contents are refused. Give viewers the
-run ID, serving version, publication root and bucket read access so they can follow
-[the download steps](#download-a-shared-result-from-gcs).
+![GreenPath user flow: Start, Ask, and Result](docs/app/assets/frontend-example.png)
 
-Existing legacy GCS prefixes remain as read-compatible backups. Historical standalone
-artifacts are copied into `artifacts/reference/`; bundled historical serving results live
-under `artifacts/serving/`. The migration script is `src/ml-workflow/migrate_cloud_layout.py`;
-without `--apply` it prints a plan only. Migration does not delete old cloud data.
+Start with the map, enter a riding preference, and view matching areas. This example
+uses saved predictions from the historical held-out test set.
 
-## Documentation and evidence
+### Planned Route Recommendation
 
-- [New pilot workflow summary](docs/pipeline/evidence/boston-pilot-v2/workflow-summary.json),
-  [run summary](docs/pipeline/evidence/boston-pilot-v2/run-summary.json),
-  [upstream log](docs/pipeline/evidence/boston-pilot-v2/01-04_sources.log),
-  [ML log](docs/pipeline/evidence/boston-pilot-v2/ml.log),
-  [sample request](docs/pipeline/evidence/boston-pilot-v2/sample-request.json) and
-  [response](docs/pipeline/evidence/boston-pilot-v2/sample-response.json) record the completed
-  source-to-app pilot. The response identifies `serving-boston-pilot-v2` and all 49 map cells.
+The next step is to use the preference-weighted heatmap to adjust an existing cycling
+route toward matching areas, through a routing service. The current MVP implements
+preference weighting and map display; route input, adjustment and generation are not
+implemented yet.
 
-- [Recorded smoke summary](docs/pipeline/evidence/run-summary.json),
-  [ML log](docs/pipeline/evidence/pipeline-ml.log),
-  [sample request](docs/pipeline/evidence/sample-request.json),
-  [response preview](docs/pipeline/evidence/sample-response-preview.json) and
-  [app screenshot](docs/pipeline/evidence/ui-preview.jpg) document an earlier successful run.
-- [Wireframe](docs/app/m2-wireframe.svg) and [design notes](docs/APP_DESIGN.md).
-  The team still needs to attach its actual M1 feedback/design reference and a current
-  screenshot of running local/cloud instances for submission.
-- Optional user-run checks: `make source-test`, `make pipeline-test`, `make test`.
-  Host component tests require uv and the appropriate Python versions.
-- [Research notebooks](docs/notebooks/README.md) are archived references; containers execute
-  `src/` scripts. Component READMEs and [dependency details](docs/DEPENDENCIES.md) provide implementation references.
+![Concept for preference-weighted scoring and future route recommendation](docs/app/assets/preference-scoring-flow.png)
 
-The earlier smoke logs predate consolidation; the new `boston-pilot-v2` evidence covers
-the shared upstream image and source-to-app path. Neither run establishes city-wide scale
-or strong generalization from eight pilot test cells.
+The diagram uses earlier example dimensions and score scales; the current model has
+eight raw outputs in [0,1]. Its final routing step illustrates the planned extension.
+
+## ML Pipeline
+
+### Run collection through prediction
+
+Run the complete **50-cell pilot**, from collection and labeling to training, saved
+predictions and the app. Requires Docker (about 8 GiB memory), Python 3.9+, make and
+Google Cloud CLI. Ask the team for **Vertex AI access and GCS read access**, and obtain
+a Mapillary Client Token. New labeling makes paid Vertex AI requests.
+
+1. After the repository setup above, authenticate your own Google account:
+
+   ```sh
+   gcloud auth application-default login
+   gcloud auth application-default set-quota-project organic-victory-508017-v9
+   ```
+
+   Set these values in `.env` (replace the token and ADC path):
+
+   ```dotenv
+   GOOGLE_CLOUD_PROJECT=organic-victory-508017-v9
+   GOOGLE_CLOUD_LOCATION=us-central1
+   ADC_FILE=/absolute/path/to/.config/gcloud/application_default_credentials.json
+   MAPILLARY_TOKEN=YOUR_MAPILLARY_CLIENT_TOKEN
+   ```
+
+2. If the app above is running, stop it first with `docker compose down` to free
+   ports 3000/9000. Then run:
+
+   ```sh
+   make run-all WORKFLOW_ARGS="--run-id reviewer-pilot-001 --allow-labeling"
+   ```
+
+   The command builds and coordinates five ML container roles in order:
+
+   | Container / code folder | Responsibility |
+   | --- | --- |
+   | `data-source` / [`src/data-collector/`](src/data-collector/) | 01–04: collect street views, crop aerial tiles, extract geographic features and generate teacher labels. |
+   | [`data-processor`](src/data-processor/) | Freeze inputs, then join/filter data and create spatial train/val/test splits (05). |
+   | [`feature-encoder`](src/feature-encoder/) | Extract fixed CLIP image features (06). |
+   | [`model-training`](src/model-training/) | Fit and export scaler + Ridge models (07). |
+   | [`model-deploy`](src/model-deploy/) | Reload the model, predict and package the geographic serving bundle. |
+
+3. Open **http://localhost:3000** to view the new predictions. Check `success: true`
+   in `.artifacts/workflows/reviewer-pilot-001/workflow-summary.json`. Outputs are in
+   `.artifacts/pipeline/runs/<training_run_id>/`; the summary identifies that ID.
+
+Use a new run ID for another run. Valid source outputs may be reused. If labeling stops
+with images pending, rerun the same command with `--resume` added inside `WORKFLOW_ARGS`.
+[Detailed pipeline instructions](docs/ML_PIPELINE.md#execution-and-resuming).
+
+### Example pipeline outputs
+
+Saved outputs from the completed `boston-pilot-v2` run, generated by the upstream
+`data-source` container (01–04):
+
+| 01 · Street-view collection | 02 · Aerial image preprocessing |
+| --- | --- |
+| ![Selected street-view images](docs/pipeline/assets/boston-pilot-v2/streetview_preview.png) | ![Cropped NAIP aerial images](docs/pipeline/assets/boston-pilot-v2/tiles_preview.png) |
+| Multiple street views per cell provide teacher-label inputs. | Each RGB tile is 256 × 256 pixels, covering approximately 154 × 154 m. |
+
+| 03 · Geographic features | 04 · Teacher labels |
+| --- | --- |
+| ![Aerial tiles with geographic feature summaries](docs/pipeline/assets/boston-pilot-v2/features_preview.png) | ![Eight-dimensional teacher score distributions](docs/pipeline/assets/boston-pilot-v2/label_distributions.png) |
+| OSM / WorldCover road lengths and land-cover fractions. | Image-level scores from 1–5; these are label distributions, not model accuracy. |
+
+Street imagery © Mapillary contributors, CC BY-SA 4.0. Aerial imagery: USDA NAIP via
+Microsoft Planetary Computer. Geographic data: © OpenStreetMap contributors (ODbL)
+and ESA WorldCover 2021 (CC BY 4.0).
+
+### Model training and results: partial fine-tuning
+
+**The results below use the ten-target Notebook 08 experiment.** The runnable app and
+five-container workflow still use the existing frozen CLIP + Ridge serving path; these
+fine-tuned checkpoints have not been integrated into that path.
+
+This experiment asks whether partially updating pretrained visual encoders improves prediction of cycling-environment attributes from overhead imagery. It compares frozen and partially fine-tuned models within the **same ten-target dataset (`v1`) and fixed spatial train/validation/test split**. All ten targets are generated from street-view photographs by Gemini; they are **pseudo-labels, not independently validated cyclist ratings**.
+
+#### 1. Data and evaluation protocol
+
+The pipeline produced 1,127 geographic cells, of which 175 received labels; 160 remained after spatial filtering. The fixed dataset has **67 training, 39 validation, and 54 held-out test cells**. The targets are `tree_canopy`, `greenery`, `water_visibility`, `open_landscape`, `urban_density`, `historic_character`, `commercial_activity`, `bike_infrastructure`, `road_environment`, and `scenic_appeal` (each normalized to [0, 1]).
+
+Models are selected by **validation MAE**, with early stopping based on that metric. The held-out test split is used for final evaluation. We report the **mean across the ten dimensions** of MAE and RMSE (lower is better) and Spearman rank correlation (higher is better). Missing targets are masked in the loss and evaluation. With only 67 training cells, these comparisons are preliminary.
+
+#### 2. Model configurations
+
+| Component | M2a: ResNet50 Partial FT | M2b: DINOv2-S Partial FT |
+|---|---|---|
+| Pretrained encoder (`timm`) | `resnet50.a1_in1k` | `vit_small_patch14_dinov2.lvd142m` |
+| Frozen encoder layers | All except final residual stage | All except last two Transformer blocks and final norm |
+| Trainable encoder layers | `layer4` | `blocks[-2:]` and `norm` |
+| Regression head | New linear head with 10 outputs + sigmoid | New linear head with 10 outputs + sigmoid |
+| Trainable parameters (from Notebook 08 output) | 14,985,226 / 23,528,522 (**63.7%**) | 3,555,082 / 21,632,650 (**16.4%**) |
+| Optimizer | AdamW | AdamW |
+| Learning rate | Encoder `1e-5`; head `3e-4` | Encoder `1e-5`; head `3e-4` |
+| Weight decay | `1e-4` | `1e-4` |
+| Loss | Masked SmoothL1 / Huber (`beta=0.1`) | Same |
+| Image processing | 224×224 center crop; ImageNet normalization; random flips and 90° rotations | Same |
+| Batch size / maximum epochs | 8 / 25 | 8 / 25 |
+| Early stopping | Patience 6; select minimum validation MAE | Same |
+
+Training also uses CUDA mixed precision where available and gradient clipping (`max_norm=1.0`). The completed Google Drive notebook records `DRY_RUN=False`; its outputs show 25 ResNet50 epochs and 15 DINOv2 epochs (the latter stopped early). The saved checkpoints are reloaded for evaluation.
+
+**Important comparison caveat:** Notebook 07's *frozen* models use a **Ridge regression probe on cached encoder embeddings**, whereas Notebook 08's partially fine-tuned models use a **new neural regression head**. The performance differences cannot be attributed exclusively to unfreezing the encoder.
+
+#### 3. Held-out test comparison (54 cells)
+
+| Model | MAE ↓ | RMSE ↓ | Spearman ↑ |
+|---|---:|---:|---:|
+| B0: Mean baseline | 0.174 | 0.208 | 0.000 |
+| B1: OSM + LightGBM | 0.132 | 0.163 | **0.553** |
+| ResNet50 — Frozen + Ridge | 0.132 | 0.170 | 0.403 |
+| ResNet50 — Partial FT | 0.174 | 0.209 | 0.215 |
+| DINOv2-S — Frozen + Ridge | 0.132 | 0.164 | 0.468 |
+| DINOv2-S — Partial FT | **0.125** | 0.161 | 0.441 |
+| CLIP — Frozen + Ridge | 0.126 | **0.158** | 0.519 |
+| M3: Image + OSM | 0.135 | 0.170 | 0.475 |
+
+![Overall model comparison: MAE, RMSE, and Spearman](docs/experiments/finetuning/Figures/model_comparison.png)
+
+*Figure 1. Overall model comparison. Connected points compare frozen and partially fine-tuned versions of ResNet50 and DINOv2. CLIP has the lowest RMSE among image-only models, while OSM + LightGBM has the highest Spearman overall.*
+
+##### Frozen vs partial fine-tuning: direct comparison
+
+| Encoder | Frozen MAE | FT MAE | Δ MAE ↓ | Frozen RMSE | FT RMSE | Δ RMSE ↓ | Frozen Spearman | FT Spearman | Δ Spearman ↑ |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| ResNet50 | 0.132 | 0.174 | **+0.042** | 0.170 | 0.209 | **+0.039** | 0.403 | 0.215 | **−0.188** |
+| DINOv2-S | 0.132 | 0.125 | **−0.007** | 0.164 | 0.161 | **−0.003** | 0.468 | 0.441 | **−0.027** |
+
+DINOv2-S partial FT slightly reduces absolute prediction error, but does not improve ranking agreement. ResNet50 partial FT is worse than its frozen Ridge baseline on all three metrics. These are **descriptive test-set differences**, not claims of statistical significance.
+
+![Frozen vs partial fine-tuning on the held-out test set](docs/experiments/finetuning/Figures/heldout_test_set.png)
+
+*Figure 2. Focused comparison of ResNet50 and DINOv2-S before and after fine-tuning across all three metrics.*
+
+#### 4. Detailed comparison by target dimension
+
+Aggregate results can hide differences across the ten target attributes. The following figures compare the same four image-only configurations at the **per-dimension** level. The underlying results were calculated by the notebook from the saved test predictions and Notebook 07's `per_dimension_metrics.csv`.
+
+##### Change in MAE
+
+![Per-dimension change in MAE after fine-tuning](docs/experiments/finetuning/Figures/Finetuning_effect.png)
+
+*Figure 3. Change in MAE (partial FT minus frozen) for each target. Negative values indicate lower prediction error after fine-tuning; positive values indicate deterioration.*
+
+##### Ranking agreement
+
+![Per-dimension Spearman ranking agreement](docs/experiments/finetuning/Figures/Ranking_agreement.png)
+
+*Figure 4. Per-dimension Spearman correlation for frozen and partially fine-tuned ResNet50 and DINOv2-S. Higher values indicate closer agreement with the Gemini-generated label ranking.*
+
+The notebook also exports `ft_per_dimension_comparison.csv` (ten dimensions × four models, with MAE, RMSE, Spearman, and sample counts) and `ft_four_model_summary.csv`. These provide exact numeric values behind Figures 2–4 without crowding this page with a 40-row table.
+
+#### 5. Interpretation and limitations
+
+- **DINOv2-S**: Partial fine-tuning gives the lowest overall MAE (0.125) among the compared models, but its Spearman decreases from 0.468 to 0.441.
+- **ResNet50**: Partial fine-tuning increases MAE from 0.132 to 0.174 and reduces Spearman from 0.403 to 0.215. Notably, the configured `layer4` fine-tuning still makes **63.7% of this implementation's parameters trainable**.
+- **Frozen CLIP**: Remains competitive without encoder updates (MAE 0.126, RMSE 0.158, Spearman 0.519).
+- **OSM baseline**: OSM + LightGBM gives the highest Spearman (0.553), suggesting map-derived features are a strong comparator for route ranking.
+
+The main limitations are the small number of labeled training cells, pseudo-label uncertainty, the overhead-vs-street-view domain gap, and differences between Ridge and neural regression heads. The next step is to **label more collected street-view images and expand the geographic coverage beyond Boston**, then rerun all models with a consistent spatial split. A frozen-encoder + neural-head control would better isolate the effect of unfreezing pretrained layers.
+
+#### 6. Reproducibility
+
+Run `05_build_dataset.ipynb` → `06_embeddings.ipynb` → `07_baselines.ipynb` → [**`08_finetuning.ipynb`**](docs/experiments/finetuning/08_finetuning.ipynb). Notebook 08 is designed for Google Colab with a T4 GPU and reads data from the configured Google Drive project directory. It saves checkpoints, `training_history.csv`, `validation_per_dimension.csv`, `test_per_dimension_finetuning.csv`, `test_model_comparison_with_finetuning.csv`, `config.json`, and plots under `data/results/finetuning-*/`.
+
+**Files:** The [standalone report](docs/experiments/finetuning/FINETUNING.md), Notebook 08 and all four original figures are stored together in `docs/experiments/finetuning/`. Configure preceding notebooks for this ten-target dataset; the app's bundled inputs are not interchangeable. Referenced raw CSVs/checkpoints are notebook outputs and were not included in the supplied package.
+
+### Data and model versions
+
+We separate **reusable inputs** from **individual training results**:
+
+- `.artifacts/sources/<source-version>/`: resumable collection and label workspace.
+- `.artifacts/snapshots/sources/<snapshot-version>/`: frozen input reused for training.
+- `.artifacts/pipeline/runs/<run-id>/`: prepared data, embeddings, model, predictions,
+  serving and logs for one run. New runs use new directories.
+
+Checksummed manifests link source, dataset, encoder and model versions across containers.
+`model/weights.npz` saves scaler/Ridge parameters; `serving/` packages predictions,
+geometry and provenance. Explicit publication shares artifacts through
+`gs://ac215-greenpath/artifacts/`; credentials and caches stay out of Git.
+[Storage layout and version tracking](docs/DATA_AND_MODEL_VERSIONING.md).

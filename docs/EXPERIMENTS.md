@@ -102,6 +102,17 @@ Evidence: [workflow summary](pipeline/evidence/boston-pilot-v2/workflow-summary.
 The local audit checked sizes and SHA-256 for 37 files across the snapshot and five
 artifact directories; all matched their manifests.
 
+## Additional supplied fine-tuning study
+
+A separate [Notebook 08 report](experiments/finetuning/FINETUNING.md) and its
+[notebook](experiments/finetuning/08_finetuning.ipynb) compare frozen encoders with partial
+ResNet50/DINOv2 fine-tuning. Its ten-target dataset has 67 train / 39 val / 54 test cells;
+it is not this document's eight-target, 1,012-cell dataset, despite both using the local
+name `v1`. Within that study, DINOv2 partial FT has MAE 0.125, frozen CLIP has RMSE
+0.158, and geographic LightGBM has Spearman 0.553. The supplied figures and report are
+included without rerunning training. Raw CSVs/checkpoints were not supplied. These
+fine-tuned models are not wired into the current containerized serving path.
+
 ## Next iteration and submission evidence
 
 1. Keep the successful pilot as execution evidence. Evaluate larger collections separately;

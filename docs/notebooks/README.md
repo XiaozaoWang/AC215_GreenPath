@@ -17,7 +17,9 @@ cell contents, outputs or metadata. The `en_` prefix identifies the English coun
 | 07 | [07_baselines.ipynb](07_baselines.ipynb) | [en_07_baselines.ipynb](en_07_baselines.ipynb) | Baseline experiments and regression training | [src/model-training/](../../src/model-training/) |
 
 The independent reload / batch prediction / serving stage is implemented in
-[src/model-deploy/](../../src/model-deploy/); there is no separate notebook 08.
+[src/model-deploy/](../../src/model-deploy/); this serving stage is not notebook 08. A separate supplied
+[Notebook 08 fine-tuning study](../experiments/finetuning/FINETUNING.md) is retained
+with its figures under `docs/experiments/finetuning/`; it uses a different ten-target dataset.
 The productionized path selects the CLIP + Ridge workflow rather than reproducing
 every experimental backbone, baseline and visualization in these notebooks.
 

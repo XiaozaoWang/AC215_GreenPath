@@ -90,8 +90,40 @@ row order, align predictions to H3 polygons. The API schema is owned by
 
 ## Execution and resuming
 
-Use the [root README](../README.md) for the three main entry points. All commands below
-also run from the repository root:
+The [root README](../README.md) provides the credential-free MVP. To rerun the complete
+50-cell Vision workflow, install Python 3.9+, make and Google Cloud CLI, start Docker
+(with approximately 8 GiB memory), and obtain Mapillary and project/bucket permissions.
+Run from the repository root:
+
+```sh
+gcloud auth application-default login
+gcloud auth application-default set-quota-project organic-victory-508017-v9
+```
+
+In the ignored root `.env` (copied from `.env.example`), set your own values:
+
+```dotenv
+GOOGLE_CLOUD_PROJECT=organic-victory-508017-v9
+GOOGLE_CLOUD_LOCATION=us-central1
+ADC_FILE=/absolute/path/to/.config/gcloud/application_default_credentials.json
+MAPILLARY_TOKEN=YOUR_MAPILLARY_CLIENT_TOKEN
+```
+
+The account needs Vertex AI access, enabled API/billing, and read access to the GCS
+encoder. Login alone does not grant access. The supplied workflow permits at most 200
+new label images per invocation; requests are paid and retries can add calls.
+
+```sh
+make run-all WORKFLOW_ARGS="--run-id reviewer-pilot-001 --allow-labeling"
+```
+
+Use a new run ID for another run. If labeling is incomplete, resume the same workflow
+with `--resume --allow-labeling`. Success is recorded under
+`.artifacts/workflows/<run-id>/workflow-summary.json`; follow its `training_run_id` to
+`.artifacts/pipeline/runs/<training-run-id>/run-summary.json`. Ordinary runs do not upload
+results. Detailed storage/publication behavior is in [versioning](DATA_AND_MODEL_VERSIONING.md).
+
+Individual stage commands below are optional and also run from the repository root:
 
 ```sh
 make source-build
@@ -148,16 +180,16 @@ New publications use `gs://ac215-greenpath/artifacts/` with matching local forma
 stage artifacts and their hashes are preserved. `make fetch-run RUN_ID=...` restores
 modeling inputs/results; `FETCH_ARGS="--include-upstream"` also restores the published
 source workspace. Serving-only imports go to the same run's `serving/` folder. See the
-[root sharing instructions](../README.md#download-a-shared-result-from-gcs).
+[storage and versioning guide](DATA_AND_MODEL_VERSIONING.md).
 
 Local encoder caches are the intentional exception; the cloud stores a versioned
 `encoders/` artifact. Catalogs, locks and unrelated local caches are not shared.
-Legacy cloud prefixes remain accessible. New storage/restore code has not been exercised
+Legacy top-level cloud prefixes were removed after migration verification. New storage/restore code has not been exercised
 through Docker in this change; recorded model/application execution predates this migration.
 
 The 2026-10-19 cloud migration copied eight historical artifacts plus the reviewed
 `boston-pilot-v2` source/snapshot/run into the new layout. Remote manifest hashes match
 the local release; the serving manifest is unchanged. See the
-[migration record](pipeline/evidence/storage-migration-20261019.json). Old prefixes were
-not deleted. Full-run restoration and Docker transfer commands remain user-run checks;
+[migration record](pipeline/evidence/storage-migration-20261019.json). The original migration retained old prefixes; they were subsequently deleted on 2026-10-19
+after duplicate-file and source-archive checks. Full-run restoration and Docker transfer commands remain user-run checks;
 no collection, teacher calls, encoding, training or app launch was executed in migration.
