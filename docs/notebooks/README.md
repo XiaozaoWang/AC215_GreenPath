@@ -15,6 +15,7 @@ cell contents, outputs or metadata. The `en_` prefix identifies the English coun
 | 05 | [05_build_dataset.ipynb](05_build_dataset.ipynb) | [en_05_build_dataset.ipynb](en_05_build_dataset.ipynb) | Dataset construction and spatial splits | [src/data-processor/](../../src/data-processor/) |
 | 06 | [06_embeddings.ipynb](06_embeddings.ipynb) | [en_06_embeddings.ipynb](en_06_embeddings.ipynb) | Image feature extraction | [src/feature-encoder/](../../src/feature-encoder/) |
 | 07 | [07_baselines.ipynb](07_baselines.ipynb) | [en_07_baselines.ipynb](en_07_baselines.ipynb) | Baseline experiments and regression training | [src/model-training/](../../src/model-training/) |
+| 08 | [08_finetuning_en.ipynb](08_finetuning_en.ipynb) | [08_finetuning_en.ipynb](08_finetuning_en.ipynb) | Partial fine-tuning of ResNet50 and DINOv2 with baseline comparisons | [src/model-training/](../../src/model-training/) |
 
 The independent reload / batch prediction / serving stage is implemented in
 [src/model-deploy/](../../src/model-deploy/); this serving stage is not notebook 08. A separate supplied
