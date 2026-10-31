@@ -8,7 +8,7 @@ riders describe their preferences and explore matching areas on a map; route adj
 is the next step. **Milestone 2 track: Vision.**
 
 ## Contents
-
+- [Team Contributions](#team-contributions)
 - [Repository at a glance](#repository-at-a-glance)
 - [Quick Start: try the MVP](#quick-start-try-the-mvp)
 - [API Service](#api-service)
@@ -25,6 +25,15 @@ is the next step. **Milestone 2 track: Vision.**
   - [Example pipeline outputs](#example-pipeline-outputs)
   - [Model training and results: partial fine-tuning](#model-training-and-results-partial-fine-tuning)
   - [Data and model versions](#data-and-model-versions)
+
+## Team Contributions
+
+| Team Member | Contributions | Relevant Files |
+| --- | --- | --- |
+| Xiaozao Wang | X | X |
+| Hongyu Yue | X | X |
+| Liufei Zhu | X | X |
+| Hailang Jiang | Model training experiments using a newly designed set of 10 scoring dimensions, comparison of frozen and partially fine-tuned vision encoders (ResNet50 and DINOv2), performance evaluation | [Fine-tuning Experiments](docs/experiments_finetuning/) |
 
 ## Repository at a glance
 
