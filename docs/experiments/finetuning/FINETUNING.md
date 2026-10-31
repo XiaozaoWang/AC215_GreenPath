@@ -4,16 +4,6 @@
 
 This experiment asks whether partially updating pretrained visual encoders improves prediction of cycling-environment attributes from overhead imagery. It extends the frozen-feature experiments in Notebooks 06–07 and uses **the same dataset (`v1`) and fixed spatial train/validation/test split**. All ten targets are generated from street-view photographs by Gemini; they are **pseudo-labels, not independently validated cyclist ratings**.
 
-> **Repository integration note:** This supplied Notebook 08 experiment uses ten targets
-> and a 67/39/54 split. Its local dataset name `v1` is not the same data/schema as the
-> existing eight-target, 1,012-cell historical experiment documented in
-> [EXPERIMENTS.md](../../EXPERIMENTS.md). Its comparisons are within that separate
-> ten-target experiment. These fine-tuned checkpoints are not integrated into the five
-> ML containers or the current app's eight-target serving bundle. Earlier notebooks
-> must be configured for the matching ten-target inputs; the archived eight-target
-> inputs are not interchangeable. Raw CSVs/checkpoints referenced below were not
-> included in this supplied package. The notebook and four figures are included here.
-
 ## 1. Data and evaluation protocol
 
 The pipeline produced 1,127 geographic cells, of which 175 received labels; 160 remained after spatial filtering. The fixed dataset has **67 training, 39 validation, and 54 held-out test cells**. The targets are `tree_canopy`, `greenery`, `water_visibility`, `open_landscape`, `urban_density`, `historic_character`, `commercial_activity`, `bike_infrastructure`, `road_environment`, and `scenic_appeal` (each normalized to [0, 1]).
