@@ -31,7 +31,7 @@ is the next step. **Milestone 2 track: Vision.**
 | Team Member | Contributions | Relevant Files |
 | --- | --- | --- |
 | Xiaozao Wang | X | X |
-| Hongyu Yue | X | X |
+| Hongyu Yue | Scoring algorithm design, data collection and labeling, frontend and backend development, architecture planning and integration | [src/api-service](src/api-service/), [src/frontend-app](src/frontend-app/) |
 | Liufei Zhu | X | X |
 | Hailang Jiang | Model training experiments using a newly designed set of 10 scoring dimensions, comparison of frozen and partially fine-tuned vision encoders (ResNet50 and DINOv2), performance evaluation | [Fine-tuning Experiments](docs/experiments/finetuning/) |
 
