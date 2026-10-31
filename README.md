@@ -33,7 +33,7 @@ is the next step. **Milestone 2 track: Vision.**
 | Xiaozao Wang | X | X |
 | Hongyu Yue | X | X |
 | Liufei Zhu | X | X |
-| Hailang Jiang | Model training experiments using a newly designed set of 10 scoring dimensions, comparison of frozen and partially fine-tuned vision encoders (ResNet50 and DINOv2), performance evaluation | [Fine-tuning Experiments](docs/experiments_finetuning/) |
+| Hailang Jiang | Model training experiments using a newly designed set of 10 scoring dimensions, comparison of frozen and partially fine-tuned vision encoders (ResNet50 and DINOv2), performance evaluation | [Fine-tuning Experiments](docs/experiments/finetuning/) |
 
 ## Repository at a glance
 
