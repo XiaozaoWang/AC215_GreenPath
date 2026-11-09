@@ -1,0 +1,4 @@
+[core]
+    remote = greenpath_dataset
+['remote "greenpath_dataset"']
+    url = gs://ac215-notebook/dvc_store

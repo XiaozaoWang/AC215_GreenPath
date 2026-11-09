@@ -1,0 +1,6 @@
+outs:
+- md5: 5da08eaef527c2b0a78cf2a30b745d50.dir
+  size: 32901828
+  nfiles: 285
+  hash: md5
+  path: greenpath_dataset

@@ -11,6 +11,7 @@ src/
 ├── data-processor/   Process: drop suspicious cells, calibrate street scores to the aerial scale, fuse into a training table
 ├── model-training/   Train: DINOv2-S + linear head, aerial tile in → 15 scores (0–1) out
 ├── workflow/         Vertex AI pipeline that chains the four steps above in the cloud
+├── data-versioning/  DVC snapshots of each training set (table + aerial tiles), stored in gs://<bucket>/dvc_store/
 ├── api-service/      Backend API (FastAPI)
 └── frontend/         Frontend (Next.js)
 ```
@@ -43,6 +44,18 @@ python cli.py --data_collector             # or one step: --data_labeler / --dat
 ```
 
 Monitor in the GCP console: Vertex AI → Pipelines (the whole run) and Training → Custom jobs (training logs).
+
+## Version the training data (DVC)
+
+After a pipeline run produces a new training set, snapshot it by hand (see `src/data-versioning/README.md`):
+
+```
+cd src/data-versioning && sh docker-shell.sh
+python cli.py --training-id <TRAINING_ID>   # download the training table + the tiles it uses
+dvc add greenpath_dataset && dvc push       # hash it and upload to gs://<bucket>/dvc_store/
+```
+
+Then commit `greenpath_dataset.dvc` and tag it `dataset_<TRAINING_ID>` on the Mac.
 
 ## Run the app locally
 
