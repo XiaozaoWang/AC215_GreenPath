@@ -1,6 +1,0 @@
-# 切块/向量结果、ChromaDB 数据文件、本地缓存：不复制进镜像
-outputs/
-docker-volumes/
-.venv/
-__pycache__/
-.env
