@@ -37,7 +37,7 @@ DATA_PROCESSOR_IMAGE = f"us-central1-docker.pkg.dev/{GCP_PROJECT}/greenpath/gree
 
 CONFIG = "configs/test_collector.yaml"         # data-collector里的配置文件,这次预期一共会跑什么AREAS
 AREAS = ["city_wa_laconner_edge"]              # 正式跑时改成正式的配置文件和数据集、AREAS 写 ["all"]，如果AREAS并没有覆盖CONFIG yaml里面的areas，在data_processing部分会报错n/29
-DATASET = "Yue_20261108_test_collector"        #collector 建，labeler 写 labels/，processor 读，采集通过 --dataset 拿到它，改名只改这里
+DATASET = "Yue_20261108_test_collector"        #collector 建，labeler 写 labels/，processor 读，采集也通过 --dataset 拿到它，改名只改这里
 TRAINING_ID = "Yue_20261108_test_collector"    #processor 写 dataset.parquet、exclusions.parquet、meta.json，training/ 下已存在的文件夹不会被覆盖，重跑处理要换名字
 
 # 训练：True = 试跑（CPU、96+48 个格子、2 轮，只证明能跑通）；False = 正式训练（要 GPU 和 T4 配额）
