@@ -1,0 +1,7 @@
+# 本地结果、测试、缓存：不复制进镜像
+outputs/
+tests/
+README.md
+.venv/
+__pycache__/
+.env

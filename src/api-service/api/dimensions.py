@@ -1,35 +1,20 @@
-# The "reader" for the scenery dimension table: the real definition is dimensions.json in the same folder (one shared rule set for the whole team); this file only reads it.
-# Other files still import DIMENSIONS / DIMENSION_NAMES the same way as before.
-# To change dimensions, only edit dimensions.json; after that, remember to rerun scripts/fake_scores_from_image.py (the fake model's scores need to change too).
+# 风景维度表的"读取器"：真正的定义在同一个文件夹的 dimensions.json（全组共用的一份规定），这里只负责读它。
+# 别的文件照旧 import DIMENSIONS / DIMENSION_NAMES，用法不变。
+# 改维度只改 dimensions.json；改完假分数 data/fake/cambridge_scores.json 也要跟着换。
 import json
-import os
 from pathlib import Path
 
-BUNDLE_DIR = Path(os.environ.get("MODEL_BUNDLE_DIR", str(Path(__file__).parent.parent / "fixtures" / "boston-heldout-en-v2")))
+# 读 dimensions.json（和本文件放在同一个文件夹）
+_SPEC = json.loads(Path(__file__).with_name("dimensions.json").read_text(encoding="utf-8"))
 
-# Read dimensions.json (in the same folder as this file)
-_SPEC_PATH = BUNDLE_DIR / "schema.json" if (BUNDLE_DIR / "schema.json").exists() else Path(__file__).with_name("dimensions.json")
-_SPEC = json.loads(_SPEC_PATH.read_text(encoding="utf-8"))
-
-# Version number of the dimension table: bump it whenever the dimensions change; labels and models should both record which version they use. schema_version comes from the json
+# 维度表的版本号：改了维度就升版本，标签和模型都要记下自己用的是哪一版，schema_version来自json
 SCHEMA_VERSION = _SPEC["schema_version"]
 
-# Score range of the model output (team agreement: 0-1): schemas.py uses it to check the scores the model sends back. score_range comes from the json
+# 模型输出分数的量程（全组约定 0-1）：schemas.py 用它校验模型交回来的分数，score_range来自json
 SCORE_MIN, SCORE_MAX = _SPEC["score_range"]
 
-# The dimension names and descriptions that actually get sent to Gemini
+# 真正会发给Gemini的维度名和维度说明
 DIMENSIONS = {name: spec["description"] for name, spec in _SPEC["dimensions"].items()}
 
-# Just the list of names, for other files to use
+# 只要名字的列表，给别的文件用
 DIMENSION_NAMES = list(DIMENSIONS)
-
-
-
-SPEC = _SPEC
-
-PROVIDER = "bundle"
-
-
-
-def load_spec(path: Path) -> dict:
-    return json.loads(path.read_text(encoding="utf-8"))

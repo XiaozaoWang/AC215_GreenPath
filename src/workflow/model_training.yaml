@@ -1,0 +1,136 @@
+# PIPELINE DEFINITION
+# Name: model-training-pipeline
+components:
+  comp-model-training:
+    executorLabel: exec-model-training
+    inputDefinitions:
+      parameters:
+        bucket_name:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        dry_run:
+          defaultValue: true
+          isOptional: true
+          parameterType: BOOLEAN
+        location:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        project:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        service_account:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+        training_id:
+          defaultValue: ''
+          isOptional: true
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-model-training:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - model_training
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'google-cloud-aiplatform'\
+          \  &&  python3 -m pip install --quiet --no-warn-script-location 'kfp==2.18.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef model_training(\n    project: str = \"\",\n    location: str\
+          \ = \"\",\n    bucket_name: str = \"\",\n    training_id: str = \"\",\n\
+          \    dry_run: bool = True,\n    service_account: str = \"\",\n):\n    print(\"\
+          Model Training Job\")\n\n    # Python component \u7684\u51FD\u6570\u5728\
+          \u53E6\u4E00\u4E2A\u5BB9\u5668\u91CC\u5355\u72EC\u8FD0\u884C\uFF0C\u7528\
+          \u5230\u7684\u5E93\u8981\u5728\u51FD\u6570\u91CC\u9762 import\n    import\
+          \ time\n    from google.cloud import aiplatform_v1 as v1\n\n    # \u8BAD\
+          \u7EC3\u673A\u5668\u7684\u955C\u50CF\uFF1ACPU \u8BD5\u8DD1\u7528 scikit-learn\
+          \ \u955C\u50CF\uFF08torch \u5F00\u673A\u65F6\u73B0\u88C5\uFF09\uFF1B\u6B63\
+          \u5F0F\u8BAD\u7EC3\u7528 PyTorch GPU \u955C\u50CF + \u4E00\u5F20 T4\n  \
+          \  cpu_image = \"us-docker.pkg.dev/vertex-ai/training/sklearn-cpu.1-6:latest\"\
+          \n    gpu_image = \"us-docker.pkg.dev/vertex-ai/training/pytorch-gpu.2-4.py310:latest\"\
+          \n    machine = v1.MachineSpec(machine_type=\"n1-standard-4\")\n    if not\
+          \ dry_run:\n        machine = v1.MachineSpec(machine_type=\"n1-standard-4\"\
+          , accelerator_type=v1.AcceleratorType.NVIDIA_TESLA_T4, accelerator_count=1)\n\
+          \n    # \u4EA4\u7ED9 trainer.task \u7684\u53C2\u6570\uFF1A\u8BFB training/<training_id>/\uFF0C\
+          \u5199 results/<training_id>/{dry|final}/\n    args = [f\"--bucket={bucket_name}\"\
+          , f\"--training-id={training_id}\", \"--dry-run\" if dry_run else \"--no-dry-run\"\
+          ]\n\n    # \u4E00\u4E2A\u8BAD\u7EC3\u4EFB\u52A1 = \u4E00\u53F0\u673A\u5668\
+          \ + \u955C\u50CF + \u4EE3\u7801\u5305 + \u5F00\u673A\u540E\u8FD0\u884C python\
+          \ -m trainer.task + \u53C2\u6570\n    spec = v1.WorkerPoolSpec(\n      \
+          \  machine_spec=machine,\n        replica_count=1,\n        python_package_spec=v1.PythonPackageSpec(\n\
+          \            executor_image_uri=cpu_image if dry_run else gpu_image,\n \
+          \           package_uris=[f\"gs://{bucket_name}/trainer/greenpath-trainer.tar.gz\"\
+          ],\n            python_module=\"trainer.task\",\n            args=args,\n\
+          \        ),\n    )\n    client = v1.JobServiceClient(client_options={\"\
+          api_endpoint\": f\"{location}-aiplatform.googleapis.com\"})\n    job = client.create_custom_job(\n\
+          \        parent=f\"projects/{project}/locations/{location}\",\n        custom_job=v1.CustomJob(display_name=\"\
+          greenpath-training\",\n                                job_spec=v1.CustomJobSpec(worker_pool_specs=[spec],\
+          \ service_account=service_account)),\n    )\n    print(\"Custom job:\",\
+          \ job.name, \"args:\", args, flush=True)\n\n    # \u7B49\u8BAD\u7EC3\u7ED3\
+          \u675F\uFF1A\u6BCF 30 \u79D2\u67E5\u4E00\u6B21\u72B6\u6001\uFF0C\u72B6\u6001\
+          \u53D8\u4E86\u5C31\u6253\u5370\uFF08\u5728\u6D41\u7A0B\u9875\u9762\u8FD9\
+          \u4E00\u6B65\u7684\u65E5\u5FD7\u91CC\u80FD\u770B\u5230\uFF09\n    done =\
+          \ (v1.JobState.JOB_STATE_SUCCEEDED, v1.JobState.JOB_STATE_FAILED, v1.JobState.JOB_STATE_CANCELLED,\
+          \ v1.JobState.JOB_STATE_EXPIRED)\n    last = None\n    while job.state not\
+          \ in done:\n        time.sleep(30)\n        job = client.get_custom_job(name=job.name)\n\
+          \        if job.state != last:\n            print(\"State:\", job.state.name,\
+          \ flush=True)\n            last = job.state\n    if job.state != v1.JobState.JOB_STATE_SUCCEEDED:\n\
+          \        raise RuntimeError(f\"Training job ended as {job.state.name}: {job.error.message}\"\
+          )\n\n"
+        image: python:3.12
+pipelineInfo:
+  name: model-training-pipeline
+root:
+  dag:
+    tasks:
+      model-training:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-model-training
+        inputs:
+          parameters:
+            bucket_name:
+              runtimeValue:
+                constant: ac215-notebook
+            dry_run:
+              runtimeValue:
+                constant: true
+            location:
+              runtimeValue:
+                constant: us-central1
+            project:
+              runtimeValue:
+                constant: organic-victory-508017-v9
+            service_account:
+              runtimeValue:
+                constant: greenpath-ml-workflow@organic-victory-508017-v9.iam.gserviceaccount.com
+            training_id:
+              runtimeValue:
+                constant: Yue_20261108_test_collector
+        taskInfo:
+          name: model-training
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.18.0

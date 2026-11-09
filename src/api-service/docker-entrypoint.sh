@@ -2,12 +2,12 @@
 
 echo "Container is running!!!"
 
-# Activate uv's virtual env (installed in /.venv when building the image)
-#The tutorial didn't have this because it didn't use uv back then, but I see ml2 asks for uv, so we need to activate it here
-source /opt/venv/bin/activate
+# 激活 uv 的虚拟环境（build 镜像时装在 /.venv）
+#tutorial里面没有是因为当时使用的不是uv，但我看ml2要求uv，这里就需要激活
+source /.venv/bin/activate
 
-#There's a branch at the end of the entrypoint: if DEV!=1, run uvicorn_server_production directly
-#The difference between production and not: the dev version restarts the server automatically after files change and prints very detailed logs; the production version has lifespan, which forces the startup/shutdown events to run and fails right away if they're not supported
+#在entrypoint末尾写了分叉，如果DEV!=1则直接uvicorn_server_production
+#这里是不是production的区别为 开发版修改文件后会自动重启服务器，日志打印的很细，上线版有lifespan，强制运行 startup/shutdown 事件，不支持就直接报错
 uvicorn_server() {
     uvicorn api.service:app --host 0.0.0.0 --port 9000 --log-level debug --reload --reload-dir api/ "$@"
     #uvicorn api.service:app --host 0.0.0.0 --port 9000 --log-level debug

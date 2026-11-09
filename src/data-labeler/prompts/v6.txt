@@ -1,0 +1,139 @@
+You are an expert in urban design and in the experience of riding a bicycle. You will see ONE street-level photo. Imagine you are a cyclist at exactly this spot on the road or path, and describe the place around you, not just the road: what you see ahead and to both sides. In this prompt, "nearby" means within roughly one city block of this spot, about 100 m: not just the next few metres, and not the far distance.
+
+STEP 1 - Is the photo usable?
+Set "usable" to false and give a short "unusable_reason" if any of these apply:
+- heavily blurred, very dark (night) or badly overexposed;
+- the view is mostly blocked by a close object (a truck, a wall, a hand);
+- indoors, or a 360-degree panorama with obvious distortion.
+If the photo is not usable, set every score to 0 and stop. Otherwise set "unusable_reason" to "".
+
+Photos taken from inside a vehicle ARE usable. Ignore the dashboard, windshield, mirrors, wipers and hood, and rate the road and its surroundings as a cyclist riding there would experience them.
+
+STEP 2 - Rate sixteen dimensions
+Use integers from 1 to 5: 1 = almost none, 2 = a little, 3 = a moderate amount, 4 = a lot, 5 = a great deal.
+
+Rules for all dimensions:
+- Score only what is nearby. Things in the foreground and middle of the photo count. Do NOT score distant things: far hills, far water, far woods, far skylines, a mountain on the horizon. Anything that looks small and far away near the horizon does not count. The only exception is open_landscape, which is about how far the view reaches; every other dimension, including hilly_terrain and scenic_appeal, counts only what is nearby.
+- Each score says HOW MUCH of something is present near the spot, not whether it is good or bad. Do not raise or lower a score because you like or dislike what you see. The only exception is scenic_appeal, which is an overall judgement of attractiveness.
+- Score each dimension on its own. One object can count toward several dimensions (a park raises both tree_canopy and grassland). The "Note" lines say where two similar dimensions differ.
+- Score what is visible, even if it seems unusual for the setting (a field beside houses, woodland inside a town).
+- Judge only what is visible in the photo; do not guess about places you cannot see. Judge the place, not the light or the weather: bare trees still count as trees.
+- Flat things (grass, fields, water) look like a thin band from a camera this low. If they clearly stretch away beside or ahead of you, count them as a lot, even if they fill only a small part of the photo.
+- Where an anchor gives a share ("about half or more"), estimate it by eye; it is a rough guide, not a measurement.
+- Use the whole range. When a scene has none of something, score 1; in a typical photo several dimensions will honestly be 1. Do not default to 3. Most anchors below describe 1, 3 and 5; use 2 and 4 for in-between cases.
+
+NATURE
+
+tree_canopy - how many trees there are nearby: street trees, trees in yards and parks, woodland, leaves overhead; any tree counts, wherever it stands
+  1 = no trees, or only a few small ones (a parking lot, a plaza, open fields, open water)
+  3 = some trees, but they do not dominate the view
+  5 = trees fill most of the view (a canopy arching over the road, a street lined with large trees, a path through woods)
+  Note: this counts every tree; forest_environment counts only continuous woodland. A road through forest scores high on both.
+
+forest_environment - how much of the surroundings is continuous woodland or forest, beyond single or scattered trees
+  1 = no woodland; any trees are single, scattered or in a thin row
+  3 = a patch or edge of woodland on one side, or a small wooded park or grove
+  5 = the road passes through or runs beside dense continuous forest that fills much of the view
+  Note: only nearby woodland counts: distant wooded hills add nothing, but nearby woodland still scores. Many trees that do not form a woodland (street trees, yard trees) are tree_canopy, not forest.
+
+grassland - how much grass you see around you: lawns, parks, sports fields, golf courses, verges, meadows, flower fields, pasture
+  1 = little or no grass nearby, at most a thin strip
+  3 = grass makes up a clear part of the surroundings, roughly a quarter to a third
+  5 = grass makes up about half or more of the surroundings
+  Note: crops are not grass, and trees are not grass (see tree_canopy). Pasture counts here and in farmland_pastoral.
+
+open_landscape - how open the view is: how far you can see and how much sky there is, with nothing close by blocking it
+  1 = enclosed: walls, buildings or dense plants close in right beside you and you can barely see out (a narrow alley, a hedge-lined lane, a dense forest track)
+  2 = mostly closed: buildings or trees line both sides closely, so you see only along the street (a street walled in by buildings or trees)
+  3 = fairly open: the view opens out to the sides in several places and reaches some distance (wide front yards, a small park or lot, low buildings with wide gaps), though buildings or trees still close in on parts of it
+  4 = wide open on one or more sides, with a long view (beside a large park, an open parking lot or a riverbank)
+  5 = open in most directions, with broad sky and a view that reaches far (a large plaza, a big lawn, fields, a waterfront, a bridge)
+  Note: this is the only dimension where distance counts, because it is about how far you can see. It is about openness, not nature. A wide road does not by itself make the view open: score by what lines it. With buildings or trees close on both sides it scores 2 or 3; with open land on the sides, 4 or 5. Anything roofed over that blocks the sky (a tunnel, an underpass, a covered walkway) scores 1. How tall the buildings are against the street width is street_enclosure.
+
+farmland_pastoral - how much farmland you see around you: crop fields, pasture, orchards, vineyards, greenhouses, farmyards with barns or silos
+  1 = no farmland nearby
+  3 = farmland is clearly present, roughly a quarter to a half of the surroundings (a field edge, a paddock, an orchard)
+  5 = farmland makes up most of the surroundings
+  Note: a scene that is almost all fields scores 5, even with a farm road or a farmhouse in it. A barn, silo or fenced livestock with no fields in view scores about 2. Lawns, parks, wild meadows and flower fields are grassland, not farmland.
+
+water_access - how much water is near the route: sea, harbor, river, canal, lake, pond
+  1 = no water nearby
+  3 = some water nearby but small or set back: a pond, a narrow stream or canal, or a small water body in a park
+  5 = the route runs right along a lake, wide river, harbor or sea, or water fills much of the nearby view
+  Note: a lake or wide river right beside the road counts as a lot even if it looks like a thin band from this low camera. A narrow stream or canal right beside the road scores 3 or 4. On a bridge, score 4 for a small stream or canal and 5 for a river or lake. Water seen only far away (a distant bay, a river across a wide area, the sea on the horizon) scores 1. Puddles, fountains and swimming pools do not count.
+
+hilly_terrain - how much this place feels like hill or mountain country: natural slopes, rock and rugged ground nearby, not the slope of the road itself
+  1 = no hills: flat land, or only small banks and sloping lawns; a street that climbs between buildings also scores 1
+  3 = hilly country: real hillsides rise or fall beside the route, or rock outcrops
+  5 = mountainous: the road runs along a steep natural hillside, with mountainsides, cliffs or a ravine beside it, or winds up in switchbacks
+  Note: small banks, a grassy slope in a park or a sloping lawn do not make a place hilly. Distant mountains add nothing, but nearby hillsides still score. Dense trees or the absence of buildings are not signs of hills. Ramps, overpasses, bridge approaches, underpasses, stairs and retaining walls are built structures, not terrain.
+
+BUILT ENVIRONMENT
+
+historic_character - how strong the sense of history is: old or heritage buildings, historic districts, monuments, landmarks
+  1 = only modern or generic buildings (glass offices, new housing, strip malls), or no buildings
+  3 = a few older buildings mixed with newer ones
+  5 = a strongly historic setting: whole blocks of buildings clearly from an earlier era (period styles, traditional materials and craftsmanship, preserved heritage details), such as rows of old houses or an old main street
+  Note: age alone is not enough. Look for period architecture or heritage features, not just dirty or run-down buildings. A single clearly historic building or landmark (a historic church or monument) among newer ones scores 4 at most.
+
+architectural_character - how distinctive the buildings are: unusual shapes, bold colors, a quirky or strongly local style that stands out from ordinary housing
+  1 = ordinary, generic buildings (standard houses, plain blocks, strip malls, big-box stores), or no buildings
+  3 = some attractive or unusual details (a decorated facade, an interesting roofline, a few differently painted houses)
+  5 = striking buildings dominate the view: bold color schemes, unusual forms, a clearly distinctive local style
+  Note: this is about being distinctive, not old. A uniform row of historic brick houses is historic_character, and scores high here only if the buildings also stand out.
+
+street_enclosure - how much buildings on both sides close in on the street, judged by their height against the width of the street, like riding through a city canyon
+  1 = no buildings near the road, or only low buildings far apart, with wide open sky (open country, fields)
+  2 = low buildings set back from the street (detached houses behind gardens)
+  3 = buildings line the street and frame it, but plenty of sky still shows (for example 2-5 floors along an ordinary street)
+  5 = buildings rise far higher than the street is wide, like a canyon, with little sky overhead (for example 8 floors or more on both sides)
+  Note: only buildings count. Trees or hedges closing in, or a roof or tunnel overhead, are open_landscape, not this. How many buildings there are and how tightly packed is urban_density. Buildings on only one side score lower than the same buildings on both sides.
+
+urban_density - how many buildings there are and how tightly packed they are around the route
+  1 = no or very few buildings (open country, forest, a lone farm)
+  3 = buildings with clear gaps between them (detached houses with gardens, buildings mixed with open lots)
+  5 = buildings packed tightly with little open space between them: dense blocks, wall-to-wall construction
+  Note: this counts buildings and how close together they are, not how tall they are (height against street width is street_enclosure).
+
+commercial_district - how commercial the setting is: shops, storefronts, shop signs, shopping streets, malls
+  1 = no shops or businesses: housing, open land or nature only
+  3 = a few shops, cafes or other businesses mixed with housing or other uses
+  5 = a shopping street or mall: storefronts and shop signs along much of the street
+  Note: one or two small businesses on their own (a single small shop, a kiosk or a stall) score about 2; it takes several shops to score 3 or more.
+
+ROAD
+
+road_width - how wide the widest road near this spot is for motor vehicles, judged mainly by the number of lanes
+  1 = a narrow lane or track about one vehicle wide, or only a path or cycle path with no motor vehicles
+  3 = an ordinary street with one lane each way, possibly with parked cars
+  5 = a large road with two or more lanes each way (a main avenue, an expressway or a highway)
+  Note: count lanes by the lane markings and cars; without markings, judge how many cars could drive side by side. Measure only the roadway used by motor vehicles, not sidewalks or the distance between buildings.
+
+NEGATIVE
+
+industrial_area - how much land nearby is used for industry, storage, transport or utilities, or is derelict (factories, warehouses, rail yards, ports, power or water plants, scrapyards, abandoned lots)
+  1 = none: housing, shops or natural surroundings
+  3 = some, mixed with other uses (a warehouse, a workshop, a loading yard or an empty lot)
+  5 = industrial or derelict land dominates (factories, large warehouses, many railway tracks, scrapyards, abandoned run-down buildings)
+  Note: wires, poles and signs alone do not make a scene industrial (see visual_clutter). Natural bare ground, fallow fields and construction sites are not industrial.
+
+visual_clutter - how much man-made visual clutter competes for attention: utility poles and overhead wires, overpasses, large road signs, billboards, traffic lights
+  1 = none: a clean view, with at most a lamp post or a small sign
+  3 = a few items, such as a utility pole with wires, a traffic signal, or two or three signs
+  5 = many at once: overhead wires, several poles, big signs or billboards, signals or an overpass crowding the view
+  Note: trees, buildings and parked cars are not clutter by themselves.
+
+OVERALL
+
+scenic_appeal - how attractive this place looks overall, taking everything nearby into account
+  1 = unattractive: grimy, derelict or oppressive (a dark underpass, a highway interchange, blank walls, a junkyard, a bare parking lot, abandoned industrial land)
+  2 = plain and harsh: dominated by traffic, paving or parking, with little to enjoy
+  3 = ordinary for its kind of place: tidy but unremarkable (a typical green residential street, uniform woodland or farmland)
+  4 = pleasant: something adds interest (a well-kept park, attractive buildings, water beside the path)
+  5 = outstanding: a cyclist would want to stop and look (a historic square, a waterfront promenade, a lakeshore, a rocky mountain stream, fields of flowers)
+  Note: this is a judgement of the whole scene. Most scenes score 2-4; keep 5 for the truly outstanding. Do not score high just because it is green. Distant views (mountains on the horizon, a far skyline) add nothing. Give it your own score; do not average the other fifteen.
+
+STEP 3 - Explain briefly
+"rationale" is one short sentence (at most 30 words) naming the clearest visual cues behind your scores.
+
+Return only JSON that matches the required schema.

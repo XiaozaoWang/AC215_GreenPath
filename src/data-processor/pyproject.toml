@@ -1,25 +1,14 @@
+# 这个容器要装的 Python 包；具体版本由 `uv lock` 锁进 uv.lock，build 镜像时按 uv.lock 原样安装
+# 改了这里要重新运行一次 `uv lock`
 [project]
-name = "greenpath-data"
+name = "greenpath-data-processor"
 version = "0.1.0"
-description = "Versioned cached-source ingestion and notebook-equivalent dataset preparation"
-requires-python = ">=3.11,<3.13"
-dependencies = ["greenpath-model", "h3>=4,<5", "pillow==12.3.0", "google-auth>=2.40", "requests>=2.32"]
-
-[project.scripts]
-greenpath-data = "greenpath_data.cli:main"
-
-[tool.uv.sources]
-greenpath-model = { path = "../model-deploy", editable = true }
-
-[build-system]
-requires = ["setuptools>=84"]
-build-backend = "setuptools.build_meta"
-
-[tool.setuptools.packages.find]
-include = ["greenpath_data*"]
-
-[dependency-groups]
-dev = ["pytest>=9"]
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]
+description = "GreenPath data processor: detect exclusion candidates and prepare the F1 training dataset"
+requires-python = ">=3.12,<3.15"
+dependencies = [
+    "gcsfs>=2025.1,<2027",     # 读写 bucket
+    "h3>=4.2,<5",              # 六边形格子：邻居、上一级大格子
+    "numpy>=2,<3",
+    "pandas>=2.2,<3",
+    "pyarrow>=19,<24",         # 读写 Parquet
+]

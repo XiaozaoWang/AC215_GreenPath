@@ -1,0 +1,14 @@
+# 这个容器要装的 Python 包；具体版本由 `uv lock` 锁进 uv.lock，build 镜像时按 uv.lock 原样安装
+# 改了这里要重新运行一次 `uv lock`
+[project]
+name = "greenpath-vector-db"
+version = "0.1.0"
+description = "GreenPath RAG sample: chunk Markdown sources, embed with Gemini, load into ChromaDB"
+requires-python = ">=3.12"
+dependencies = [
+    "chromadb>=1.1.0",                 # 连 ChromaDB 容器的客户端，版本要和 docker-compose 里的服务器一致
+    "google-genai>=1.39.1",            # 调 Gemini embedding（Vertex AI）
+    "langchain-text-splitters>=0.3.0", # 切块工具
+    "pandas>=2.3.3",
+    "pyyaml>=6.0",                     # 读 MD 开头的信息头
+]

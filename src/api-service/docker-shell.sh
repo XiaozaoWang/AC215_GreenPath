@@ -5,12 +5,12 @@ set -e
 
 # Set vairables
 export BASE_DIR=$(pwd)
-export SECRETS_DIR=$(pwd)/../../../secrets/
+export SECRETS_DIR=$(pwd)/../../secrets/
 export GCP_PROJECT="ac215-507902" # CHANGE TO YOUR PROJECT ID
 export GOOGLE_APPLICATION_CREDENTIALS="/secrets/llm-service-account.json"
 export IMAGE_NAME="smartpath-api-service"
 
-# Create the docker network (skip if it already exists), the same network docker-compose.yml uses
+# 建 docker 网络（已经有了就跳过），和 docker-compose.yml 用同一张网
 docker network inspect smartpath-network >/dev/null 2>&1 || docker network create smartpath-network
 
 

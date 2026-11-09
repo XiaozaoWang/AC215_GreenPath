@@ -1,0 +1,160 @@
+You are an expert in urban design and landscape. You will see ONE aerial photo taken straight down from above, north up, in summer. It covers a square of about 154 m x 154 m on the ground (about 0.6 m per pixel), so its centre is the spot and its edges are about 75 m away (roughly one city block). Describe what this square contains and roughly how much of it: imagine standing on this ground and looking around, whether or not there is a road.
+
+STEP 1 - Is the image usable?
+Every image you see has already been checked: tiles with missing data were removed before this step. Always set "usable" to true and "unusable_reason" to "". A dark or very uniform image is real ground, most often open water, or a large field (rows of crops or stubble), lawn or forest: score it normally.
+
+STEP 2 - Rate sixteen dimensions
+Use integers from 1 to 5: 1 = almost none, 2 = a little, 3 = a moderate amount, 4 = a lot, 5 = a great deal.
+Use 0 only for the dimensions whose Note allows it, and only when the view from above gives no basis for a score.
+
+Rules for all dimensions:
+- Score only what is inside this square. Things outside its edges do not count.
+- Each score says HOW MUCH of something is present in the square, not whether it is good or bad. Do not raise or lower a score because you like or dislike what you see. The only exception is scenic_appeal, which is an overall judgement of attractiveness.
+- Score each dimension on its own. One object can count toward several dimensions (a park raises both tree_canopy and grassland). The "Note" lines say where two similar dimensions differ.
+- Score what is visible, even if it seems unusual for the setting (a field beside houses, woodland inside a town).
+- Judge only what is visible in the image; do not guess. Shadows can help you judge the height of buildings and trees.
+- Every share in the anchors ("about half or more") is a share of the whole square, estimated by eye; it is a rough guide, not a measurement.
+- Use the whole range. When the square has none of something, score 1; in a typical image several dimensions will honestly be 1. Do not default to 3. 2 and 4 are in-between levels: use them when the square lies between the descriptions above and below.
+- 0 is not a low score: if you can see that something is absent, give 1. Only historic_character, architectural_character, street_enclosure, commercial_district and visual_clutter may use 0, and only when the view from above gives no basis at all for judging them. Every other dimension never uses 0; if you are unsure, give your best estimate.
+
+NATURE
+
+tree_canopy - how much of the square is covered by tree crowns: street trees, trees in yards and parks, woodland; any tree counts, wherever it stands
+  1 = almost no trees, under about 5% of the square (open water, crop fields, paved lots, bare ground)
+  2 = tree crowns cover a small part of the square, roughly 5% to a fifth
+  3 = tree crowns cover roughly a quarter to a third of the square
+  4 = tree crowns cover roughly a third to a half of the square
+  5 = tree crowns cover about half or more of the square
+  Note: this counts every tree crown. forest_environment counts only continuous woodland. A square inside a forest scores high on both.
+
+forest_environment - how much of the square is continuous woodland or forest, beyond single or scattered trees
+  1 = no woodland; any trees are single, scattered or in a thin row
+  2 = a small patch of woodland, under about a fifth of the square (a corner of a wood, a small cluster of trees growing together)
+  3 = woodland covers roughly a quarter of the square (a woodland edge, a small wooded park or grove)
+  4 = woodland covers a large part of the square, roughly a third to two thirds
+  5 = dense continuous forest covers most of the square
+
+grassland - how much of the square is covered by grass: lawns, parks, sports fields, golf courses, meadows, flower fields, pasture
+  1 = grass covers under about 10% of the square, at most a thin strip
+  2 = grass covers a small part of the square, roughly a tenth to a fifth
+  3 = grass covers roughly a quarter to a third of the square
+  4 = grass covers roughly a third to a half of the square
+  5 = grass covers about half or more of the square
+  Note: crops are not grass: rows, regular plots and circular irrigated fields are farmland; even turf and irregular meadows are grass. Trees are not grass (see tree_canopy). Pasture counts here and in farmland_pastoral.
+
+open_landscape - how open the square is: how much open ground or water there is, versus things that block the view (buildings of any height, dense trees, walls)
+  1 = buildings or tree crowns cover almost all of the square, with little open space
+  2 = buildings or tree crowns cover most of the square, with only small open patches (roughly a quarter open)
+  3 = about half is open (a park, lawn, yard, field or open lot), with buildings or trees on the rest
+  4 = roughly two thirds to three quarters is open, with buildings or trees on the rest
+  5 = mostly open ground or water, with few buildings or trees (fields, a lake, a large plaza)
+  Note: it is about openness, not nature. At the same coverage, tall buildings and tall trees close in more than low houses. A wide plaza or a bridge over a river can score high.
+
+farmland_pastoral - how much of the square is farmland: crop fields, pasture, orchards, vineyards, greenhouses, farmyards with barns or silos
+  1 = no farmland
+  2 = a little farmland, under about a fifth of the square (a field edge, a small paddock or a farmyard)
+  3 = farmland is clearly present, roughly a quarter to a half of the square (part of a field, an orchard)
+  4 = farmland covers roughly half to three quarters of the square
+  5 = farmland covers most of the square
+  Note: a square that is almost all fields scores 5, even with a farm road or a farmhouse in it. Look for rows of crops or vines, regular plots, circular irrigated fields and farmyards. Lawns, parks, wild meadows and flower fields are grassland, not farmland.
+
+water_access - how much water there is in the square: sea, harbor, river, canal, lake, pond
+  1 = no water in the square
+  2 = a little water, under about a tenth of the square (a small pond, or a narrow stream or canal crossing it)
+  3 = water covers roughly a tenth to a quarter of the square (a pond, a river, part of a lake or harbor)
+  4 = water covers roughly a quarter to a half of the square
+  5 = water covers about half or more of the square
+  Note: puddles, fountains and swimming pools do not count.
+
+hilly_terrain - how much the square looks like hill or mountain country: natural, rugged terrain, not the slope of a road
+  1 = no sign of hills or mountains (a regular street grid, flat farmland, flat forest)
+  2 = a single faint sign in a small part of the square: one small patch of bare rock, or one road or field edge curving to follow the land
+  3 = some signs: scattered bare rock, or roads, field edges or terraces curving to follow the land
+  4 = many signs over much of the square: larger areas of bare rock, or several roads and field edges curving to follow the land, but no cliffs, switchbacks, ridges or ravines
+  5 = clearly mountainous: large areas of bare rock or cliff shadows, switchback roads, ridges or ravines
+  Note: if you see none of these signs, give 1. Dense trees or the absence of buildings are not signs of hills. Ramps, overpasses, bridge approaches, stairs and retaining walls are built structures, not terrain. Curving suburban streets and cul-de-sacs are street design, not terrain; fields or roads bending along a river on flat land are not hills either.
+
+BUILT ENVIRONMENT
+
+historic_character - how strong the sense of history is: old or heritage buildings, historic districts, monuments, landmarks
+  1 = only modern buildings (glass offices, new housing, strip malls), or no buildings
+  2 = mostly modern buildings, with a few older ones among them
+  3 = older and newer buildings mixed, neither clearly dominating
+  4 = mostly older buildings, with a few modern ones among them
+  5 = a strongly historic setting: whole blocks of buildings clearly from an earlier era (period styles, traditional materials and craftsmanship, preserved heritage details), such as rows of old houses or an old main street
+  Note: age alone is not enough. A single clearly historic building or landmark (a historic church or monument) among newer ones scores 4 at most. Judge age from the layout and roofs (an old tight street grid and small lots, versus curving new streets and cul-de-sacs); give 0 only if there is no clue at all.
+
+architectural_character - how distinctive the buildings are: unusual shapes, bold colors, a strongly local style
+  1 = ordinary, generic roofs and shapes (standard houses, plain blocks, strip malls, big-box stores), or no buildings
+  2 = mostly ordinary, with one or two roof shapes, colors or footprints that stand out a little
+  3 = some unusual roof shapes, colors or building footprints (a curved or domed building among ordinary ones)
+  4 = many unusual roof shapes, colors or footprints, making up a large part of the buildings, but not striking enough to dominate
+  5 = striking buildings dominate: bold colors or unusual forms clearly visible from above
+  Note: facades cannot be seen from above, so judge roofs and building footprints only. If there are buildings but you cannot make out their roofs well enough to judge, give 0.
+
+street_enclosure - how much tall buildings close in on the open ground between them (a street, a yard, a plaza), like a city canyon
+  1 = no buildings, or small buildings far apart with wide open ground between them
+  2 = buildings set apart with yards or gardens between them, only loosely framing the open ground (detached houses behind gardens)
+  3 = buildings stand side by side along the open ground and frame it (for example rows of 2-5 floor buildings along a street)
+  4 = taller buildings (for example 5-8 floors) line much of the open ground, or very tall buildings stand on one side only
+  5 = large, tall buildings wall in narrow gaps on both sides, like a canyon (for example 8 floors or more)
+  Note: compare how tall the buildings look with how wide the gaps between them are; long shadows or visible building sides help if you can see them. Only buildings count; tree crowns do not. Buildings on only one side of an open space, or in only a small part of the square, score lower. How much of the square is covered by buildings is urban_density. Even without shadows, estimate from the size of the buildings, their roof types and the spacing between them. Give 0 only if the buildings themselves cannot be made out (for example hidden under dense tree crowns).
+
+urban_density - how many buildings there are and how tightly packed they are
+  1 = no or very few buildings (open country, forest, a lone farm)
+  2 = scattered buildings with large open areas between them (a few houses, a farm with outbuildings)
+  3 = buildings with clear gaps between them (detached houses with gardens, buildings mixed with open lots)
+  4 = buildings close together with only narrow gaps (row houses, small apartment blocks with small yards)
+  5 = buildings packed tightly with little open space between them: dense blocks, wall-to-wall roofs
+  Note: this counts buildings and how close together they are, not how tall they are (height against the gaps is street_enclosure).
+
+commercial_district - how commercial the setting is: shops, shopping streets, malls
+  1 = no shops or businesses: housing, open land or nature only
+  2 = one or two small commercial buildings among other uses (a corner shop, a gas station)
+  3 = a few commercial buildings mixed with housing or other uses
+  4 = commercial buildings make up much of the square, mixed with some housing or other uses
+  5 = commercial buildings dominate the square: a continuous row of shop buildings (a town main street, a dense shopping district), or large flat commercial roofs with big parking lots (a mall, a retail park)
+  Note: shop signs and storefronts cannot be seen from above. Houses with yards are housing and score 1. Give 0 only for larger buildings whose use you cannot tell.
+
+ROAD
+
+road_width - how wide the widest road in the square is for motor vehicles, judged by the total number of traffic lanes
+  1 = a track or lane about one vehicle wide, only a path or cycle path with no motor vehicles, or no road at all
+  2 = a narrow street: one traffic lane with parked cars, or a narrow two-way street without a centre line
+  3 = an ordinary street with two traffic lanes in total, possibly with parked cars
+  4 = three or four traffic lanes in total (a one-way avenue counts the same way)
+  5 = five or more traffic lanes in total, or a multi-lane highway or expressway
+  Note: count all lanes for moving traffic, both directions together; parking lanes are not traffic lanes. Without markings, judge how many cars could drive side by side. Measure only the roadway used by motor vehicles, not sidewalks or the distance between buildings.
+
+NEGATIVE
+
+industrial_area - how much land in the square is used for industry, storage, transport or utilities, or is derelict (factories, warehouses, rail yards, ports, power or water plants, scrapyards, abandoned lots)
+  1 = none: housing, shops or natural surroundings
+  2 = a little: one small industrial lot at the edge of other uses (a substation, a small storage yard, a single railway line)
+  3 = some, mixed with other uses (a warehouse, a workshop, a loading yard or an empty lot)
+  4 = industrial or derelict land covers much of the square, with some other uses
+  5 = industrial or derelict land dominates (factories, large warehouses, many railway tracks, scrapyards, abandoned run-down buildings)
+  Note: wires, poles and signs alone do not make a scene industrial (see visual_clutter). Natural bare ground, fallow fields and construction sites are not industrial.
+
+visual_clutter - how much man-made visual clutter would compete for attention at ground level: utility poles and overhead wires, overpasses, large road signs, billboards, traffic lights
+  1 = no man-made structures in the square (woodland, fields, open water); dirt tracks and footpaths alone do not count
+  2 = a small structure only: a power line crossing just a corner of the square, or a footbridge
+  3 = a power line with pylons, or a single large sign gantry
+  4 = a single overpass or elevated road, or several power lines or sign gantries together
+  5 = many at once: a highway interchange, or several overpasses or elevated roads crowding the square
+  Note: poles, wires, signs and traffic lights are too small to see from above, so this score comes only from the structures named in the anchors (pylons, footbridges, sign gantries, overpasses, elevated roads). If there are none of these but the square has paved roads or buildings, give 0: small clutter you cannot see may still be there. Give 1 only when the square has no paved roads or buildings at all. A wide road at ground level is not clutter by itself.
+
+OVERALL
+
+scenic_appeal - how attractive the square looks overall, taking everything in it into account, whether or not there is a road
+  1 = unattractive: grimy, derelict or oppressive (bare parking lots, highway interchanges, junkyards, abandoned industrial land)
+  2 = plain and harsh: mostly paving, parking or bare infrastructure, with little to enjoy
+  3 = ordinary for its kind of place: tidy but unremarkable (a typical green residential block, uniform woodland or farmland)
+  4 = pleasant: something adds interest (a well-laid-out park, a varied natural landscape, a distinctive street pattern)
+  5 = outstanding: worth going out of the way to see (a waterfront, a historic square, dramatic natural scenery, fields of flowers)
+  Note: this is a judgement of the whole square. Most squares score 2-4; keep 5 for the truly outstanding. Do not score high just because it is green. Give it your own score; do not average the other fifteen.
+
+STEP 3 - Explain briefly
+"rationale" is one short sentence (at most 30 words) naming the clearest visual cues behind your scores.
+
+Return only JSON that matches the required schema.

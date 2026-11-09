@@ -1,0 +1,46 @@
+# 数据集定义：改了下面的参数就等于换了一个数据集（要换 dataset_id）；areas 只能往后加，已有的 bbox 不能改
+dataset_id: 1026_Full_data   # 只在命令行没给 --dataset 时用（workflow 会传 DATASET）
+
+h3_res: 10                  # 格子大小：约 130 m
+min_year: 2019              # 只要这一年以后的街景
+exclude_months: [12, 1, 2, 3]   # 冬天没树叶，不要
+min_images_per_cell: 2      # 一个格子至少几张街景
+max_images_per_cell: 4      # 最多留几张（方向不同）
+tile_px: 256                # 航拍图边长（像素）
+ground_m: 154               # 航拍图和地图特征覆盖的地面宽度（米）
+naip_min_year: 2018
+worldcover_year: 2021
+selection: mmr_v2           # 选街景的规则版本（只做记录）
+osm_snapshot: nearest_to_naip   # OSM 用哪一年（只做记录）
+
+# bbox = [最小经度, 最小纬度, 最大经度, 最大纬度]；顺序有用：两个 bbox 重叠时，格子归排在前面的那个（城市优先）
+areas:
+  - {area_id: city_ca_sanfrancisco_big,  area_type: city,   area_subtype: big_city,   bbox: [-122.439365, 37.751163, -122.386150, 37.809514]}
+  - {area_id: city_ca_sfrichmond_big,    area_type: city,   area_subtype: big_city,   bbox: [-122.476616, 37.764606, -122.440481, 37.803651]}
+  - {area_id: city_ca_arcata_mid,        area_type: city,   area_subtype: small_city, bbox: [-124.098043, 40.857642, -124.073067, 40.889775]}
+  - {area_id: city_ca_slo_mid,           area_type: city,   area_subtype: small_city, bbox: [-120.669708, 35.267994, -120.646963, 35.296218]}
+  - {area_id: city_ca_santacruz_mid,     area_type: city,   area_subtype: small_city, bbox: [-122.054672, 36.972249, -122.001200, 36.990281]}
+  - {area_id: city_ca_truckee_edge,      area_type: city,   area_subtype: edge,       bbox: [-120.186138, 39.323018, -120.164852, 39.344123]}
+  - {area_id: sub_ca_napa_farm,          area_type: suburb, area_subtype: farm,       bbox: [-122.362634, 38.336588, -122.318858, 38.400260]}
+  - {area_id: sub_ca_yountville_farm,    area_type: suburb, area_subtype: farm,       bbox: [-122.366066, 38.405848, -122.341003, 38.434904]}
+  - {area_id: sub_ca_pointreyes_water,   area_type: suburb, area_subtype: water,      bbox: [-122.835345, 38.064715, -122.798352, 38.086131]}
+  - {area_id: city_tx_dallas_big,        area_type: city,   area_subtype: big_city,   bbox: [-96.785946, 32.792313, -96.726208, 32.860121]}
+  - {area_id: city_tx_denton_mid,        area_type: city,   area_subtype: small_city, bbox: [-97.154932, 33.197642, -97.110729, 33.234954]}
+  - {area_id: sub_co_palisade_farm,      area_type: suburb, area_subtype: farm,       bbox: [-108.418236, 39.085701, -108.366737, 39.110748]}
+  - {area_id: city_wa_seattle_big,       area_type: city,   area_subtype: big_city,   bbox: [-122.377911, 47.645961, -122.317314, 47.674521]}
+  - {area_id: city_wa_capitolhill_big,   area_type: city,   area_subtype: big_city,   bbox: [-122.330275, 47.612062, -122.300577, 47.634800]}
+  - {area_id: city_wa_mtvernon_mid,      area_type: city,   area_subtype: small_city, bbox: [-122.351818, 48.416782, -122.300663, 48.469624]}
+  - {area_id: city_wa_laconner_edge,     area_type: city,   area_subtype: edge,       bbox: [-122.513952, 48.379994, -122.490778, 48.399463]}
+  - {area_id: city_ma_boston_big,        area_type: city,   area_subtype: big_city,   bbox: [-71.122398, 42.330881, -71.052189, 42.381498]}
+  - {area_id: city_ma_greenfield_mid,    area_type: city,   area_subtype: small_city, bbox: [-72.619028, 42.574011, -72.590790, 42.605539]}
+  - {area_id: sub_ma_hadley_farm,        area_type: suburb, area_subtype: farm,       bbox: [-72.605896, 42.347793, -72.573624, 42.368438]}
+  - {area_id: city_ny_manhattan_big,     area_type: city,   area_subtype: big_city,   bbox: [-74.010944, 40.709524, -73.971462, 40.769490]}
+  - {area_id: city_ny_uppereast_big,     area_type: city,   area_subtype: big_city,   bbox: [-73.962879, 40.772681, -73.947687, 40.809224]}
+  - {area_id: city_ny_ithaca_mid,        area_type: city,   area_subtype: small_city, bbox: [-76.523123, 42.435793, -76.471198, 42.462344]}
+  - {area_id: city_ny_saratoga_mid,      area_type: city,   area_subtype: small_city, bbox: [-73.805723, 43.060481, -73.765211, 43.094214]}
+  - {area_id: city_ny_watkinsglen_mid,   area_type: city,   area_subtype: small_city, bbox: [-76.881037, 42.362919, -76.856232, 42.384353]}
+  - {area_id: sub_ny_lakeplacid_forest,  area_type: suburb, area_subtype: forest,     bbox: [-73.995409, 44.264687, -73.972750, 44.291908]}
+  - {area_id: city_fl_gainesville_mid,   area_type: city,   area_subtype: small_city, bbox: [-82.372484, 29.632936, -82.302618, 29.654941]}
+  - {area_id: city_fl_gainesvillesw_mid, area_type: city,   area_subtype: small_city, bbox: [-82.389307, 29.608238, -82.355232, 29.637115]}
+  - {area_id: city_fl_staugustine_mid,   area_type: city,   area_subtype: small_city, bbox: [-81.337452, 29.856127, -81.311016, 29.921019]}
+  - {area_id: city_fl_keywest_mid,       area_type: city,   area_subtype: small_city, bbox: [-81.799564, 24.545016, -81.767464, 24.566176]}

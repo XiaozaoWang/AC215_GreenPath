@@ -1,14 +1,14 @@
-# The front door of FastAPI: build the app, turn on CORS, attach each group of endpoints. What uvicorn starts is the app here.
-# When uvicorn looks for the app object, it runs this whole python file
+# FastAPI 大门：建 app、开 CORS、挂上各组接口。uvicorn 启动的就是这里的 app。
+# uvicorn的找app对象请求会直接运行这里整个python文件
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 
 from api.routers import score, source
 
-# Build the app (the title and description shown on the /docs page)
+# 建 app（/docs 页面上显示的标题和说明）
 app = FastAPI(title="SmartPath API", description="Scenery preference parsing + tile scoring", version="v1")
 
-# CORS: let pages on other ports (frontend localhost:3000) call this API from the browser
+# CORS：允许别的端口上的网页（前端 localhost:3000）在浏览器里调这个 API
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=False,
@@ -18,48 +18,14 @@ app.add_middleware(
 )
 
 
-#Health check: open localhost:9000/ and you'll see this sentence, which means the service is alive
+#健康检查：打开 localhost:9000/ 能看到这句话，说明服务活着
 @app.get("/")
 def get_index():
     return {"message": "Welcome to the SmartPath API Service"}
 
 
-#Attach the scoring endpoints (/preference, /score)
+#挂上打分相关的接口（/preference、/score）
 app.include_router(score.router)
 
-#Attach the code viewer endpoint (/source), used by the page to show the backend code
+#挂上代码展示接口（/source），给页面展示后端代码用
 app.include_router(source.router)
-
-
-from fastapi import HTTPException
-
-from api import pipeline
-from api.versions import UnknownVersionError, list_versions
-
-
-@app.get("/capabilities")
-def get_capabilities(version_id: str | None = None):
-    try:
-        return pipeline.capabilities(version_id)
-    except UnknownVersionError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except (ValueError, FileNotFoundError) as e:
-        raise HTTPException(status_code=503, detail=str(e))
-
-
-@app.get("/versions")
-def get_versions():
-    try:
-        return list_versions()
-    except (ValueError, FileNotFoundError) as e:
-        raise HTTPException(status_code=503, detail=str(e))
-
-
-@app.get("/preview")
-def get_preview(version_id: str | None = None):
-    try:
-        return pipeline.preview(version_id)
-    except UnknownVersionError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except (ValueError, FileNotFoundError) as e:
-        raise HTTPException(status_code=503, detail=str(e))

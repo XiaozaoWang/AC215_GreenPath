@@ -1,104 +1,58 @@
 {
-  "schema_version": "greenpath-experience-en-v2",
+  "_note": "全组共用的风景维度表（JSON 不能写注释，说明放在这里）。和打分规则 a5（航拍）/ v7（街景）的 16 个维度一一对应。改了维度（增删、改名）就把 schema_version 升一版。score_range 是模型输出分数的量程，全组约定 0-1。description 会原样发给 Gemini，所以用英文写清楚。",
+  "schema_version": "greenpath-dims-16-v1",
   "score_range": [
     0,
     1
   ],
-  "geometry_type": "Polygon",
   "dimensions": {
-    "traffic_intensity": {
-      "label": "Traffic intensity",
-      "description": "Higher means heavier perceived motor traffic.",
-      "keywords": [
-        "traffic",
-        "cars",
-        "car traffic"
-      ]
+    "tree_canopy": {
+      "description": "Trees around the route: street trees, yard and park trees, leaves overhead. The main source of shade."
     },
-    "quietness": {
-      "label": "Quietness",
-      "description": "Higher means a quieter perceived street environment.",
-      "keywords": [
-        "quiet",
-        "quietness",
-        "calm",
-        "peaceful"
-      ]
+    "forest_environment": {
+      "description": "Continuous woodland or forest along the route, not just scattered street trees."
     },
-    "shade": {
-      "label": "Shade",
-      "description": "Higher means more perceived shade at street level.",
-      "keywords": [
-        "shade",
-        "shady",
-        "tree shade"
-      ]
+    "grassland": {
+      "description": "Grass around the route: lawns, parks, sports fields, meadows, pasture."
     },
-    "naturalness": {
-      "label": "Naturalness",
-      "description": "Higher means a more natural-looking street environment; this does not specifically measure water or parks.",
-      "keywords": [
-        "natural",
-        "nature",
-        "naturalness"
-      ]
+    "open_landscape": {
+      "description": "How open the view is: broad sky and long views (fields, waterfronts, big parks). Low = closed in by buildings, dense trees or tunnels."
     },
-    "scenic_appeal": {
-      "label": "Scenic appeal",
-      "description": "Higher means more visually appealing scenery.",
-      "keywords": [
-        "scenic",
-        "beautiful",
-        "scenery"
-      ]
+    "farmland_pastoral": {
+      "description": "Countryside farmland: crop fields, pasture, orchards, vineyards, farmyards."
+    },
+    "water_access": {
+      "description": "Water right beside or near the route: sea, harbor, river, canal, lake, pond."
+    },
+    "hilly_terrain": {
+      "description": "Hill or mountain country around the route: natural slopes, rock, ravines. About the landscape, not how steep the road is."
     },
     "historic_character": {
-      "label": "Historic character",
-      "description": "Higher means a stronger perceived historic character.",
-      "keywords": [
-        "historic",
-        "history",
-        "old buildings"
-      ]
+      "description": "Old or heritage buildings: historic districts, old main streets, monuments."
     },
-    "liveliness": {
-      "label": "Liveliness",
-      "description": "Higher means more perceived street activity and liveliness.",
-      "keywords": [
-        "lively",
-        "liveliness",
-        "vibrant"
-      ]
+    "architectural_character": {
+      "description": "Distinctive buildings that stand out: unusual shapes, bold colors, a strongly local style."
     },
-    "visual_openness": {
-      "label": "Visual openness",
-      "description": "Higher means a more open visual field at street level.",
-      "keywords": [
-        "open views",
-        "openness",
-        "open view"
-      ]
+    "street_enclosure": {
+      "description": "Tall buildings closing in on both sides of the street, like a city canyon with little sky."
+    },
+    "urban_density": {
+      "description": "How many buildings there are and how tightly packed: dense city blocks versus open country."
+    },
+    "commercial_district": {
+      "description": "Shops, cafes, storefronts, shopping streets, malls."
+    },
+    "road_width": {
+      "description": "How wide the nearby road is for cars (number of traffic lanes). Wider roads usually mean more and faster car traffic."
+    },
+    "industrial_area": {
+      "description": "Factories, warehouses, rail yards, ports, utility plants, derelict land."
+    },
+    "visual_clutter": {
+      "description": "Overhead wires, poles, large road signs, billboards, traffic lights, overpasses."
+    },
+    "scenic_appeal": {
+      "description": "How attractive the place looks overall."
     }
-  },
-  "examples": [
-    "A quiet ride with shade, avoid traffic",
-    "Historic streets with open views",
-    "Natural, beautiful scenery"
-  ],
-  "unsupported_concepts": {
-    "water": [
-      "river",
-      "water",
-      "waterfront",
-      "lake"
-    ],
-    "bike_lane": [
-      "bike lane",
-      "bike path"
-    ],
-    "cleanliness": [
-      "cleanliness",
-      "tidy"
-    ]
   }
 }

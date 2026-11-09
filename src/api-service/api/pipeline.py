@@ -1,117 +1,54 @@
-# When score calls return pipeline.run_score(request.text, request.region_id), this arranges the flow: call each module in order and turn one sentence and the vision model results into a heatmap.
-# It's split out of score so we can test the whole flow without starting the server
+# score呼叫 return pipeline.run_score(request.text, request.region_id) 时流程编排，按顺序调用各个模块，把一句话和视觉模型结果 变成六边形热图。
+# 单独从score拆出来是为了不开服务器也能测整条流程
 
 import time
 from api import agent, model_client, score_math, tiles
-from api.schemas import ScoreResponse
-from api.dimensions import SCHEMA_VERSION, SPEC
-from api.model_bundle import get_bundle
+from api.schemas import CellValue, ScoreResponse
 
-# Raise this error when the region id is unknown; the router catches it and turns it into HTTP 404
-# A separate error type is defined here so other ValueErrors (like data check failures) aren't mistaken for 404 too
+# 区域编号不认识时抛这个错，router 接住后转成 HTTP 404
+# 此处单独定义一个错误类型，免得把别的 ValueError（比如数据校验失败）也误当成 404
 class UnknownRegionError(Exception):
     pass
 
 
-# Full flow: user's words + region scores already processed by the vision model → heatmap + the intermediate results of every step
-# get_preference can be swapped for a fake one: tests don't call Gemini and cost nothing
-def run_score(text: str, region_id: str | None = None, get_preference=agent.get_preference, version_id: str | None = None) -> ScoreResponse:
-    meta = capabilities(version_id)
-    region_id = region_id or meta["default_region_id"]
-    version_id = meta["version_id"]
-
+# 完整流程：用户的话 + 视觉模型处理好的区域分数 → 热图 + 每一步的中间结果
+# get_preference 可以换成假的：测试时不调 Gemini、不花钱
+def run_score(text: str, region_id: str, get_preference=agent.get_preference) -> ScoreResponse:
     timings = {}
 
-    # Small timing tool: record how many milliseconds the current step took into the timings dict; used after every step below
+    # 计时小工具：记下当前步骤花了多少毫秒放进timing字典，用在后面每一个步骤
     clock = [time.perf_counter()]
     def lap(name):
         now = time.perf_counter()
         timings[name] = round((now - clock[0]) * 1000, 1)
         clock[0] = now
 
-    # 1. User's words → agent.get_preference wraps llm.ask as a harness, asks Gemini and checks the reply
+    # 1.用户的话 → agent.get_preference 做harness包裹 llm.ask，问Gemini问题并检查回复
     agent_result = get_preference(text)
-    weights = agent_result.preference.as_vector() #a method defined in preference: only pull out the weights part and turn it into a dict; missing items are filled with 0
+    weights = agent_result.preference.as_vector() #preference中定义的方法，只抽出权重部分转化为字典，缺少的项补为0
     lap("agent")
 
-    # 2. Build an empty table from the region name (unknown region → UnknownRegionError)
+    # 2. 根据区域名称拿到 H3 格子清单（不认识的区域 → UnknownRegionError）
     try:
-        tile_list = tiles.get_tiles(region_id, version_id)
+        tile_list = tiles.get_tiles(region_id)
     except ValueError as e:
         raise UnknownRegionError(str(e)) from e
     lap("tiles")
 
-    # 3. Fill the scores from the vision model into the empty tile list made in the step above
-    tile_scores = model_client.predict(tile_list, version_id)
+    # 3. 将视觉模型打的分数填入上一步的格子清单中
+    tile_scores = model_client.predict(tile_list)
     lap("model")
 
-    # 4. Raw scores + weights → heatmap
-    rmse = get_bundle(version_id).manifest.get("rmse")
-    values, stats = score_math.score_values(tile_scores, weights, agent_result.preference.must_have, rmse)
-    features = [
-        {"type": "Feature", "id": t.tile_id, "geometry": t.geometry,
-         "properties": {"cell_id": t.tile_id, "h3_index": t.h3_index, "value": v, "scores": t.scores}}
-        for t, v in zip(tile_scores, values)
-    ]
+    # 4. 原始分 + 权重 → 每个格子的总分
+    values, stats = score_math.combine(tile_scores, weights, agent_result.preference.must_have)
     lap("score")
 
-    # 5. Return to score.py
+    # 5. 返回给score.py
     return ScoreResponse(
         region_id=region_id,
         agent=agent_result,
         weights=weights,
+        cells=[CellValue(h3_index=ts.h3_index, value=v) for ts, v in zip(tile_scores, values)],
         stats=stats,
         timings_ms=timings,
-        features=features,
-        version_id=version_id,
-        dataset_version=meta["dataset_version"],
-        source_version=meta["source_version"],
-        snapshot_version=meta["snapshot_version"],
-        run_id=meta["run_id"],
-        schema_version=SCHEMA_VERSION,
-        model_version=meta["model_version"],
-        prediction_source=meta["prediction_source"],
-        description=meta["description"],
-        rmse_source=meta["rmse_source"],
     )
-
-
-def capabilities(version_id: str | None = None) -> dict:
-    from api.versions import resolve
-    bundle = get_bundle(version_id)
-    m = bundle.manifest
-    p = bundle.provenance
-    entry, _ = resolve(m["artifact_version"])
-    return {
-        "schema_version": SCHEMA_VERSION,
-        "dimensions": SPEC["dimensions"],
-        "score_range": SPEC["score_range"],
-        "examples": SPEC.get("examples", []),
-        "regions": [{"id": m["region_id"], "label": m["region_name"]}],
-        "default_region_id": m["region_id"],
-        "version_id": m["artifact_version"],
-        "model_version": m["model_version"],
-        "dataset_version": m["dataset_version"],
-        "prediction_source": m["prediction_source"],
-        "description": m["description"],
-        "source_version": p.get("source_workspace_version") or p.get("source_version", m.get("source_version")),
-        "snapshot_version": p.get("snapshot_version") or p.get("source_version"),
-        "run_id": p.get("run_id") or entry.get("run_id") or m.get("run_id"),
-        "n_cells": len(bundle.tiles),
-        "mode": p.get("mode", "historical-heldout"),
-        "evaluation_note": p.get("evaluation_note", "Historical held-out predictions; see experiment provenance."),
-        "rmse_source": "model" if m.get("rmse") is not None
-        else f"placeholder: {score_math.PLACEHOLDER_RMSE:g} (5% of score range, not measured error)",
-    }
-
-
-def preview(version_id: str | None = None) -> ScoreResponse:
-    from api.schemas import AgentResult, DimensionWeight, Preference
-    dimension = "shade" if "shade" in SPEC["dimensions"] else next(iter(SPEC["dimensions"]))
-    parsed = AgentResult(
-        preference=Preference(weights=[DimensionWeight(dimension=dimension, weight=1, reason="Saved prediction preview; no preference model was called")]),
-        attempts=[],
-        used_fallback=False,
-    )
-    result = run_score("", get_preference=lambda _: parsed, version_id=version_id)
-    return result.model_copy(update={"preview": True})

@@ -1,21 +1,11 @@
 .env
-.venv/
-data/
-cache/
-__pycache__/
-.ipynb_checkpoints/
-
-# app (api-service + frontend)
+secrets/
 .DS_Store
+__pycache__/
+.venv/
+outputs/
+docker-volumes/
 node_modules/
 .next/
-.pytest_cache/
-.ruff_cache/
-secrets/
-docker-volumes/
-
-# Downloaded immutable artifacts and local validation evidence
-.artifacts/
-*.egg-info/
-build/
-dist/
+*.zip
+trainer.tar*

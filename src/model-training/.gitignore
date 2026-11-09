@@ -1,0 +1,6 @@
+trainer.tar
+trainer.tar.gz
+__pycache__/
+*.egg-info/
+wandb/
+.env

@@ -1,0 +1,5 @@
+# 本地结果和缓存：不提交
+outputs/
+.venv/
+__pycache__/
+.env
