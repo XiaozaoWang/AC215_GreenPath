@@ -1,0 +1,51 @@
+#  页面：     http://localhost:3000
+#  API 文档： http://localhost:9000/docs
+#  我的key 放在仓库外面的 ../secrets/llm-service-account.json
+
+# 放这两个容器的networkrk
+networks:
+  default:
+    name: smartpath-network
+
+services:
+  api-service:
+    build: ./src/api-service
+    image: smartpath-api-service
+    container_name: smartpath-api-service
+    ports:
+      - "127.0.0.1:9000:9000" # 只对本机开放
+    volumes:
+      - ./src/api-service:/app # 方便代码的mount，改完 docker compose restart api-service 就生效，不用重新 build
+      - ../secrets:/secrets:ro # key
+    environment:
+      GCP_PROJECT: ${GCP_PROJECT:-ac215-507902} #我的project name 大家可以改成自己的
+      GOOGLE_APPLICATION_CREDENTIALS: /secrets/llm-service-account.json
+      # 用哪个LLM：如果是gemini需要 key）如果用mock就是本地关键词替身，不要 key不花钱
+      # 用法：LLM_PROVIDER=mock docker compose up，或者写进 .env（见 .env.example）
+      LLM_PROVIDER: ${LLM_PROVIDER:-gemini}
+
+    # Docker 每隔 10 秒在容器里访问一次 http://localhost:9000/（service.py 的 get_index），
+    # 能打开就算 healthy；连续失败 5 次算 unhealthy。docker compose ps 能直接看到状态。
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:9000/', timeout=3)"]
+      interval: 10s # 每 10 秒查一次
+      timeout: 5s # 单次检查最多等 5 秒
+      retries: 5 # 连续失败 5 次才判为 unhealthy
+      start_period: 15s # 刚启动的 15 秒内失败不算数，给 uvicorn 留出启动时间
+
+  # 前端：Next.js 开发服务器（浏览器里的 JS 直接调 localhost:9000）
+  frontend:
+    build:
+      context: ./src/frontend
+      dockerfile: Dockerfile.dev
+    image: smartpath-frontend
+    container_name: smartpath-frontend
+    entrypoint: ["/bin/bash", "-c", "npm install && npm run dev"]
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - ./src/frontend:/app # 代码挂进去：改完页面自动刷新
+    # 等后端"健康"了才启动前端，原来版本是只等后端容器"启动"，不等它能接请求
+    depends_on:
+      api-service:
+        condition: service_healthy
