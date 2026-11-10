@@ -3,7 +3,7 @@
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 
-from api.routers import score, source
+from api.routers import score, source, rag
 
 # 建 app（/docs 页面上显示的标题和说明）
 app = FastAPI(title="SmartPath API", description="Scenery preference parsing + tile scoring", version="v1")
@@ -29,3 +29,5 @@ app.include_router(score.router)
 
 #挂上代码展示接口（/source），给页面展示后端代码用
 app.include_router(source.router)
+
+app.include_router(rag.router)

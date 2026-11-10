@@ -1,8 +1,9 @@
 'use client';
 // 整个页面：白底上一部 iPhone 16。屏幕里只有地图和输入框。
 import dynamic from 'next/dynamic';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import DataService from '@/services/DataService';
+import RideAssistant from '@/components/RideAssistant';
 
 // Leaflet 要用浏览器的 window，所以地图只在浏览器里渲染
 const HexMap = dynamic(() => import('@/components/HexMap'), { ssr: false });
@@ -13,6 +14,19 @@ export default function Home() {
     const [text, setText] = useState('');
     const [loading, setLoading] = useState(false);
     const [failed, setFailed] = useState(false);
+    const [assistantOpen, setAssistantOpen] = useState(false);
+    const [assistantReady, setAssistantReady] = useState(false);
+    const assistantButton = useRef(null);
+
+    useEffect(() => {
+        setAssistantReady(true);
+        if (new URLSearchParams(window.location.search).get('assistant') === 'open') setAssistantOpen(true);
+    }, []);
+
+    function closeAssistant() {
+        setAssistantOpen(false);
+        requestAnimationFrame(() => assistantButton.current?.focus());
+    }
 
     // 打开页面：先画出整片区域，格子都是 0 分（近白色）
     useEffect(() => {
@@ -41,8 +55,11 @@ export default function Home() {
         <main className="stage">
             <div className="phone">
                 <div className="screen">
+                    <div className="map-content" inert={assistantOpen ? '' : undefined} aria-hidden={assistantOpen || undefined}>
                     <HexMap cells={cells} maxAbs={maxAbs} />
                     <div className="island" />
+                    <button ref={assistantButton} type="button" className="assistant-entry" disabled={!assistantReady} onClick={() => setAssistantOpen(true)}
+                        aria-haspopup="dialog" aria-expanded={assistantOpen} aria-controls="ride-assistant">Ride Assistant <span aria-hidden="true">↗</span></button>
                     <form className={failed ? 'prompt failed' : 'prompt'} onSubmit={submit}>
                         <input
                             value={text}
@@ -56,6 +73,8 @@ export default function Home() {
                         </button>
                     </form>
                     <div className="home-bar" />
+                    </div>
+                    <RideAssistant open={assistantOpen} onClose={closeAssistant} />
                 </div>
             </div>
         </main>

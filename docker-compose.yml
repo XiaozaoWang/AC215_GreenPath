@@ -18,11 +18,13 @@ services:
       - ./src/api-service:/app # 方便代码的mount，改完 docker compose restart api-service 就生效，不用重新 build
       - ../secrets:/secrets:ro # key
     environment:
-      GCP_PROJECT: ${GCP_PROJECT:-ac215-507902} #我的project name 大家可以改成自己的
+      GCP_PROJECT: ${GCP_PROJECT:-extended-web-508017-j2} #我的project name 大家可以改成自己的
       GOOGLE_APPLICATION_CREDENTIALS: /secrets/llm-service-account.json
       # 用哪个LLM：如果是gemini需要 key）如果用mock就是本地关键词替身，不要 key不花钱
       # 用法：LLM_PROVIDER=mock docker compose up，或者写进 .env（见 .env.example）
       LLM_PROVIDER: ${LLM_PROVIDER:-gemini}
+      RAG_SERVICE_URL: http://rag-api:8001
+      RAG_GATEWAY_TIMEOUT_SECONDS: ${RAG_GATEWAY_TIMEOUT_SECONDS:-50}
 
     # Docker 每隔 10 秒在容器里访问一次 http://localhost:9000/（service.py 的 get_index），
     # 能打开就算 healthy；连续失败 5 次算 unhealthy。docker compose ps 能直接看到状态。
@@ -40,6 +42,8 @@ services:
       dockerfile: Dockerfile.dev
     image: smartpath-frontend
     container_name: smartpath-frontend
+    environment:
+      API_SERVICE_URL: http://api-service:9000
     entrypoint: ["/bin/bash", "-c", "npm install && npm run dev"]
     ports:
       - "127.0.0.1:3000:3000"
@@ -49,3 +53,39 @@ services:
     depends_on:
       api-service:
         condition: service_healthy
+
+  # Optional knowledge service: scoring and frontend have no startup dependency on it.
+  rag-api:
+    build: ./src/rag-service
+    image: smartpath-rag-api
+    volumes:
+      - ../secrets:/secrets:ro
+    environment:
+      GOOGLE_APPLICATION_CREDENTIALS: /secrets/llm-service-account.json
+      GCP_PROJECT: ${RAG_GCP_PROJECT:-extended-web-508017-j2}
+      GCP_LOCATION: ${RAG_GCP_LOCATION:-global}
+      GENERATIVE_MODEL: ${RAG_GENERATIVE_MODEL:-gemini-3.1-flash-lite}
+      RAG_GENERATOR: ${RAG_GENERATOR:-base}
+      RAG_CHUNK_TYPE: ${RAG_CHUNK_TYPE:-markdown-split}
+      RAG_CLOUD_TIMEOUT_MS: ${RAG_CLOUD_TIMEOUT_MS:-20000}
+      CHROMADB_HOST: ${CHROMADB_HOST:-chromadb}
+      CHROMADB_PORT: ${CHROMADB_PORT:-8000}
+      CHROMADB_SSL: ${CHROMADB_SSL:-false}
+      ANONYMIZED_TELEMETRY: "false"
+    depends_on:
+      chromadb:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "/.venv/bin/python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/ready', timeout=4)"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+  chromadb:
+    image: chromadb/chroma:1.5.9
+    environment:
+      ANONYMIZED_TELEMETRY: "false"
+    volumes:
+      # Chroma 1.5.9 persists SQLite and vector indexes under /data.
+      - ./src/rag-service/docker-volumes/chromadb:/data

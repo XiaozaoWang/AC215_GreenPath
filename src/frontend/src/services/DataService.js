@@ -9,6 +9,15 @@ async function request(path, options) {
 }
 
 const DataService = {
+    RagChat: async (question) => {
+        const response = await fetch('/api/rag/chat', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ question }),
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(typeof result.detail === 'string' ? result.detail : 'The assistant could not answer. Please try again.');
+        return result;
+    },
     // 区域的格子清单（不调 Gemini）：打开页面时先画出整片区域
     Region: () => request(`/regions/${REGION}`),
     // 完整流程：一句话 → 偏好权重 → 每个六边形格子的总分

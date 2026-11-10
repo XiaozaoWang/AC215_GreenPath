@@ -1,0 +1,2 @@
+# Linux containers require Unix line endings in shell scripts.
+*.sh text eol=lf
