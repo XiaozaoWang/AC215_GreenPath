@@ -1,0 +1,14 @@
+# 部署工具要装的 Python 包；具体版本由 `uv lock` 锁进 uv.lock，build 镜像时按 uv.lock 原样安装
+# 改了这里要重新运行一次 `uv lock`
+[project]
+name = "greenpath-model-deployment"
+version = "0.1.0"
+description = "GreenPath model deployment: prepare the trained model, deploy model-service to Cloud Run, check it"
+requires-python = ">=3.12,<3.15"
+dependencies = [
+    "google-cloud-run>=0.10,<1",   # 调 Cloud Run 的 API：建 / 更新服务
+    "gcsfs>=2025.1,<2027",         # 读 bucket：模型文件、训练时的预测
+    "pandas>=2.2,<3",
+    "pyarrow>=19,<24",             # 读 Parquet
+    "requests>=2.32,<3",           # --test 调模型服务
+]

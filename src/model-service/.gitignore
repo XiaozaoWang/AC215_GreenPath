@@ -1,0 +1,2 @@
+# 模型文件由 model-deployment 的 --prepare 生成，不进 git（权重 14 MB，原件在 bucket 的 results/ 里）
+/artifacts

@@ -1,0 +1,5 @@
+# 不复制进镜像的东西（artifacts/ 要复制：模型就在里面）
+.venv/
+__pycache__/
+.env
+README.md

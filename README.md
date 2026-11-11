@@ -12,6 +12,8 @@ src/
 ├── model-training/   Train: DINOv2-S + linear head, aerial tile in → 15 scores (0–1) out
 ├── workflow/         Vertex AI pipeline that chains the four steps above in the cloud
 ├── data-versioning/  DVC snapshots of each training set (table + aerial tiles), stored in gs://<bucket>/dvc_store/
+├── model-service/    Model service on Cloud Run: H3 cells in → 15 scores out (FastAPI, CPU)
+├── model-deployment/ Deploy tool: prepare the trained model, deploy model-service to Cloud Run, check its scores
 ├── api-service/      Backend API (FastAPI)
 └── frontend/         Frontend (Next.js)
 ```
@@ -56,6 +58,18 @@ dvc add greenpath_dataset && dvc push       # hash it and upload to gs://<bucket
 ```
 
 Then commit `greenpath_dataset.dvc` and tag it `dataset_<TRAINING_ID>` on the Mac.
+
+## Deploy the model (Cloud Run)
+
+One-time GCP setup and the full step list: `src/model-deployment/README.md`.
+
+```
+cd src/model-deployment && sh docker-shell.sh
+python cli.py --prepare        # copy the trained model into model-service/artifacts/
+                               # then in src/model-service: sh docker-build-push.sh
+python cli.py --deploy         # deploy model-service to Cloud Run (private)
+python cli.py --test           # its scores must match the training-time predictions
+```
 
 ## Run the app locally
 
