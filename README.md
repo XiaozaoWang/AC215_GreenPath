@@ -72,22 +72,6 @@ python cli.py --deploy         # deploy model-service to Cloud Run (private)
 python cli.py --test           # its scores must match the training-time predictions
 ```
 
-## Route planning (new in Milestone 3)
-
-Tap a start and an end on the map, describe the ride ("shady, away from traffic"), and get the shortest route plus three options that trade extra length for a better match. The options differ clearly from each other and from the shortest route; the allowed extra length widens (+50 % → +75 % → +100 %) until three exist. Algorithm, API and limits: `src/api-service/ROUTING.md`.
-
-```
-start + end → shortest route + detour ellipse ─┬→ Model Service: scenery scores of the cells under the ellipse
-                                               └→ Gemini: text → 15 preference weights
-cell match → road cost = length × (1 + s × mismatch) → Dijkstra for many s → three options
-```
-
-What was added (same service and image as before, no new container):
-
-- `src/api-service/`: `api/road_graph.py`, `api/route_search.py`, `api/baseline.py`, `api/routing.py` and `api/routers/route.py` with `POST /route/plan`, `/route/stream` (progress events) and `/route`; data in `data/graphs/` (road graph) and `data/baselines/` (area score baseline); `model_client.predict` got an optional `on_batch` callback; scipy added to the dependencies; tests in `tests/test_route*.py`.
-- `src/routing-graph/`: builds the road graph from OpenStreetMap, once per area: `python build_graph.py --city <area_id> --pbf <file>.osm.pbf`. Boston (`city_ma_boston_big`) is already built.
-- `src/frontend/`: tap start/end, shortest route at once, cells coloured as their scores arrive, route cards, satellite / street map switch, explanation panel; new proxy routes `/api/route/plan` and `/api/route/stream`.
-
 ## Run the app locally
 
 ```
@@ -112,7 +96,16 @@ curl -s -N -X POST localhost:9000/route/stream -H 'Content-Type: application/jso
   -d '{"origin":{"lat":42.3467,"lon":-71.0972},"destination":{"lat":42.3588,"lon":-71.0707},"text":"a shady, quiet ride"}'   # progress events, then the routes
 ```
 
-Check `used_fallback` in the result: `true` means Gemini failed and only the shortest route is returned.
+Check `used_fallback` in the result: `true` means Gemini failed and only the shortest route is returned. Endpoints and options: `src/api-service/ROUTING.md`.
+
+## Build the road graph (only for a new area)
+
+```
+cd src/routing-graph
+python build_graph.py --city <area_id> --pbf <file>.osm.pbf    # writes src/api-service/data/graphs/<area_id>/
+```
+
+The Boston graph (`city_ma_boston_big`) is already in the repository.
 
 ## Test and redeploy
 
@@ -121,4 +114,4 @@ cd src/api-service && uv run pytest        # backend, including route planning
 cd src/frontend && npm test                # proxy and stream reader
 ```
 
-Redeploy api-service and frontend as before (`src/app-deployment/README.md`); the road graph and baseline are inside the image. The deployed API is private: call it with `-H "Authorization: Bearer $(gcloud auth print-identity-token)"`.
+Deploy api-service and frontend with `src/app-deployment/README.md`; the road graph and baseline are inside the image. The deployed API is private: call it with `-H "Authorization: Bearer $(gcloud auth print-identity-token)"`.
