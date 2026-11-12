@@ -1,4 +1,4 @@
-# GreenPath — Milestone 3
+# Cycleur — Milestone 3
 
 Scenic cycling routes: every H3 cell (~130 m) gets 15 scenery scores (tree canopy, water access, historic character, …) predicted from a single aerial image.
 
@@ -115,3 +115,42 @@ cd src/frontend && npm test                # proxy and stream reader
 ```
 
 Deploy api-service and frontend with `src/app-deployment/README.md`; the road graph and baseline are inside the image. The deployed API is private: call it with `-H "Authorization: Bearer $(gcloud auth print-identity-token)"`.
+
+## Model training experiments
+
+The final model was picked by changing one thing at a time: an aerial tile (256×256) → 15 scores (0–1).
+
+| | Final choice |
+|---|---|
+| Backbone | DINOv2-S (`vit_small_patch14_dinov2.lvd142m`) |
+| Fine-tuning | Last 2 transformer blocks + final norm unfrozen, the rest frozen (3.56M of 21.6M parameters) |
+| Head | Linear + sigmoid |
+| Fixed recipe (not grid-searched) | batch 16, ≤25 epochs, early stop after 5 epochs without val-MAE gain, head LR 3e-4, encoder LR 1e-5, weight decay 1e-4, grad clip 1.0, SmoothL1 (β 0.1), random flips + 90° turns, fp16, seed 42 |
+
+![All configurations](docs/figures/overview_ladder.png)
+
+Hollow = encoder frozen, filled = unfrozen or LoRA. Experiments used the `full_v1` targets, the final run `full_v2`, so their numbers are not directly comparable.
+
+| Question | Result |
+|---|---|
+| Unfreeze the backbone? | **Yes, the biggest gain**: val MAE 0.074 → 0.055, Spearman 0.693 → 0.747 (DINOv2-S, last 2 blocks) |
+| Which backbone? | Frozen: CLIP 0.725 > DINOv2 0.716 > ResNet50 0.673 (Spearman). After unfreezing CLIP and DINOv2 tie (gap ≤ 0.005), so DINOv2: 1.1 vs 2.2 ms/image on a T4 |
+| Which head? | MLP lowers MAE (−15% frozen, −6.9% unfrozen) but not the ranking; linear chosen (close call, one seed) |
+| LoRA instead of direct unfreezing? | Not better (Spearman 0.742 vs 0.747), more moving parts |
+| Map features, ranking loss, Spearman stopping? | Small or no gain, not used |
+
+Baselines on the test set: predicting the training mean gives MAE 0.1844; map features only (LightGBM) give MAE 0.0942 and Spearman 0.669.
+
+Final run (`gs://<bucket>/results/full_v2/final/dinov2_s-linear-seed42-<id>/`, T4, about 61 min):
+
+| Metric | Predict training mean | Validation | **Test (4 unseen places)** |
+|---|---|---|---|
+| MAE | 0.1849 | 0.0550 | **0.0699** |
+| within ±0.05 / ±0.10 / ±0.20 | 19% / 34% / 68% | 66% / 80% / 94% | **58% / 74% / 92%** |
+| Spearman | – | 0.761 | **0.753** |
+
+![Final results](docs/figures/fig4_baseline_validation_test.png)
+
+Report the test numbers for new places; validation shares areas with training and is optimistic. The test set was evaluated once.
+
+Limitations: one seed per end-to-end run (differences below about 0.01 Spearman are not conclusions); labels are Gemini scores, so a low error means agreement with Gemini; `farmland_pastoral`, `industrial_area` and `water_access` stay weak in every configuration. Experiment runs are in `gs://<bucket>/results/full_v1/`.
