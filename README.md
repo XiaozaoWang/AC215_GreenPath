@@ -260,3 +260,28 @@ cd src/frontend && npm test                # proxy and stream reader
 ```
 
 Deploy api-service and frontend with `src/app-deployment/README.md`; the road graph and baseline are inside the image. The deployed API is private: call it with `-H "Authorization: Bearer $(gcloud auth print-identity-token)"`.
+
+## IAM roles
+
+Each Cloud Run service runs as its own service account and may only be called by the one before it (checked 2026-11-12):
+
+```
+user → frontend (public) → API (private) → Model Service, RAG (private)
+```
+
+| Component | Runs as (`<name>@<project-id>.iam.gserviceaccount.com`) | Roles | Who may call it |
+|---|---|---|---|
+| Frontend | `greenpath-frontend` | `run.invoker` on the API | everyone (`allUsers`) |
+| API | `greenpath-api-service` | `aiplatform.user` (Gemini); `run.invoker` on Model Service and RAG | only the frontend |
+| Model Service | `greenpath-model-service` | `storage.objectViewer` (read the bucket) | only the API |
+| RAG | `greenpath-rag-service` | `aiplatform.user`, `serviceusage.serviceUsageConsumer` | only the API |
+| Vertex pipeline (collect, label, process, train) | `greenpath-ml-workflow` | `aiplatform.admin`, `iam.serviceAccountUser`, `secretmanager.secretAccessor`, `storage.admin` | – (jobs, not services) |
+| RAG image build | `greenpath-rag-builder` | `logging.logWriter` | – |
+
+The browser never calls the API directly: the Next.js server adds a Google ID token. Local runs use your own login (`gcloud auth application-default login`). To check:
+
+```
+gcloud run services get-iam-policy <service> --region us-central1
+gcloud projects get-iam-policy <project-id> --flatten="bindings[].members" --filter="bindings.members:greenpath" \
+  --format="table(bindings.members,bindings.role)"
+```
