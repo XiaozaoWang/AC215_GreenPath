@@ -55,7 +55,7 @@ export default function Home() {
         <main className="stage">
             <div className="phone">
                 <div className="screen">
-                    <div className="map-content" inert={assistantOpen ? '' : undefined} aria-hidden={assistantOpen || undefined}>
+                    <div className="map-content" inert={assistantOpen} aria-hidden={assistantOpen || undefined}>
                     <HexMap cells={cells} maxAbs={maxAbs} />
                     <div className="island" />
                     <button ref={assistantButton} type="button" className="assistant-entry" disabled={!assistantReady} onClick={() => setAssistantOpen(true)}

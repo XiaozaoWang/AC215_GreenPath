@@ -1,5 +1,5 @@
-# Build stage
-FROM node:18-alpine AS build
+# Build stage (Next.js requires Node >=20.9; retain the working Node 22 runtime).
+FROM node:22-alpine AS build
 
 WORKDIR /app
 
@@ -11,10 +11,11 @@ RUN npm ci
 COPY . .
 
 # Build the Next.js app
-RUN npm run build
+# The repository has no public assets yet; COPY below still needs the directory.
+RUN mkdir -p public && npm run build
 
 # Production stage
-FROM node:18-alpine AS production
+FROM node:22-alpine AS production
 
 WORKDIR /app
 

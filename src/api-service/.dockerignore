@@ -22,3 +22,6 @@ __pycache__/
 # 安全网：万一有人把 key 放进了这个文件夹，也不会被打包进镜像
 secrets/
 *service-account*.json
+
+# Keep local environment files out of ADD . /app.
+.env*

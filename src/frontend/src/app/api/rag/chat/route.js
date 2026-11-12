@@ -1,3 +1,4 @@
+import { apiHeaders } from '@/lib/api-proxy.mjs';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -19,7 +20,7 @@ export async function POST(request) {
         const base = (process.env.API_SERVICE_URL || 'http://localhost:9000').replace(/\/$/, '');
         const response = await fetch(`${base}/rag/chat`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { ...(await apiHeaders(base)), 'Content-Type': 'application/json' },
             body: JSON.stringify({ question: body.question.trim(), n_results: body.n_results ?? 5 }),
             signal: controller.signal,
             cache: 'no-store',

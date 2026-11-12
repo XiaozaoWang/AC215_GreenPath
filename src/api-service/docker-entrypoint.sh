@@ -9,11 +9,12 @@ source /.venv/bin/activate
 #在entrypoint末尾写了分叉，如果DEV!=1则直接uvicorn_server_production
 #这里是不是production的区别为 开发版修改文件后会自动重启服务器，日志打印的很细，上线版有lifespan，强制运行 startup/shutdown 事件，不支持就直接报错
 uvicorn_server() {
-    uvicorn api.service:app --host 0.0.0.0 --port 9000 --log-level debug --reload --reload-dir api/ "$@"
+    uvicorn api.service:app --host 0.0.0.0 --port "${PORT:-9000}" --log-level debug --reload --reload-dir api/ "$@"
     #uvicorn api.service:app --host 0.0.0.0 --port 9000 --log-level debug
 }
+# Cloud Run supplies PORT; exec lets Uvicorn receive shutdown signals directly.
 uvicorn_server_production() {
-    uvicorn api.service:app --host 0.0.0.0 --port 9000 --lifespan on
+    exec uvicorn api.service:app --host 0.0.0.0 --port "${PORT:-9000}" --lifespan on
 }
 
 

@@ -1,10 +1,8 @@
-# 建立instruction
+"""Gemini instructions and retry prompts for the 15-dimensional preference contract."""
 from api.dimensions import DIMENSIONS
 
-# 把维度表拼成 "- 名字: 说明" 的清单，塞进 instruction
 _dimension_lines = "\n".join(f"- {name}: {desc}" for name, desc in DIMENSIONS.items())
 
-# 系统指令：告诉 Gemini 维度有哪些、权重怎么给
 SYSTEM_INSTRUCTION = f"""
 You turn a cyclist's description of the ride they want into preference weights over scenery dimensions.
 
@@ -30,7 +28,6 @@ Rules:
    - city feel, downtown -> urban_density 0.8, commercial_district 0.6, street_enclosure 0.4
    - countryside, rural -> farmland_pastoral 0.8, grassland 0.5, open_landscape 0.5, urban_density -0.6
    - views, open space, big sky -> open_landscape 1.0, street_enclosure -0.4
-   - flat, no climbing -> hilly_terrain -0.5 (hilly_terrain describes hilly country, not the road's slope)
    - ugly, gritty, under highways -> industrial_area -0.6, visual_clutter -0.6
    Things no dimension measures (bike lanes, pavement quality, number of stops, distance, elevation gain): give them no weight;
    mention them in the reason of the nearest related weight, or leave them out.
@@ -62,7 +59,6 @@ Examples:
 """
 
 
-# 用户这次说的话；如果上一次回答被打回，把错误信息附在后面
 def build_user_prompt(text: str, error: str | None = None) -> str:
     prompt = f"User description:\n{text}"
     if error:

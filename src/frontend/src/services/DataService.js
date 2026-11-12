@@ -1,9 +1,11 @@
-// 前端调后端的唯一出口：页面只调这里的函数，不直接写 URL。
-const BASE_API_URL = process.env.NEXT_PUBLIC_BASE_API_URL;
-const REGION = 'cambridge';
+// Browser requests stay on the frontend origin; Next.js authenticates to the private API.
+const BASE_API_URL = '/api';
+const REGION = 'city_ma_boston_big';
 
-async function request(path, options) {
-    const response = await fetch(BASE_API_URL + path, options);
+async function request(path, body) {
+    const response = await fetch(BASE_API_URL + path, body === undefined ? undefined : {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+    });
     if (!response.ok) throw new Error(`API ${path} failed: ${response.status}`);
     return response.json();
 }
@@ -18,14 +20,10 @@ const DataService = {
         if (!response.ok) throw new Error(typeof result.detail === 'string' ? result.detail : 'The assistant could not answer. Please try again.');
         return result;
     },
-    // 区域的格子清单（不调 Gemini）：打开页面时先画出整片区域
+    // Route calculation stays in the backend; the map only displays returned results.
+    Route: (body) => request('/route', body),
     Region: () => request(`/regions/${REGION}`),
-    // 完整流程：一句话 → 偏好权重 → 每个六边形格子的总分
-    Score: (text) => request('/score', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, region_id: REGION }),
-    }),
+    Score: (text) => request('/score', { text, region_id: REGION }),
 };
 
 export default DataService;

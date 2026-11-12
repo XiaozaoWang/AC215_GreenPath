@@ -5,6 +5,12 @@ description = "SmartPath API service: preference parsing (Gemini) + tile scoring
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.143.0",
+    "google-auth>=2.40.0",
+    "google-cloud-storage>=3.0.0",
+    "h3>=4.2.0",
+    "httpx>=0.28.1",
+    "pyarrow>=19.0.0",
+    "requests>=2.32.0",
     "google-genai>=2.30.0",
     "numpy>=2.5.4",
     "pydantic>=2.14.1",
@@ -13,11 +19,9 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "pillow>=12.3.0",
     "pytest>=9.1.1",
 ]
 
-# pytest：从 api-service 根目录找 api 包，测试放在 tests/
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]

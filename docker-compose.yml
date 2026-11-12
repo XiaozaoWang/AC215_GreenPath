@@ -18,10 +18,17 @@ services:
       - ./src/api-service:/app # 方便代码的mount，改完 docker compose restart api-service 就生效，不用重新 build
       - ../secrets:/secrets:ro # key
     environment:
-      GCP_PROJECT: ${GCP_PROJECT:-extended-web-508017-j2} #我的project name 大家可以改成自己的
-      GOOGLE_APPLICATION_CREDENTIALS: /secrets/llm-service-account.json
+      GCP_PROJECT: ${GCP_PROJECT:-organic-victory-508017-v9} #我的project name 大家可以改成自己的
+      GOOGLE_APPLICATION_CREDENTIALS: ${GOOGLE_APPLICATION_CREDENTIALS_CONTAINER:-/secrets/llm-service-account.json}
       # 用哪个LLM：如果是gemini需要 key）如果用mock就是本地关键词替身，不要 key不花钱
       # 用法：LLM_PROVIDER=mock docker compose up，或者写进 .env（见 .env.example）
+      # Real data and private Model Service connection for Phase 3.
+      GREENPATH_BUCKET: ${GREENPATH_BUCKET:-ac215-notebook}
+      GREENPATH_DATASET: ${GREENPATH_DATASET:-1026_Full_data}
+      MODEL_SERVICE_URL: ${MODEL_SERVICE_URL:-http://host.docker.internal:8080}
+      MODEL_MAX_CONCURRENCY: ${MODEL_MAX_CONCURRENCY:-3}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.1-flash-lite}
+      GEMINI_LOCATION: ${GEMINI_LOCATION:-global}
       LLM_PROVIDER: ${LLM_PROVIDER:-gemini}
       RAG_SERVICE_URL: http://rag-api:8001
       RAG_GATEWAY_TIMEOUT_SECONDS: ${RAG_GATEWAY_TIMEOUT_SECONDS:-50}
