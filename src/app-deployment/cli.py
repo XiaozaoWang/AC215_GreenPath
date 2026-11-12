@@ -50,15 +50,15 @@ def deploy(service, tag="latest", model_concurrency=3):
     if service == "frontend":
         env = {"API_SERVICE_URL": client.get_service(name=f"{parent}/services/{SERVICE_NAMES['api']}").uri}
     else:
-        # Read Model Service's URL only; never change its deployment or permissions.
+        # Discover upstream URLs only; never change their deployments or permissions.
         model_url = client.get_service(name=f"{parent}/services/greenpath-model-service").uri
+        rag_url = client.get_service(name=f"{parent}/services/greenpath-rag-service").uri
         env = {"GCP_PROJECT": GCP_PROJECT, "GREENPATH_BUCKET": BUCKET,
                "GREENPATH_DATASET": os.getenv("GREENPATH_DATASET", "1026_Full_data"),
                "MODEL_SERVICE_URL": model_url, "MODEL_MAX_CONCURRENCY": str(model_concurrency),
+               "RAG_SERVICE_URL": rag_url,
                "LLM_PROVIDER": "gemini", "GEMINI_MODEL": os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite"),
                "GEMINI_LOCATION": os.getenv("GEMINI_LOCATION", "global")}
-        if os.getenv("RAG_SERVICE_URL"):
-            env["RAG_SERVICE_URL"] = os.environ["RAG_SERVICE_URL"]
 
     config = run_v2.Service(
         ingress="INGRESS_TRAFFIC_ALL", invoker_iam_disabled=False,

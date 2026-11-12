@@ -7,7 +7,10 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 from fastapi import APIRouter, HTTPException
+from google.auth.exceptions import GoogleAuthError
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
+
+from api.model_client import auth_headers
 
 router = APIRouter(prefix="/rag", tags=["rag"])
 
@@ -20,9 +23,14 @@ class RagQuestion(BaseModel):
 
 def forward(path, body=None):
     base = os.getenv("RAG_SERVICE_URL", "http://rag-api:8001").rstrip("/")
+    try:
+        # Use the API runtime identity and service URL audience; local HTTP skips tokens.
+        headers = {"Content-Type": "application/json", **auth_headers(base)}
+    except (GoogleAuthError, OSError) as error:
+        raise HTTPException(503, "Unable to authenticate to RAG service") from error
     request = Request(base + path,
                       data=json.dumps(body).encode() if body is not None else None,
-                      headers={"Content-Type": "application/json"})
+                      headers=headers)
     timeout = 5 if path == "/ready" else float(os.getenv("RAG_GATEWAY_TIMEOUT_SECONDS", "50"))
     try:
         with urlopen(request, timeout=timeout) as response:

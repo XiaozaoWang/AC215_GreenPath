@@ -8,13 +8,22 @@ from google.iam.v1.policy_pb2 import Policy
 import cli
 
 
-@pytest.mark.parametrize("service,new", [("api", True), ("frontend", False)])
-def test_deploy_uses_model_deployment_pattern_and_preserves_access(monkeypatch, service, new):
+@pytest.mark.parametrize("service,new,rag_override", [
+    ("api", True, None), ("api", False, "https://stale-rag.run.app"), ("frontend", False, None),
+])
+def test_deploy_uses_model_deployment_pattern_and_preserves_access(monkeypatch, service, new, rag_override):
+    monkeypatch.delenv("RAG_SERVICE_URL", raising=False)
+    if rag_override:
+        monkeypatch.setenv("RAG_SERVICE_URL", rag_override)
     client = Mock()
     name = f"projects/{cli.GCP_PROJECT}/locations/{cli.GCP_REGION}/services/{cli.SERVICE_NAMES[service]}"
     def lookup(*, name):
         if new and name.endswith("/" + cli.SERVICE_NAMES[service]):
             raise NotFound("new service")
+        if name.endswith("/greenpath-model-service"):
+            return SimpleNamespace(uri="https://model.run.app")
+        if name.endswith("/greenpath-rag-service"):
+            return SimpleNamespace(uri="https://rag.run.app")
         return SimpleNamespace(uri="https://upstream.run.app")
     client.get_service.side_effect = lookup
     client.create_service.return_value.result.return_value = SimpleNamespace(uri="https://new.run.app")
@@ -44,8 +53,13 @@ def test_deploy_uses_model_deployment_pattern_and_preserves_access(monkeypatch, 
     assert "GOOGLE_APPLICATION_CREDENTIALS" not in env
     if service == "api":
         assert env["MODEL_MAX_CONCURRENCY"] == "3"
+        assert env["MODEL_SERVICE_URL"] == "https://model.run.app"
+        assert env["RAG_SERVICE_URL"] == "https://rag.run.app"
+        client.get_service.assert_any_call(
+            name=f"projects/{cli.GCP_PROJECT}/locations/{cli.GCP_REGION}/services/greenpath-rag-service")
     else:
         assert env["API_SERVICE_URL"] == "https://upstream.run.app"
+        assert "RAG_SERVICE_URL" not in env
     access = client.set_iam_policy.call_args.kwargs["request"]
     assert access["resource"] == name and access["policy"].etag == b"etag"
     members = [m for b in access["policy"].bindings if b.role == "roles/run.invoker" for m in b.members]
