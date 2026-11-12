@@ -1,0 +1,88 @@
+{
+  "project": "organic-victory-508017-v9",
+  "region": "us-central1",
+  "scope": "RAG only. No VM, no VPC/firewall change, no existing API/frontend/model code or deployment change.",
+  "data": {
+    "documents": 73,
+    "vectors": 398,
+    "model": "gemini-embedding-001",
+    "dimension": 256,
+    "generate_document_embeddings": false
+  },
+  "new_resources": {
+    "cloud_run": "greenpath-rag-service; private ingress authentication; RAG and Chroma containers; min 0 / max 2 instances; 1 CPU and 1 GiB per container; request based billing",
+    "bucket": "organic-victory-508017-v9-rag; us-central1; uniform access; public access prevention",
+    "images": "two RAG images in existing greenpath Artifact Registry repository",
+    "identities": [
+      "greenpath-rag-service",
+      "greenpath-rag-builder"
+    ],
+    "enable_api": "cloudbuild.googleapis.com"
+  },
+  "access_grants": [
+    {
+      "identity": "greenpath-rag-service@organic-victory-508017-v9.iam.gserviceaccount.com",
+      "scope": "project organic-victory-508017-v9",
+      "roles": [
+        "roles/aiplatform.user",
+        "roles/serviceusage.serviceUsageConsumer"
+      ],
+      "purpose": "Query embeddings and Gemini generation"
+    },
+    {
+      "identity": "greenpath-rag-service@organic-victory-508017-v9.iam.gserviceaccount.com",
+      "scope": "new bucket organic-victory-508017-v9-rag",
+      "roles": [
+        "roles/storage.objectViewer"
+      ],
+      "purpose": "Restore the fixed existing index at cold start"
+    },
+    {
+      "identity": "greenpath-rag-builder@organic-victory-508017-v9.iam.gserviceaccount.com",
+      "scope": "new bucket organic-victory-508017-v9-rag",
+      "roles": [
+        "roles/storage.objectViewer"
+      ],
+      "purpose": "Read staged source for image build"
+    },
+    {
+      "identity": "greenpath-rag-builder@organic-victory-508017-v9.iam.gserviceaccount.com",
+      "scope": "existing Artifact Registry repository greenpath in us-central1",
+      "roles": [
+        "roles/artifactregistry.writer"
+      ],
+      "purpose": "Publish the RAG images"
+    },
+    {
+      "identity": "greenpath-rag-builder@organic-victory-508017-v9.iam.gserviceaccount.com",
+      "scope": "project organic-victory-508017-v9",
+      "roles": [
+        "roles/logging.logWriter"
+      ],
+      "purpose": "Write build logs"
+    },
+    {
+      "identity": "greenpath-api-service@organic-victory-508017-v9.iam.gserviceaccount.com",
+      "scope": "new Cloud Run service greenpath-rag-service only",
+      "roles": [
+        "roles/run.invoker"
+      ],
+      "purpose": "Let the API teammate invoke private RAG; no API settings/code are changed"
+    }
+  ],
+  "durability": "GCS archive is immutable, named by data version and checked by SHA256. Each new Cloud Run instance rebuilds disposable local Chroma from stored vectors, without generating document embeddings. Runtime knowledge-base updates are unsupported; release a new index version instead.",
+  "tutorials": [
+    "https://github.com/dlops-io/serverless-deployment",
+    "https://github.com/dlops-io/cheese-app-v2"
+  ],
+  "adaptation_reference": "https://docs.cloud.google.com/run/docs/configuring/services/containers",
+  "validation_planned": [
+    "Cloud Build tests on Linux amd64",
+    "Authenticated health, ready, query and chat",
+    "Unauthenticated access denied",
+    "Invalid request returns 422",
+    "New instance reloads all 398 vectors from GCS",
+    "Normal and error Cloud Logging evidence"
+  ],
+  "handoff": "RAG URL, endpoint contract and identity-token requirements go to the API owner. No teammate service will be redeployed."
+}

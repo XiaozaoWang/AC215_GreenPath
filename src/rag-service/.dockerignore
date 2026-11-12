@@ -3,6 +3,6 @@ __pycache__/
 .env
 outputs/
 docker-volumes/
-tests/
+input-datasets/
 *.sqlite3
 *.bin

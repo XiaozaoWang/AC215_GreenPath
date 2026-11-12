@@ -1,0 +1,7 @@
+ARG RAG_IMAGE
+FROM ${RAG_IMAGE}
+USER root
+RUN mkdir -p /data && chown app:app /data
+USER app
+COPY --chown=app:app deploy/chroma_bootstrap.py ./chroma_bootstrap.py
+CMD ["/.venv/bin/python", "chroma_bootstrap.py"]

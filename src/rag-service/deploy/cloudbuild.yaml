@@ -1,0 +1,13 @@
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args: ['build', '-t', '${_RAG_IMAGE}', '.']
+  - name: gcr.io/cloud-builders/docker
+    args: ['build', '-f', 'deploy/Dockerfile.test', '--build-arg', 'RAG_IMAGE=${_RAG_IMAGE}', '-t', 'rag-test', '.']
+  - name: gcr.io/cloud-builders/docker
+    args: ['run', '--rm', '-e', 'GCP_PROJECT=', 'rag-test']
+  - name: gcr.io/cloud-builders/docker
+    args: ['build', '-f', 'deploy/Dockerfile.chroma', '--build-arg', 'RAG_IMAGE=${_RAG_IMAGE}', '-t', '${_CHROMA_IMAGE}', '.']
+images: ['${_RAG_IMAGE}', '${_CHROMA_IMAGE}']
+options:
+  logging: CLOUD_LOGGING_ONLY
+timeout: 1200s

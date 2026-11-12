@@ -271,7 +271,7 @@ def chroma_client(max_attempts=15):
             time.sleep(2)
 
 
-def load(method, replace=False):
+def load(method, replace=False, client=None):
     print("load()")
     manifest = checked_manifest(method, embedded=True)
     rows = [r for name in manifest["embeddings"] for r in read_jsonl(Path(OUTPUT_FOLDER) / name)]
@@ -281,7 +281,7 @@ def load(method, replace=False):
         v = row["embedding"]
         if len(v) != EMBEDDING_DIMENSION or not all(math.isfinite(x) for x in v) or not any(v):
             raise ValueError("Invalid vector; existing collection has not been modified")
-    client = chroma_client()
+    client = client if client is not None else chroma_client()
     name = f"greenpath-docs-{method}"
     from chromadb.errors import NotFoundError
     try:

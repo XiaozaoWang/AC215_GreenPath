@@ -1,0 +1,6 @@
+ARG RAG_IMAGE
+FROM ${RAG_IMAGE}
+COPY --chown=app:app tests ./tests
+COPY --chown=app:app deploy/chroma_bootstrap.py ./chroma_bootstrap.py
+RUN uv sync --frozen --group dev
+CMD ["/.venv/bin/python", "-m", "pytest", "-q", "tests/test_indexing.py", "tests/test_chat.py", "tests/test_service.py", "tests/test_bootstrap.py"]

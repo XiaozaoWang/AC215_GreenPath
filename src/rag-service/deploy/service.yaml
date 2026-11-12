@@ -1,0 +1,78 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: greenpath-rag-service
+  annotations:
+    run.googleapis.com/ingress: all
+    run.googleapis.com/maxScale: '2'
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/minScale: '0'
+        autoscaling.knative.dev/maxScale: '2'
+        run.googleapis.com/execution-environment: gen2
+        run.googleapis.com/cpu-throttling: 'true'
+        run.googleapis.com/startup-cpu-boost: 'true'
+        run.googleapis.com/container-dependencies: '{"rag":["chroma"]}'
+    spec:
+      serviceAccountName: greenpath-rag-service@organic-victory-508017-v9.iam.gserviceaccount.com
+      containerConcurrency: 4
+      timeoutSeconds: 60
+      containers:
+        - name: rag
+          image: 'us-central1-docker.pkg.dev/organic-victory-508017-v9/greenpath/greenpath-rag-service@sha256:c29f034f086332f69b21a696ca8964bd3ed30acbff8d457f5c04a0330cc9a75d'
+          ports:
+            - containerPort: 8001
+          resources:
+            limits:
+              cpu: '1'
+              memory: 1Gi
+          env:
+            - name: GCP_PROJECT
+              value: organic-victory-508017-v9
+            - name: GCP_LOCATION
+              value: global
+            - name: GENERATIVE_MODEL
+              value: gemini-3.1-flash-lite
+            - name: RAG_GENERATOR
+              value: base
+            - name: RAG_CHUNK_TYPE
+              value: markdown-split
+            - name: CHROMADB_HOST
+              value: '127.0.0.1'
+            - name: CHROMADB_PORT
+              value: '8000'
+            - name: ANONYMIZED_TELEMETRY
+              value: 'false'
+          startupProbe:
+            httpGet:
+              path: /ready
+              port: 8001
+            periodSeconds: 2
+            timeoutSeconds: 2
+            failureThreshold: 30
+        - name: chroma
+          image: 'us-central1-docker.pkg.dev/organic-victory-508017-v9/greenpath/greenpath-rag-chroma@sha256:c7c69b5b13d10d9c7f7fc863e51e4089b8d00ca62e336716546f0875217a1231'
+          resources:
+            limits:
+              cpu: '1'
+              memory: 1Gi
+          env:
+            - name: RAG_INDEX_URI
+              value: 'gs://organic-victory-508017-v9-rag/indexes/4984db11bc426abc/index-data.tar.gz'
+            - name: RAG_INDEX_SHA256
+              value: '4984db11bc426abc8df8498670c0c98cbd07c98c2462ca481ff0d57315e757cc'
+            - name: RAG_EXPECTED_COUNT
+              value: '398'
+            - name: ANONYMIZED_TELEMETRY
+              value: 'false'
+          startupProbe:
+            tcpSocket:
+              port: 8000
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 36
+  traffic:
+    - latestRevision: true
+      percent: 100

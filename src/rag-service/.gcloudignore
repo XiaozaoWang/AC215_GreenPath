@@ -1,0 +1,11 @@
+.gcloudignore
+.git
+.env
+.venv/
+__pycache__/
+.pytest_cache/
+outputs/
+input-datasets/
+docker-volumes/
+*.sqlite*
+*.bin

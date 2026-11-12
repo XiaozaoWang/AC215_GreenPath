@@ -3,6 +3,9 @@ import asyncio
 import os
 import time
 import unittest
+import io
+import json
+from contextlib import redirect_stdout
 from unittest.mock import Mock, patch
 
 from fastapi.testclient import TestClient
@@ -36,6 +39,24 @@ class ServiceTests(unittest.TestCase):
                          {"question": "How?", "n_results": True}, {"question": "How?", "extra": 1}):
                 self.assertEqual(self.client.post("/chat", json=data).status_code, 422)
         retrieve.assert_not_called()
+
+    def test_health_is_independent_of_database_and_cloud(self):
+        with patch.object(cli, "chroma_client") as db, patch.object(cli, "llm_client") as cloud:
+            assert self.client.get("/health").json() == {"status": "ok"}
+        db.assert_not_called()
+        cloud.assert_not_called()
+
+    def test_error_logs_link_request_and_trace_without_question_text(self):
+        output = io.StringIO()
+        trace = "0123456789abcdef0123456789abcdef"
+        with patch.dict(os.environ, {"GCP_PROJECT": "test-project"}), redirect_stdout(output):
+            response = self.client.post("/chat", json={"question": "PRIVATE QUESTION", "n_results": 0}, headers={"X-Cloud-Trace-Context": trace + "/1;o=1"})
+        assert response.status_code == 422
+        event = json.loads(output.getvalue().strip())
+        assert event["status"] == 422
+        assert event["request_id"] == response.headers["X-Request-ID"]
+        assert event["logging.googleapis.com/trace"] == "projects/test-project/traces/" + trace
+        assert "PRIVATE QUESTION" not in output.getvalue()
 
     def test_chat_retrieves_once_and_returns_metadata(self):
         generator = Mock()

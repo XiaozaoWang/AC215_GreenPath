@@ -1,0 +1,27 @@
+GreenPath RAG — API handoff
+
+RAG is deployed and ready (398 indexed chunks).
+Project: organic-victory-508017-v9 | Region: us-central1
+RAG_SERVICE_URL=https://greenpath-rag-service-nahb4gvswq-uc.a.run.app
+
+API integration
+POST {RAG_SERVICE_URL}/chat
+Content-Type: application/json
+Authorization: Bearer <Google ID token>
+
+Request:
+{"question":"What should I check before cycling?","n_results":5}
+
+Use answer for the reply and sources for supporting passages/source metadata.
+n_results is optional (default 5, allowed 1–10); question must be nonempty, max 2000 characters.
+
+Authentication
+The service is private. The ID token audience must equal RAG_SERVICE_URL exactly.
+The API runtime account already has permission to call it:
+greenpath-api-service@organic-victory-508017-v9.iam.gserviceaccount.com
+Use that runtime identity to obtain an ID token; no service-account key file is needed.
+
+Quick check: GET /ready returns ready=true and count=398, with authentication.
+Optional: POST /query retrieves sources without generating an answer.
+
+RAG deployment is complete. API code/configuration has not been changed; integration is for the API owner.

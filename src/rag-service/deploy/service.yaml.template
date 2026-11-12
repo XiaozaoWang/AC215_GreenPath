@@ -1,0 +1,78 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: greenpath-rag-service
+  annotations:
+    run.googleapis.com/ingress: all
+    run.googleapis.com/maxScale: '2'
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/minScale: '0'
+        autoscaling.knative.dev/maxScale: '2'
+        run.googleapis.com/execution-environment: gen2
+        run.googleapis.com/cpu-throttling: 'true'
+        run.googleapis.com/startup-cpu-boost: 'true'
+        run.googleapis.com/container-dependencies: '{"rag":["chroma"]}'
+    spec:
+      serviceAccountName: greenpath-rag-service@organic-victory-508017-v9.iam.gserviceaccount.com
+      containerConcurrency: 4
+      timeoutSeconds: 60
+      containers:
+        - name: rag
+          image: '@@RAG_IMAGE_DIGEST@@'
+          ports:
+            - containerPort: 8001
+          resources:
+            limits:
+              cpu: '1'
+              memory: 1Gi
+          env:
+            - name: GCP_PROJECT
+              value: organic-victory-508017-v9
+            - name: GCP_LOCATION
+              value: global
+            - name: GENERATIVE_MODEL
+              value: gemini-3.1-flash-lite
+            - name: RAG_GENERATOR
+              value: base
+            - name: RAG_CHUNK_TYPE
+              value: markdown-split
+            - name: CHROMADB_HOST
+              value: '127.0.0.1'
+            - name: CHROMADB_PORT
+              value: '8000'
+            - name: ANONYMIZED_TELEMETRY
+              value: 'false'
+          startupProbe:
+            httpGet:
+              path: /ready
+              port: 8001
+            periodSeconds: 2
+            timeoutSeconds: 2
+            failureThreshold: 30
+        - name: chroma
+          image: '@@CHROMA_IMAGE_DIGEST@@'
+          resources:
+            limits:
+              cpu: '1'
+              memory: 1Gi
+          env:
+            - name: RAG_INDEX_URI
+              value: '@@DATA_URI@@'
+            - name: RAG_INDEX_SHA256
+              value: '@@ARCHIVE_SHA256@@'
+            - name: RAG_EXPECTED_COUNT
+              value: '398'
+            - name: ANONYMIZED_TELEMETRY
+              value: 'false'
+          startupProbe:
+            tcpSocket:
+              port: 8000
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 36
+  traffic:
+    - latestRevision: true
+      percent: 100

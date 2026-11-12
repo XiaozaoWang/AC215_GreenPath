@@ -2,6 +2,9 @@
 import asyncio
 import logging
 import os
+import json
+import time
+import uuid
 from contextlib import asynccontextmanager
 from functools import partial
 from typing import Annotated, Literal
@@ -65,12 +68,34 @@ app = FastAPI(title="GreenPath RAG", lifespan=lifespan)
 
 @app.middleware("http")
 async def request_timeout(request, call_next):
+    started = time.perf_counter()
+    request_id = uuid.uuid4().hex
+    status = 500
     try:
         # Keep a stuck optional dependency from holding the HTTP response open.
         async with asyncio.timeout(4 if request.url.path == "/ready" else 45):
-            return await call_next(request)
+            response = await call_next(request)
     except TimeoutError:
-        return JSONResponse({"detail": "RAG request timed out"}, status_code=504)
+        response = JSONResponse({"detail": "RAG request timed out"}, status_code=504)
+    finally:
+        # Log only operational fields; questions, passages and credentials stay out of logs.
+        if "response" in locals():
+            status = response.status_code
+        event = {"severity": "ERROR" if status >= 500 else "WARNING" if status >= 400 else "INFO",
+                 "message": "rag_request", "request_id": request_id,
+                 "method": request.method, "path": request.url.path, "status": status,
+                 "duration_ms": round((time.perf_counter() - started) * 1000, 2)}
+        trace_id = request.headers.get("x-cloud-trace-context", "").split("/")[0]
+        if len(trace_id) == 32 and all(c in "0123456789abcdef" for c in trace_id.lower()) and os.getenv("GCP_PROJECT"):
+            event["logging.googleapis.com/trace"] = f"projects/{os.environ['GCP_PROJECT']}/traces/{trace_id}"
+        print(json.dumps(event), flush=True)
+    response.headers["X-Request-ID"] = request_id
+    return response
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
 
 
 class Question(BaseModel):
