@@ -129,19 +129,61 @@ The final model was picked by changing one thing at a time: an aerial tile (256�
 
 ![All configurations](docs/figures/overview_ladder.png)
 
-Hollow = encoder frozen, filled = unfrozen or LoRA. Experiments used the `full_v1` targets, the final run `full_v2`, so their numbers are not directly comparable.
+Hollow = encoder frozen, filled = unfrozen or LoRA. Experiments used the `full_v1` targets, the final run `full_v2`, so their numbers are not directly comparable. In total: 11 end-to-end runs plus 48 + 57 cached-feature trainings (3 seeds). Cached-feature differences count only above 2× the seed standard deviation; end-to-end runs have one seed, so differences below about 0.01 Spearman are indications, not conclusions. Metrics: MAE on the 0–1 scale (lower is better), tolerance accuracy (share within ±0.05 / ±0.10 / ±0.20), Spearman (ranking).
 
-| Question | Result |
-|---|---|
-| Unfreeze the backbone? | **Yes, the biggest gain**: val MAE 0.074 → 0.055, Spearman 0.693 → 0.747 (DINOv2-S, last 2 blocks) |
-| Which backbone? | Frozen: CLIP 0.725 > DINOv2 0.716 > ResNet50 0.673 (Spearman). After unfreezing CLIP and DINOv2 tie (gap ≤ 0.005), so DINOv2: 1.1 vs 2.2 ms/image on a T4 |
-| Which head? | MLP lowers MAE (−15% frozen, −6.9% unfrozen) but not the ranking; linear chosen (close call, one seed) |
-| LoRA instead of direct unfreezing? | Not better (Spearman 0.742 vs 0.747), more moving parts |
-| Map features, ranking loss, Spearman stopping? | Small or no gain, not used |
+**C0 · Starting line.** Predicting the training mean: MAE 0.1753 (5-fold CV) / 0.1844 (test). Map features only (LightGBM): Spearman 0.688 / 0.669, MAE 0.0780 / 0.0942 (CV / test). Image models must clearly beat this.
 
-Baselines on the test set: predicting the training mean gives MAE 0.1844; map features only (LightGBM) give MAE 0.0942 and Spearman 0.669.
+**C1 · Frozen backbone.** Cached features: CLIP-B/16 0.725 > DINOv2-S 0.716 > ResNet50 0.673 (Spearman; MAE 0.0642 / 0.0670 / 0.0755). The same backbone is worse end-to-end (DINOv2 0.693) because the recipe differs, so only compare runs from the same code and settings.
 
-Final run (`gs://<bucket>/results/full_v2/final/dinov2_s-linear-seed42-<id>/`, T4, about 61 min):
+![C1](docs/figures/c1_frozen_backbone.png)
+
+**C2 · Head, backbone frozen.** A bigger head (MLP) lowers the error size by about 15% (CLIP 0.0642 → 0.0549, DINOv2 0.0670 → 0.0571, ResNet50 0.0755 → 0.0639) but barely changes the ranking (Spearman +0.004 to +0.031). Ridge has the worst MAE (outputs not bounded to 0–1).
+
+![C2](docs/figures/c2_head_frozen.png)
+
+**C3 · Map features, ranking loss, Spearman stopping.** Map features: MAE −1.5% (CLIP), −2.1% (DINOv2), −2.6% (ResNet50), Spearman only +0.008 on DINOv2. Ranking loss (0.05 / 0.2): Spearman unchanged, MAE up to 6% worse. Stopping on Spearman: no gain, MAE worse. Map features were not tested with an unfrozen backbone, so the final model does not use them.
+
+![C3](docs/figures/c3_map_and_ranking.png)
+
+**C4 · Frozen vs. unfrozen.** DINOv2-S, last 2 blocks unfrozen: Spearman 0.693 → **0.747**, MAE 0.0741 → **0.0548** (−26%). ResNet50 (`layer4`): 0.690 → 0.712, MAE −12.9%. Unfreezing helps in every comparison (Spearman +0.018 to +0.054, MAE −4% to −26%) and costs about 1 h on a T4 versus seconds for a cached head.
+
+![C4](docs/figures/c4_freeze_vs_unfreeze.png)
+
+**C5 · Direct unfreezing vs. LoRA.** Nothing shows LoRA beating direct unfreezing, which is simpler (LoRA's advantage: tiny adapter files, 0.3–1.2 MB).
+
+| Backbone | Method | Spearman | MAE | Minutes |
+|---|---|---|---|---|
+| DINOv2-S | **last 2 blocks** | **0.747** | **0.0548** | 55 |
+| DINOv2-S | LoRA r8 | 0.742 | 0.0567 | 54 |
+| DINOv2-S | LoRA r4 | 0.721 | 0.0592 | 32 (early stop) |
+| CLIP | last 2 blocks | 0.743 | 0.0545 | 46 |
+| CLIP | LoRA r8 | 0.738 | 0.0543 | 81 |
+
+![C5](docs/figures/c5_unfreeze_method.png)
+
+**C6 · After unfreezing: head and backbone.** The MLP still lowers MAE (DINOv2 −6.9%, CLIP −5.0%) but Spearman is flat, and CLIP's frozen advantage disappears (gap ≤ 0.005).
+
+| Model | Spearman | MAE | ±0.05 | ±0.10 | ±0.20 |
+|---|---|---|---|---|---|
+| DINOv2 · linear | **0.747** | 0.0548 | 65.4% | 81.1% | 94.7% |
+| DINOv2 · MLP | 0.739 | **0.0510** | **67.5%** | 81.7% | 94.6% |
+| CLIP · linear | 0.743 | 0.0545 | 65.4% | 81.3% | 94.8% |
+| CLIP · MLP | 0.738 | 0.0517 | **67.8%** | 81.4% | 94.2% |
+
+![C6](docs/figures/c6_final.png)
+
+How we reached the final configuration:
+
+| Decision | Choice | Why | Confidence |
+|---|---|---|---|
+| Unfreeze the backbone? | Yes | C4: better in every comparison | High |
+| Backbone | DINOv2-S | C6: ties CLIP after unfreezing; faster (124 vs 356 ms/image on CPU, 1.1 vs 2.2 ms/image on a T4) | Medium (1 seed) |
+| How to unfreeze | Last 2 blocks + norm | C5: not worse than LoRA, simpler | Medium (1 seed) |
+| Head | Linear | C6: higher Spearman, simplest; but the MLP has 6.9% lower MAE and about 2 points higher ±0.05 accuracy | Low: needs a second seed |
+| Map features | Not used | C3: small frozen gain, never tested unfrozen; needs map data at prediction time | Unverified |
+| Ranking loss, Spearman stopping | Not used | C3: no gain, MAE worse | Medium |
+
+**Final run** (`gs://<bucket>/results/full_v2/final/dinov2_s-linear-seed42-<id>/`, T4, about 61 min):
 
 | Metric | Predict training mean | Validation | **Test (4 unseen places)** |
 |---|---|---|---|
@@ -153,4 +195,4 @@ Final run (`gs://<bucket>/results/full_v2/final/dinov2_s-linear-seed42-<id>/`, T
 
 Report the test numbers for new places; validation shares areas with training and is optimistic. The test set was evaluated once.
 
-Limitations: one seed per end-to-end run (differences below about 0.01 Spearman are not conclusions); labels are Gemini scores, so a low error means agreement with Gemini; `farmland_pastoral`, `industrial_area` and `water_access` stay weak in every configuration. Experiment runs are in `gs://<bucket>/results/full_v1/`.
+Limitations: one seed per end-to-end run; labels are Gemini scores, so a low error means agreement with Gemini; `farmland_pastoral`, `industrial_area` and `water_access` stay weak in every configuration. Experiment runs are in `gs://<bucket>/results/full_v1/`.
