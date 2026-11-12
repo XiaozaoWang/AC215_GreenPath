@@ -109,3 +109,16 @@ def test_https_authentication_and_failure(transport, monkeypatch):
     token.side_effect = DefaultCredentialsError("no ADC")
     with pytest.raises(model_client.ModelServiceError, match="ID token"):
         model_client.predict([Tile(h3_index="a")])
+
+
+def test_on_batch_reports_every_batch_and_the_result_keeps_input_order(transport):
+    def handler(request):
+        ids = json.loads(request.content)["h3_indices"]
+        return httpx.Response(200, json={"results": [row(i) for i in ids]})
+
+    transport(handler)
+    seen = []
+    tiles = [Tile(h3_index=str(i)) for i in range(70)]
+    result = model_client.predict(tiles, on_batch=seen.append)
+    assert [r.h3_index for r in result] == [t.h3_index for t in tiles]
+    assert len(seen) == 30 and sum(len(batch) for batch in seen) == 70

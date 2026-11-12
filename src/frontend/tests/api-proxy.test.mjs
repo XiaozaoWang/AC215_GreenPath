@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import { afterEach, mock, test } from 'node:test';
 import { GoogleAuth } from 'google-auth-library';
-import { apiHeaders, proxyApi } from '../src/lib/api-proxy.mjs';
+import { apiHeaders, proxyApi, proxyApiStream } from '../src/lib/api-proxy.mjs';
+import { readNdjson } from '../src/lib/ndjson.mjs';
 
 afterEach(() => { mock.restoreAll(); delete process.env.API_SERVICE_URL; });
 
@@ -47,4 +48,33 @@ test('connection failures and timeouts return safe errors', async () => {
     mock.method(AbortSignal, 'timeout', () => AbortSignal.abort());
     response = await proxyApi('/score');
     assert.equal(response.status, 504);
+});
+
+test('streams NDJSON events through without buffering and forwards early errors', async () => {
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream({
+        start(controller) {
+            controller.enqueue(encoder.encode('{"type":"start"}\n{"type":"ce'));
+            controller.enqueue(encoder.encode('lls"}\n'));
+            controller.close();
+        },
+    });
+    const fetcher = mock.method(globalThis, 'fetch', async (url, options) => {
+        assert.equal(url, 'http://localhost:9000/route/stream');
+        assert.deepEqual(JSON.parse(options.body), { text: 'shade' });
+        return new Response(stream, { headers: { 'content-type': 'application/x-ndjson' } });
+    });
+    const request = new Request('http://frontend/api/route/stream', { method: 'POST', body: JSON.stringify({ text: 'shade' }) });
+    const response = await proxyApiStream('/route/stream', request);
+    assert.equal(response.headers.get('content-type'), 'application/x-ndjson');
+    const events = [];
+    for await (const event of readNdjson(response.body)) events.push(event.type);
+    assert.deepEqual(events, ['start', 'cells']);          // a line split across two chunks is rejoined
+
+    fetcher.mock.restore();
+    mock.method(globalThis, 'fetch', async () => Response.json({ detail: 'outside the area' }, { status: 422 }));
+    const failed = await proxyApiStream('/route/stream', new Request('http://frontend/x', { method: 'POST', body: '{}' }));
+    assert.equal(failed.status, 422);
+    assert.equal((await failed.json()).detail, 'outside the area');
+    assert.equal((await proxyApiStream('/route/stream', new Request('http://frontend/x', { method: 'POST', body: 'bad' }))).status, 400);
 });

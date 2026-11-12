@@ -1,6 +1,6 @@
 """Send H3 batches to the private Model Service and return results in input order."""
 import os
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import BoundedSemaphore
 from urllib.parse import urlsplit
 
@@ -48,7 +48,12 @@ def auth_headers(base_url: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
 
 
-def predict(tiles: list[Tile]) -> list[TileScore]:
+def predict(tiles: list[Tile], on_batch=None) -> list[TileScore]:
+    """Predict all tiles; the result keeps the input order.
+
+    on_batch(rows), when given, is called from the calling thread with each batch as soon as it has finished (in completion
+    order), so callers can show progress. Batches are contiguous slices of tiles, so ordering the tiles by priority
+    makes the first batches the most important ones."""
     parts = split_batches(tiles)
     if not parts:
         return []
@@ -71,9 +76,13 @@ def predict(tiles: list[Tile]) -> list[TileScore]:
                     raise ModelServiceError("Model results must match requested H3 cells in count and order")
                 return rows
 
-            # map preserves submission order even when batches finish in a different order.
+            # The result list follows submission order even when batches finish in a different order.
             with ThreadPoolExecutor(max_workers=min(len(parts), MAX_CONCURRENCY)) as pool:
-                return [row for batch in pool.map(call, parts) for row in batch]
+                futures = [pool.submit(call, part) for part in parts]
+                if on_batch:
+                    for future in as_completed(futures):
+                        on_batch(future.result())
+                return [row for future in futures for row in future.result()]
     except (GoogleAuthError, OSError) as exc:
         raise ModelServiceError("Unable to obtain a Model Service ID token") from exc
     except httpx.TimeoutException as exc:

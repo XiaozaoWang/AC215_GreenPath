@@ -49,8 +49,9 @@ def test_region_and_routing_contracts(monkeypatch):
     monkeypatch.setattr(tiles, "get_tiles", lambda _: [Tile(h3_index="a")])
     assert client.get("/regions/city_ma_boston_big").json() == {"region_id": "city_ma_boston_big", "h3_index": ["a"]}
     assert client.post("/route", json={}).status_code == 422
-    assert client.post("/route", json={"origin": {"lat": 42.36, "lon": -71.06},
-                                      "destination": {"lat": 42.37, "lon": -71.07}}).status_code == 501
+    # Without text only the shortest route is computed, so no Gemini or Model Service call is made.
+    response = client.post("/route", json={"origin": {"lat": 42.36, "lon": -71.06}, "destination": {"lat": 42.37, "lon": -71.07}})
+    assert response.status_code == 200 and [r["kind"] for r in response.json()["routes"]] == ["shortest"]
 
 
 @pytest.mark.parametrize("error,status", [(tiles.UnknownRegionError("missing"), 404),
