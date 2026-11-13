@@ -147,6 +147,13 @@ Code: `src/api-service/api/{route_search,road_graph,routing}.py`; data: `src/api
 
 ### Deployment
 
+Everything runs on Cloud Run in `us-central1`: a public frontend, a private API, and a private Model Service and RAG behind it (see "IAM roles" below).
+
+- **Model Service** (`src/model-service`): FastAPI on CPU (4 vCPU, 4 GiB). The image carries the trained weights and the DINOv2 base weights, so it never downloads them at start. Given H3 cells it reads their aerial tiles from the bucket and returns the 15 scores. A parity test checks that 50 validation cells get the same scores as during training (largest difference 0.0024).
+- **Parallel scoring**: one instance scores about 6 cells/s and takes one batch at a time, so the API splits a region into up to 30 batches and sends them at once. The API runs as a single instance with one budget of 100 model calls, and the Model Service may scale to 100 instances, so three users can score at full speed. Scoring Boston (2,098 cells) took about 70 s with 10 parallel batches, cold start included; with 3 it would take about 2 minutes.
+- **Cold starts**: a new Model Service instance needs 40 to 90 s. While instances start, Cloud Run rejects some batches (HTTP 500), sometimes after holding them for 2 minutes, and one rejected batch used to fail the whole request. The API now retries such batches after 2, 4, 8, then 15 s, up to about 90 s of waiting, which is longer than a cold start.
+- **One deploy tool** (`src/deployment`) for the Model Service, API and frontend: their settings sit in one table, the tool sets who may call each service, and it refuses to deploy an API whose budget is larger than the Model Service's instance limit. RAG is deployed from `src/rag-service/deploy`.
+
 ## Repository layout
 
 ```
@@ -158,8 +165,9 @@ src/
 ├── workflow/         Vertex AI pipeline that chains the four steps above in the cloud
 ├── data-versioning/  DVC snapshots of each training set (table + aerial tiles), stored in gs://<bucket>/dvc_store/
 ├── model-service/    Model service on Cloud Run: H3 cells in → 15 scores out (FastAPI, CPU)
-├── model-deployment/ Deploy tool: prepare the trained model, deploy model-service to Cloud Run, check its scores
+├── deployment/       Deploy tool for model-service, api-service and frontend on Cloud Run (deploy, test)
 ├── api-service/      Backend API (FastAPI): preference parsing (Gemini), scoring, route planning
+├── rag-service/      Ride Assistant RAG on Cloud Run (rag + chroma containers), deployed from its own deploy/ folder
 ├── routing-graph/    Offline tool: build the road graph that route planning reads (its output is committed)
 └── frontend/         Frontend (Next.js): map, route options, explanation of the chosen route
 ```
@@ -205,16 +213,15 @@ dvc add greenpath_dataset && dvc push       # hash it and upload to gs://<bucket
 
 Then commit `greenpath_dataset.dvc` and tag it `dataset_<TRAINING_ID>` on the Mac.
 
-## Deploy the model (Cloud Run)
+## Deploy (Cloud Run)
 
-One-time GCP setup and the full step list: `src/model-deployment/README.md`.
+One tool for model-service, api-service and frontend: `src/deployment` (one-time GCP setup is in its README). Push the image of a changed service first with `sh docker-build-push.sh` in that service's folder, then:
 
 ```
-cd src/model-deployment && sh docker-shell.sh
-python cli.py --prepare        # copy the trained model into model-service/artifacts/
-                               # then in src/model-service: sh docker-build-push.sh
-python cli.py --deploy         # deploy model-service to Cloud Run (private)
-python cli.py --test           # its scores must match the training-time predictions
+cd src/deployment && sh docker-shell.sh
+python cli.py --prepare                        # model only: copy the trained model into model-service/artifacts/ (before pushing)
+python cli.py --deploy --service model         # then api, then frontend (the API refuses if the model has too few instances)
+python cli.py --test --service model           # model: scores must match training; api/frontend: add --full to score Boston
 ```
 
 ## Run the app locally
@@ -259,7 +266,7 @@ cd src/api-service && uv run pytest        # backend, including route planning
 cd src/frontend && npm test                # proxy and stream reader
 ```
 
-Deploy api-service and frontend with `src/app-deployment/README.md`; the road graph and baseline are inside the image. The deployed API is private: call it with `-H "Authorization: Bearer $(gcloud auth print-identity-token)"`.
+Deploy api-service and frontend with `src/deployment` (see "Deploy" above); the road graph and baseline are inside the image. The deployed API is private: call it with `-H "Authorization: Bearer $(gcloud auth print-identity-token)"`.
 
 ## IAM roles
 
@@ -278,7 +285,7 @@ user → frontend (public) → API (private) → Model Service, RAG (private)
 | Vertex pipeline (collect, label, process, train) | `greenpath-ml-workflow` | `aiplatform.admin`, `iam.serviceAccountUser`, `secretmanager.secretAccessor`, `storage.admin` | – (jobs, not services) |
 | RAG image build | `greenpath-rag-builder` | `logging.logWriter` | – |
 
-The browser never calls the API directly: the Next.js server adds a Google ID token. Local runs use your own login (`gcloud auth application-default login`). To check:
+The browser never calls the API directly: the Next.js server adds a Google ID token. Local runs use your own login (`gcloud auth application-default login`). `python cli.py --deploy` in `src/deployment` sets who may call the Model Service, API and frontend on every deploy; the roles each account needs are granted once by hand. To check:
 
 ```
 gcloud run services get-iam-policy <service> --region us-central1
