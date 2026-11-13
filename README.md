@@ -2,7 +2,24 @@
 
 Scenic cycling routes: every H3 cell (~130 m) gets 15 scenery scores (tree canopy, water access, historic character, …) predicted from a single aerial image.
 
-## 1. New dataset
+## 1. Repository layout
+
+| Part | Folder | What it does |
+|---|---|---|
+| Pipeline | `data-collector/` | Step 1, collect: H3 cells, NAIP aerial tiles, OSM map features, Mapillary street view |
+| Pipeline | `data-labeler/` | Step 2, label: Gemini scores the aerial tiles and street photos on 16 dimensions |
+| Pipeline | `data-processor/` | Step 3, process: drops suspicious cells, calibrates street scores to the aerial scale, merges everything into one training table |
+| Pipeline | `model-training/` | Step 4, train: DINOv2-S with a linear head, one aerial tile in, 15 scores (0–1) out |
+| Pipeline | `workflow/` | Runs steps 1 to 4 as one Vertex AI pipeline in the cloud |
+| Pipeline | `data-versioning/` | DVC snapshot of each training set (table and tiles), stored in `gs://<bucket>/dvc_store/` |
+| App | `model-service/` | Model Service on Cloud Run (private, CPU): H3 cells in, 15 scores out |
+| App | `api-service/` | Backend API on Cloud Run (private): reads the ride with Gemini, scores the cells, plans the routes |
+| App | `rag-service/` | Ride Assistant (RAG) on Cloud Run (private), deployed from its own `deploy/` folder |
+| App | `frontend/` | Website on Cloud Run (public, Next.js): map, route options, why the route was chosen |
+| Tool | `routing-graph/` | Builds the road graph the API reads; run once per new area, its output is committed |
+| Tool | `deployment/` | Deploys and tests the Model Service, API and frontend on Cloud Run |
+
+## 2. New dataset
 
 The Milestone 2 labels had two problems. Many street-view photos missed their cell: they faced away from it, were old or taken in winter, or stood on the edge and showed the next cell. And in suburbs often only one road has street view, so the photos show the fields beside the road while the aerial tile mostly shows the road itself.
 
@@ -33,7 +50,7 @@ Near-copies (same sequence, less than 30 m and 30° apart) are skipped. A cell l
 
 **Storage.** Raw data (Mapillary photos and metadata, NAIP tiles, OSM) is downloaded once into `cache/` by location ID. A dataset such as `datasets/1026_Full_data/` holds only tables of IDs, and each labelling version gets its own folder under `labels/`. Several people can process and label at the same time without downloading anything twice.
 
-## 2. Automatic pipeline on Vertex AI
+## 3. Automatic pipeline on Vertex AI
 
 Collect, label, process and train run as one Vertex AI pipeline, each step in its own container. The run below finished all four steps in 24 minutes.
 
@@ -49,14 +66,14 @@ datasets/<DATASET>/  →  training/<TRAINING_ID>/  →  results/<TRAINING_ID>/{d
 - Train: Google's prebuilt training image; our code is packaged and uploaded to `gs://<bucket>/trainer/` by `model-training/package-trainer.sh`.
 - To change the dataset name, training-set name, areas, or dry run vs. full training, edit only the constants at the top of `src/workflow/cli.py`: `DATASET`, `TRAINING_ID`, `AREAS`, `DRY_RUN`.
 
-### 2.1 Setup
+### 3.1 Setup
 
 1. Copy `.env.example` to `.env` (never commit it) and fill in `GREENPATH_BUCKET`, `GOOGLE_CLOUD_PROJECT`, `GOOGLE_CLOUD_LOCATION`, `MAPILLARY_TOKEN`.
 2. `gcloud auth login` and `gcloud auth application-default login` (containers use your login credentials; no key file needed).
 3. Push images (only after code changes): run `sh docker-build-push.sh` in `data-collector`, `data-labeler` and `data-processor`.
 4. Upload the training code (only after it changes): `cd src/model-training && sh package-trainer.sh`.
 
-### 2.2 Run the pipeline
+### 3.2 Run the pipeline
 
 ```
 cd src/workflow && sh docker-shell.sh      # enter the workflow container
@@ -66,7 +83,7 @@ python cli.py --data_collector             # or one step: --data_labeler / --dat
 
 Monitor in the GCP console: Vertex AI → Pipelines (the whole run) and Training → Custom jobs (training logs).
 
-### 2.3 Version the training data (DVC)
+### 3.3 Version the training data (DVC)
 
 After a pipeline run produces a new training set, snapshot it by hand (see `src/data-versioning/README.md`):
 
@@ -78,7 +95,7 @@ dvc add greenpath_dataset && dvc push       # hash it and upload to gs://<bucket
 
 Then commit `greenpath_dataset.dvc` and tag it `dataset_<TRAINING_ID>` on the Mac.
 
-## 3. Model training and results
+## 4. Model training and results
 
 The final model was picked by changing one thing at a time: an aerial tile (256×256) → 15 scores (0–1).
 
@@ -159,7 +176,7 @@ Report the test numbers for new places; validation shares areas with training an
 
 Limitations: one seed per end-to-end run; labels are Gemini scores, so a low error means agreement with Gemini; `farmland_pastoral`, `industrial_area` and `water_access` stay weak in every configuration. Experiment runs are in `gs://<bucket>/results/full_v1/`.
 
-## 4. Routing algorithm
+## 5. Routing algorithm
 
 Describe the ride you want, tap a start and an end, and get the **shortest route plus three options** that trade a little extra
 distance for a route that fits the ride better.
@@ -211,9 +228,9 @@ Browser ──► Next.js (frontend) ──► API service ──┬─► Model
 | `POST /route/stream` | Options for a text, as progress events (newline-delimited JSON) |
 | `POST /route` | The same, as one JSON response |
 
-Code: `src/api-service/api/{route_search,road_graph,routing}.py`; data: `src/api-service/data/` (road graph built by `src/routing-graph/`, area baseline); UI: `src/frontend/src/`. Planning takes 0.1–1.3 s; the Model Service dominates (a cold start takes about 40 s). Supported area: Boston, about 5.8 km × 5.6 km. The road graph is undirected and has no bike-lane or elevation data. *Match* is relative to the area, and for wishes few places satisfy (water, farmland) there may be no better route: the options are then marked "other streets". Commands are in section 5.2; details: `docs/routing.md` and `src/api-service/ROUTING.md`.
+Code: `src/api-service/api/{route_search,road_graph,routing}.py`; data: `src/api-service/data/` (road graph built by `src/routing-graph/`, area baseline); UI: `src/frontend/src/`. Planning takes 0.1–1.3 s; the Model Service dominates (a cold start takes about 40 s). Supported area: Boston, about 5.8 km × 5.6 km. The road graph is undirected and has no bike-lane or elevation data. *Match* is relative to the area, and for wishes few places satisfy (water, farmland) there may be no better route: the options are then marked "other streets". Commands are in section 6.2; details: `docs/routing.md` and `src/api-service/ROUTING.md`.
 
-### 4.1 Build the road graph (only for a new area)
+### 5.1 Build the road graph (only for a new area)
 
 ```
 cd src/routing-graph
@@ -222,16 +239,16 @@ python build_graph.py --city <area_id> --pbf <file>.osm.pbf    # writes src/api-
 
 The Boston graph (`city_ma_boston_big`) is already in the repository.
 
-## 5. Deployment on Cloud Run
+## 6. Deployment on Cloud Run
 
-Everything runs on Cloud Run in `us-central1`: a public frontend, a private API, and a private Model Service and RAG behind it (see section 6).
+Everything runs on Cloud Run in `us-central1`: a public frontend, a private API, and a private Model Service and RAG behind it (see section 7).
 
 - **Model Service** (`src/model-service`): FastAPI on CPU (4 vCPU, 4 GiB). The image carries the trained weights and the DINOv2 base weights, so it never downloads them at start. Given H3 cells it reads their aerial tiles from the bucket and returns the 15 scores. A parity test checks that 50 validation cells get the same scores as during training (largest difference 0.0024).
 - **Parallel scoring**: one instance scores about 6 cells/s and takes one batch at a time, so the API splits a region into up to 30 batches and sends them at once. The API runs as a single instance with one budget of 100 model calls, and the Model Service may scale to 100 instances, so three users can score at full speed. Scoring Boston (2,098 cells) took about 70 s with 10 parallel batches, cold start included; with 3 it would take about 2 minutes.
 - **Cold starts**: a new Model Service instance needs 40 to 90 s. While instances start, Cloud Run rejects some batches (HTTP 500), sometimes after holding them for 2 minutes, and one rejected batch used to fail the whole request. The API now retries such batches after 2, 4, 8, then 15 s, up to about 90 s of waiting, which is longer than a cold start.
 - **One deploy tool** (`src/deployment`) for the Model Service, API and frontend: their settings sit in one table, the tool sets who may call each service, and it refuses to deploy an API whose budget is larger than the Model Service's instance limit. RAG is deployed from `src/rag-service/deploy`.
 
-### 5.1 Deploy
+### 6.1 Deploy
 
 One tool for model-service, api-service and frontend: `src/deployment` (one-time GCP setup is in its README). Push the image of a changed service first with `sh docker-build-push.sh` in that service's folder, then:
 
@@ -242,7 +259,7 @@ python cli.py --deploy --service model         # then api, then frontend (the AP
 python cli.py --test --service model           # model: scores must match training; api/frontend: add --full to score Boston
 ```
 
-### 5.2 Run the app locally
+### 6.2 Run the app locally
 
 ```
 docker compose up            # app http://localhost:3000, API docs http://localhost:9000/docs
@@ -268,16 +285,16 @@ curl -s -N -X POST localhost:9000/route/stream -H 'Content-Type: application/jso
 
 Check `used_fallback` in the result: `true` means Gemini failed and only the shortest route is returned. Endpoints and options: `src/api-service/ROUTING.md`.
 
-### 5.3 Test and redeploy
+### 6.3 Test and redeploy
 
 ```
 cd src/api-service && uv run pytest        # backend, including route planning
 cd src/frontend && npm test                # proxy and stream reader
 ```
 
-Deploy api-service and frontend with `src/deployment` (see 5.1); the road graph and baseline are inside the image. The deployed API is private: call it with `-H "Authorization: Bearer $(gcloud auth print-identity-token)"`.
+Deploy api-service and frontend with `src/deployment` (see 6.1); the road graph and baseline are inside the image. The deployed API is private: call it with `-H "Authorization: Bearer $(gcloud auth print-identity-token)"`.
 
-## 6. IAM roles
+## 7. IAM roles
 
 Each Cloud Run service runs as its own service account and may only be called by the one before it (checked 2026-11-12):
 
@@ -300,22 +317,4 @@ The browser never calls the API directly: the Next.js server adds a Google ID to
 gcloud run services get-iam-policy <service> --region us-central1
 gcloud projects get-iam-policy <project-id> --flatten="bindings[].members" --filter="bindings.members:greenpath" \
   --format="table(bindings.members,bindings.role)"
-```
-
-## 7. Repository layout
-
-```
-src/
-├── data-collector/   Collect: H3 cells + aerial tiles (NAIP) + map features (OSM) + street view (Mapillary)
-├── data-labeler/     Label: Gemini scores aerial tiles and street photos on 16 dimensions
-├── data-processor/   Process: drop suspicious cells, calibrate street scores to the aerial scale, fuse into a training table
-├── model-training/   Train: DINOv2-S + linear head, aerial tile in → 15 scores (0–1) out
-├── workflow/         Vertex AI pipeline that chains the four steps above in the cloud
-├── data-versioning/  DVC snapshots of each training set (table + aerial tiles), stored in gs://<bucket>/dvc_store/
-├── model-service/    Model service on Cloud Run: H3 cells in → 15 scores out (FastAPI, CPU)
-├── deployment/       Deploy tool for model-service, api-service and frontend on Cloud Run (deploy, test)
-├── api-service/      Backend API (FastAPI): preference parsing (Gemini), scoring, route planning
-├── rag-service/      Ride Assistant RAG on Cloud Run (rag + chroma containers), deployed from its own deploy/ folder
-├── routing-graph/    Offline tool: build the road graph that route planning reads (its output is committed)
-└── frontend/         Frontend (Next.js): map, route options, explanation of the chosen route
 ```
