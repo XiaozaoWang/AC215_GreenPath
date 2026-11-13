@@ -228,7 +228,7 @@ Browser ──► Next.js (frontend) ──► API service ──┬─► Model
 | `POST /route/stream` | Options for a text, as progress events (newline-delimited JSON) |
 | `POST /route` | The same, as one JSON response |
 
-Code: `src/api-service/api/{route_search,road_graph,routing}.py`; data: `src/api-service/data/` (road graph built by `src/routing-graph/`, area baseline); UI: `src/frontend/src/`. Planning takes 0.1–1.3 s; the Model Service dominates (a cold start takes about 40 s). Supported area: Boston, about 5.8 km × 5.6 km. The road graph is undirected and has no bike-lane or elevation data. *Match* is relative to the area, and for wishes few places satisfy (water, farmland) there may be no better route: the options are then marked "other streets". Commands are in section 6.2; details: `docs/routing.md` and `src/api-service/ROUTING.md`.
+Code: `src/api-service/api/{route_search,road_graph,routing}.py`; data: `src/api-service/data/` (road graph built by `src/routing-graph/`, area baseline); UI: `src/frontend/src/`. Planning takes 0.1–1.3 s; the Model Service dominates (a cold start takes about 40 s). Supported area: Boston, about 5.8 km × 5.6 km. The road graph is undirected and has no bike-lane or elevation data. *Match* is relative to the area, and for wishes few places satisfy (water, farmland) there may be no better route: the options are then marked "other streets". Commands are in section 7.2; details: `docs/routing.md` and `src/api-service/ROUTING.md`.
 
 ### 5.1 Build the road graph (only for a new area)
 
@@ -239,16 +239,26 @@ python build_graph.py --city <area_id> --pbf <file>.osm.pbf    # writes src/api-
 
 The Boston graph (`city_ma_boston_big`) is already in the repository.
 
-## 6. Deployment on Cloud Run
+## 6. RAG service (Ride Assistant)
 
-Everything runs on Cloud Run in `us-central1`: a public frontend, a private API, and a private Model Service and RAG behind it (see section 7).
+The Ride Assistant answers cycling questions from **73 reference documents**, split into **398 Markdown chunks** with source and geographic metadata. Vertex AI `gemini-embedding-001` produces 256-dimensional embeddings; ChromaDB retrieves relevant passages, and Gemini generates an answer with supporting sources.
+
+**Deployment and storage.** FastAPI and ChromaDB run as two containers in one private Cloud Run service, communicating over `localhost`. A versioned GCS archive stores the documents, chunks and existing embeddings. Each new instance verifies the archive checksum and restores ChromaDB without regenerating document embeddings. Knowledge-base updates require a new data release.
+
+**Interface and validation.** `POST /chat` returns an answer and sources; `POST /query` returns sources only; `GET /ready` checks the collection. Live checks verified successful questions (200), invalid input (422), unauthenticated access (403), and recovery of all 398 records in a fresh instance. Structured request logs are available in Cloud Logging.
+
+Code and deployment configuration: [`src/rag-service/`](src/rag-service/). API integration: [short handoff](src/rag-service/HANDOFF.txt).
+
+## 7. Deployment on Cloud Run
+
+Everything runs on Cloud Run in `us-central1`: a public frontend, a private API, and a private Model Service and RAG behind it (see section 8).
 
 - **Model Service** (`src/model-service`): FastAPI on CPU (4 vCPU, 4 GiB). The image carries the trained weights and the DINOv2 base weights, so it never downloads them at start. Given H3 cells it reads their aerial tiles from the bucket and returns the 15 scores. A parity test checks that 50 validation cells get the same scores as during training (largest difference 0.0024).
 - **Parallel scoring**: one instance scores about 6 cells/s and takes one batch at a time, so the API splits a region into up to 30 batches and sends them at once. The API runs as a single instance with one budget of 100 model calls, and the Model Service may scale to 100 instances, so three users can score at full speed. Scoring Boston (2,098 cells) took about 70 s with 10 parallel batches, cold start included; with 3 it would take about 2 minutes.
 - **Cold starts**: a new Model Service instance needs 40 to 90 s. While instances start, Cloud Run rejects some batches (HTTP 500), sometimes after holding them for 2 minutes, and one rejected batch used to fail the whole request. The API now retries such batches after 2, 4, 8, then 15 s, up to about 90 s of waiting, which is longer than a cold start.
 - **One deploy tool** (`src/deployment`) for the Model Service, API and frontend: their settings sit in one table, the tool sets who may call each service, and it refuses to deploy an API whose budget is larger than the Model Service's instance limit. RAG is deployed from `src/rag-service/deploy`.
 
-### 6.1 Deploy
+### 7.1 Deploy
 
 One tool for model-service, api-service and frontend: `src/deployment` (one-time GCP setup is in its README). Push the image of a changed service first with `sh docker-build-push.sh` in that service's folder, then:
 
@@ -259,7 +269,7 @@ python cli.py --deploy --service model         # then api, then frontend (the AP
 python cli.py --test --service model           # model: scores must match training; api/frontend: add --full to score Boston
 ```
 
-### 6.2 Run the app locally
+### 7.2 Run the app locally
 
 ```
 docker compose up            # app http://localhost:3000, API docs http://localhost:9000/docs
@@ -285,16 +295,16 @@ curl -s -N -X POST localhost:9000/route/stream -H 'Content-Type: application/jso
 
 Check `used_fallback` in the result: `true` means Gemini failed and only the shortest route is returned. Endpoints and options: `src/api-service/ROUTING.md`.
 
-### 6.3 Test and redeploy
+### 7.3 Test and redeploy
 
 ```
 cd src/api-service && uv run pytest        # backend, including route planning
 cd src/frontend && npm test                # proxy and stream reader
 ```
 
-Deploy api-service and frontend with `src/deployment` (see 6.1); the road graph and baseline are inside the image. The deployed API is private: call it with `-H "Authorization: Bearer $(gcloud auth print-identity-token)"`.
+Deploy api-service and frontend with `src/deployment` (see 7.1); the road graph and baseline are inside the image. The deployed API is private: call it with `-H "Authorization: Bearer $(gcloud auth print-identity-token)"`.
 
-## 7. IAM roles
+## 8. IAM roles
 
 Each Cloud Run service runs as its own service account and may only be called by the one before it (checked 2026-11-12):
 
