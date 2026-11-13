@@ -1,6 +1,6 @@
-# 这个容器要装的 Python 包（相当于购物清单）
-# 具体版本由 `uv lock` 锁进 uv.lock；build 镜像时按 uv.lock 原样安装，所以你、同学、Vertex 上的环境完全一样
-# 改了这里要重新运行一次 `uv lock`
+# Python packages this container needs (like a shopping list)
+# Exact versions are locked into uv.lock by `uv lock`; the image build installs exactly what uv.lock says, so you, teammates and Vertex all get the same env
+# After changing this, run `uv lock` again
 [project]
 name = "greenpath-data-collector"
 version = "0.1.0"
@@ -8,9 +8,9 @@ description = "GreenPath data collector: H3 cells, NAIP aerial tiles, Mapillary 
 requires-python = ">=3.12"
 dependencies = [
     "fsspec>=2026.9.0",
-    "gcsfs>=2026.10.1",                    # 读写 bucket
-    "google-auth>=2.62.0",                 # 自动找到当前身份（本地是你的账号，云上是服务账号）
-    "google-cloud-secret-manager>=2.24.0", # 云上从 Secret Manager 取 Mapillary token
+    "gcsfs>=2026.10.1",                    # read/write the bucket
+    "google-auth>=2.62.0",                 # finds the current identity automatically (locally your account, in the cloud the service account)
+    "google-cloud-secret-manager>=2.24.0", # in the cloud, gets the Mapillary token from Secret Manager
     "python-dotenv>=1.2.4",
     "pyyaml>=6.0.3",
     "numpy>=2.4.6",

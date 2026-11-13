@@ -1,7 +1,7 @@
 from setuptools import find_packages, setup
 
-# Vertex AI 开机后先按这里装依赖，再运行 python -m trainer.task
-# GPU 镜像（pytorch-gpu）里已经有 torch；CPU 镜像（sklearn-cpu）没有，由 pip 现装（启动慢几分钟）
+# Vertex AI installs the dependencies from here first after the machine starts, then runs python -m trainer.task
+# The GPU image (pytorch-gpu) already has torch; the CPU image (sklearn-cpu) doesn't, so pip installs it on the spot (startup is a few minutes slower)
 REQUIRED_PACKAGES = ["torch", "timm", "gcsfs", "pyarrow", "wandb", "pillow"]
 
 setup(

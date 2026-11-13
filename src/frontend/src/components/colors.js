@@ -1,4 +1,4 @@
-// 热图配色：0 = 区域平均（近白）；越青绿 = 越符合偏好；越珊瑚红 = 越不符合；没过 must-have 门槛 = 浅紫灰
+// Heatmap colors: 0 = area average (near white), more teal = fits the preference better, more coral red = fits worse, failed the must-have threshold = light purple gray
 export const NEG = [226, 92, 76];
 
 // Route line colours by route kind (also used by the route cards): the shortest route is dark, the options warm up
@@ -8,7 +8,7 @@ export const MID = [248, 247, 251];
 export const POS = [16, 150, 120];
 export const EXCLUDED = [214, 211, 224];
 
-// 一个分数 → 一个 RGB 颜色；maxAbs 是画成最深青绿 / 最深珊瑚红的分数
+// Turn one score into one RGB color. maxAbs is the score that gets the darkest teal / darkest coral red
 export function colorFor(t, maxAbs) {
     if (t === null || t === undefined) return EXCLUDED;
     const x = Math.max(-1, Math.min(1, t / maxAbs));
@@ -16,7 +16,7 @@ export function colorFor(t, maxAbs) {
     return MID.map((m, i) => Math.round(m + (end[i] - m) * Math.abs(x)));
 }
 
-// RGB 数组 → CSS 颜色字符串
+// RGB array to CSS color string
 export function rgb([r, g, b]) {
     return `rgb(${r}, ${g}, ${b})`;
 }

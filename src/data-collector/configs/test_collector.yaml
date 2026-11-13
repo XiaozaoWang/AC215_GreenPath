@@ -1,18 +1,18 @@
-# 数据集定义：改了下面的参数就等于换了一个数据集（要换 dataset_id）；areas 只能往后加，已有的 bbox 不能改
-dataset_id: Yue_20261108_test_collector   # 试跑用；只在命令行没给 --dataset 时用（workflow 会传 DATASET）
+# Dataset definition: changing the params below means a different dataset (needs a new dataset_id); areas can only be added at the end, existing bboxes can't change
+dataset_id: Yue_20261108_test_collector   # for test runs; only used when --dataset is not given on the command line (the workflow passes DATASET)
 
-h3_res: 10                  # 格子大小：约 130 m
-min_year: 2019              # 只要这一年以后的街景
-exclude_months: [12, 1, 2, 3]   # 冬天没树叶，不要
-min_images_per_cell: 2      # 一个格子至少几张街景
-max_images_per_cell: 4      # 最多留几张（方向不同）
-tile_px: 256                # 航拍图边长（像素）
-ground_m: 154               # 航拍图和地图特征覆盖的地面宽度（米）
+h3_res: 10                  # cell size: about 130 m
+min_year: 2019              # only street photos from this year on
+exclude_months: [12, 1, 2, 3]   # no leaves in winter, skip
+min_images_per_cell: 2      # min street photos per cell
+max_images_per_cell: 4      # max photos kept (different headings)
+tile_px: 256                # aerial tile side length (pixels)
+ground_m: 154               # ground width covered by the aerial tile and map features (m)
 naip_min_year: 2018
 worldcover_year: 2021
-selection: mmr_v2           # 选街景的规则版本（只做记录）
-osm_snapshot: nearest_to_naip   # OSM 用哪一年（只做记录）
+selection: mmr_v2           # version of the street photo selection rules (record only)
+osm_snapshot: nearest_to_naip   # which OSM year to use (record only)
 
-# bbox = [最小经度, 最小纬度, 最大经度, 最大纬度]；顺序有用：两个 bbox 重叠时，格子归排在前面的那个（城市优先）
+# bbox = [min lon, min lat, max lon, max lat]; order matters: when two bboxes overlap, a cell goes to the earlier one (cities first)
 areas:
   - {area_id: city_wa_laconner_edge,     area_type: city,   area_subtype: edge,       bbox: [-122.513952, 48.379994, -122.490778, 48.399463]}

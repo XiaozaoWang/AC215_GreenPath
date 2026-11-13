@@ -1,4 +1,4 @@
-# 本地缓存和检查图：不复制进镜像
+# local cache and QC figures: don't copy into the image
 qc/
 .venv/
 __pycache__/

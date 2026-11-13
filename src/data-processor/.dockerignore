@@ -1,4 +1,4 @@
-# 本地结果、测试、缓存：不复制进镜像
+# Local results, tests and caches, not copied into the image
 outputs/
 tests/
 README.md

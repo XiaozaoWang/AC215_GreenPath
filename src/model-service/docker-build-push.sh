@@ -1,23 +1,23 @@
 #!/bin/bash
-# 上云前用：按 Google 机器的架构（linux/amd64）build 镜像，推到 Artifact Registry。之后在 model-deployment 运行 --deploy
-# 换了模型（--prepare）或改了代码，都要重新运行一次。镜像里有模型，没有任何 key 或 token。
-# 第一次用之前（整个项目一次、每人一次）的命令见 data-processor/docker-build-push.sh
+# Use before going to the cloud: build the image for Google's machine architecture (linux/amd64) and push it to Artifact Registry. Then run `python cli.py --deploy --service model` in src/deployment
+# Run it again after changing the model (--prepare) or the code. The image has the model, but no keys or tokens.
+# Commands for first-time setup (once per project, once per person) are in data-processor/docker-build-push.sh
 
 set -e
 
-# 从 .env 只取项目名这一行（不读 token）
+# Only take the project name line from .env (don't read tokens)
 export $(grep '^GOOGLE_CLOUD_PROJECT=' "$(pwd)/../../.env")
 
 export IMAGE_NAME="greenpath-model-service"
 export IMAGE_URI="us-central1-docker.pkg.dev/$GOOGLE_CLOUD_PROJECT/greenpath/$IMAGE_NAME"
 
-# 没准备模型就停
+# Stop if the model isn't prepared
 if [ ! -f artifacts/best_model.pt ]; then
-    echo "artifacts/ is empty: run 'python cli.py --prepare' in model-deployment first"
+    echo "artifacts/ is empty: run 'python cli.py --prepare' in src/deployment first"
     exit 1
 fi
 
-# amd64：Cloud Run 的机器是 amd64；Apple 芯片的 Mac 上是模拟 build，比 docker-shell.sh 慢
+# amd64: Cloud Run machines are amd64; on an Apple chip Mac the build is emulated, slower than docker-shell.sh
 docker build --platform linux/amd64 -t $IMAGE_URI:latest --push -f Dockerfile .
 
 echo "Pushed $IMAGE_URI:latest"

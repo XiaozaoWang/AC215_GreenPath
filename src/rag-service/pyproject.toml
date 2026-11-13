@@ -1,5 +1,5 @@
-# 这个容器要装的 Python 包；具体版本由 `uv lock` 锁进 uv.lock，build 镜像时按 uv.lock 原样安装
-# 改了这里要重新运行一次 `uv lock`
+# Python packages this container needs; exact versions are locked into uv.lock by `uv lock`, building the image installs exactly what uv.lock says
+# Run `uv lock` again after changing this
 [project]
 name = "greenpath-vector-db"
 version = "0.1.0"
@@ -8,11 +8,11 @@ requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.115.0",
     "uvicorn>=0.30.0",
-    "chromadb>=1.1.0",                 # 连 ChromaDB 容器的客户端，版本要和 docker-compose 里的服务器一致
-    "google-genai>=1.39.1",            # 调 Gemini embedding（Vertex AI）
-    "langchain-text-splitters>=0.3.0", # 切块工具
+    "chromadb>=1.1.0",                 # client for the ChromaDB container, version must match the server in docker-compose
+    "google-genai>=1.39.1",            # calls Gemini embedding (Vertex AI)
+    "langchain-text-splitters>=0.3.0", # chunking tools
     "pandas>=2.3.3",
-    "pyyaml>=6.0",                     # 读 MD 开头的信息头
+    "pyyaml>=6.0",                     # reads the info header at the top of each MD
 ]
 
 [dependency-groups]

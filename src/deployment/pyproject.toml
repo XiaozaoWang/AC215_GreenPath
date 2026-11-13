@@ -1,0 +1,21 @@
+# Deployment tool: deploys model-service, api-service and frontend to Cloud Run. uv.lock pins the versions.
+[project]
+name = "greenpath-deployment"
+version = "0.1.0"
+description = "GreenPath deployment: prepare the model, deploy and test model-service, api-service and frontend on Cloud Run"
+requires-python = ">=3.12,<3.15"
+dependencies = [
+    "google-cloud-run>=0.10,<1",   # create and update Cloud Run services and who may call them
+    "google-auth>=2.40.0",
+    "gcsfs>=2025.1,<2027",         # read the model and its predictions from the bucket
+    "pandas>=2.2,<3",
+    "pyarrow>=19,<24",
+    "requests>=2.32,<3",           # live tests
+]
+
+[dependency-groups]
+dev = ["pytest>=9.0.0"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

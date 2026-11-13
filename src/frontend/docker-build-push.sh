@@ -1,5 +1,5 @@
 #!/bin/bash
-# Like model-service/docker-build-push.sh: build/push on the host, then deploy from app-deployment.
+# Like model-service/docker-build-push.sh: build/push on the host, then deploy from src/deployment (python cli.py --deploy --service frontend).
 set -e
 
 # Read only the project ID from .env; credentials stay in the normal Docker/gcloud login.

@@ -12,7 +12,7 @@ ENV LANG=C.UTF-8
 # Tell Python to disable buffering so we don't lose any logs.
 ENV PYTHONUNBUFFERED=1
 
-# uv 设置：装包用复制模式；虚拟环境放在 /.venv（不放 /app 里，免得开发时 -v .:/app 挂载把它盖住）
+# uv settings: install packages in copy mode. The virtual env goes in /.venv (not in /app, so the -v .:/app mount during development doesn't hide it)
 ENV UV_LINK_MODE=copy
 ENV UV_PROJECT_ENVIRONMENT=/.venv
 
@@ -40,7 +40,7 @@ RUN set -ex; \
 USER app
 WORKDIR /app
 
-# 按 uv.lock 里锁死的版本装 Python 包
+# Install Python packages at the exact versions pinned in uv.lock
 ADD --chown=app:app pyproject.toml uv.lock /app/
 
 RUN uv sync --frozen

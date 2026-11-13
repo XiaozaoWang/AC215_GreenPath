@@ -1,17 +1,11 @@
 """
-GreenPath 流程（Vertex AI Pipelines）：把 采集 → 打分 → 处理 → 训练 四步串成流程，在 Google 的机器上运行。
-本身不处理数据，只负责“定义步骤 → 串成流程 → 编译成 yaml → 提交给 Vertex”。参考 tutorial 的 workflow/cli.py，把重复的步骤定义合并成一份。
-
-写法：每一步只定义一次（STEPS），每个开关是一张"跑哪几步"的清单（PIPELINES），run() 按清单把步骤串起来。
-加新组合 = 在 PIPELINES 里加一行；开关会自动出现。
-
-用法（在 docker-shell.sh 打开的容器里）：
-  python cli.py --pipeline            采集 → 打分 → 处理 → 训练
-  python cli.py --data_pipeline       采集 → 打分 → 处理（不训练，先检查训练表）
-  python cli.py --data_collector      只跑采集
-  python cli.py --data_labeler        只跑打分
-  python cli.py --data_processor      只跑处理（读打好的分，做成训练表）
-  python cli.py --model_training      只跑训练（读训练表，训练模型；先在 model-training 里运行 package-trainer.sh 上传代码）
+GreenPath workflow on Vertex AI Pipelines: chains collect, label, process and train into one pipeline.
+Only defines the steps (STEPS) and which ones each flag runs (PIPELINES), compiles to yaml and submits to Vertex. No data work here.
+Run in the container from docker-shell.sh:
+  python cli.py --pipeline          collect, label, process, train
+  python cli.py --data_pipeline     collect, label, process (no training, check the training table first)
+  python cli.py --data_collector | --data_labeler | --data_processor | --model_training    just that one step
+For --model_training, run package-trainer.sh in model-training first to upload the trainer code.
 """
 import os
 import argparse
@@ -20,32 +14,32 @@ import string
 from kfp import dsl
 from kfp import compiler
 import google.cloud.aiplatform as aip
-from model import model_training as model_training_job   # 训练步骤定义在 model.py（和 tutorial 一样）
+from model import model_training as model_training_job   # the training step is defined in model.py (same as the tutorial)
 
-# 项目、区域、bucket 都来自 .env（docker-shell.sh 用 --env-file 传进来）
+# Project, region and bucket all come from .env (docker-shell.sh passes them in with --env-file)
 GCP_PROJECT = os.environ["GOOGLE_CLOUD_PROJECT"]
 GCP_REGION = os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1")
 GCS_BUCKET_NAME = os.environ["GREENPATH_BUCKET"]
 BUCKET_URI = f"gs://{GCS_BUCKET_NAME}"
-PIPELINE_ROOT = f"{BUCKET_URI}/pipeline_root/root"       # Vertex 存放每次运行的中间记录
+PIPELINE_ROOT = f"{BUCKET_URI}/pipeline_root/root"       # where Vertex keeps the intermediate records of each run
 
-# 流程在云上以这个服务账号的身份运行（第 5 步建的）；提交流程的是你自己的 gcloud 登录
-# 每个步骤都要用 set_env_variable 传入 GOOGLE_CLOUD_PROJECT：Vertex 在 Google 内部的“租户项目”里运行容器，
-# 容器自己查到的项目是那个内部项目，不传的话会去错的项目找 Secret Manager、调 Gemini
+# The pipeline runs in the cloud as this service account (created in step 5); you submit it with your own gcloud login
+# Every step has to get GOOGLE_CLOUD_PROJECT via set_env_variable: Vertex runs the containers in a Google-internal "tenant project",
+# so the project the container finds on its own is that internal one, and without it we'd look for Secret Manager and call Gemini in the wrong project
 GCS_SERVICE_ACCOUNT = f"greenpath-ml-workflow@{GCP_PROJECT}.iam.gserviceaccount.com"
 
-# 三个镜像：第 3 步用各自的 docker-build-push.sh 推到 Artifact Registry 的
+# Three images: pushed to Artifact Registry in step 3 with each one's docker-build-push.sh
 DATA_COLLECTOR_IMAGE = f"us-central1-docker.pkg.dev/{GCP_PROJECT}/greenpath/greenpath-data-collector:latest"
 DATA_LABELER_IMAGE = f"us-central1-docker.pkg.dev/{GCP_PROJECT}/greenpath/greenpath-data-labeler:latest"
 DATA_PROCESSOR_IMAGE = f"us-central1-docker.pkg.dev/{GCP_PROJECT}/greenpath/greenpath-data-processor:latest"
 
-CONFIG = "configs/test_collector.yaml"         # data-collector里的配置文件,这次预期一共会跑什么AREAS
-AREAS = ["city_wa_laconner_edge"]              # 正式跑时改成正式的配置文件和数据集、AREAS 写 ["all"]，如果AREAS并没有覆盖CONFIG yaml里面的areas，在data_processing部分会报错n/29
-DATASET = "Yue_20261108_test_collector"        #collector 建，labeler 写 labels/，processor 读，采集也通过 --dataset 拿到它，改名只改这里
-TRAINING_ID = "Yue_20261108_test_collector"    #processor 写 dataset.parquet、exclusions.parquet、meta.json，training/ 下已存在的文件夹不会被覆盖，重跑处理要换名字
+CONFIG = "configs/test_collector.yaml"         # config file in data-collector, which AREAS we expect to run this time
+AREAS = ["city_wa_laconner_edge"]              # for the real run switch to the real config file and dataset, AREAS = ["all"]. if AREAS doesn't cover the areas in the CONFIG yaml, data_processing will fail with n/29
+DATASET = "Yue_20261108_test_collector"        #collector creates it, labeler writes labels/, processor reads it, collection also gets it via --dataset, rename only here
+TRAINING_ID = "Yue_20261108_test_collector"    #processor writes dataset.parquet, exclusions.parquet, meta.json, an existing folder under training/ is never overwritten, to rerun processing use a new name
 
-# 训练：True = 试跑（CPU、96+48 个格子、2 轮，只证明能跑通）；False = 正式训练（要 GPU 和 T4 配额）
-# 结果写到 gs://<bucket>/results/<TRAINING_ID>/{dry|final}/<run_id>/
+# Training: True = dry run (CPU, 96+48 cells, 2 epochs, just proves it runs); False = real training (needs GPU and T4 quota)
+# Results go to gs://<bucket>/results/<TRAINING_ID>/{dry|final}/<run_id>/
 DRY_RUN = True
 
 
@@ -53,10 +47,10 @@ def generate_uuid(length: int = 8) -> str:
     return "".join(random.choices(string.ascii_lowercase + string.digits, k=length))
 
 
-# ---------- 第 1 层：每一步只定义一次 ----------
+# ---------- Layer 1: each step is defined only once ----------
 
-# 采集步骤（container component）：用 data-collector 镜像
-# command=[] = 用镜像自己的 ENTRYPOINT（docker-entrypoint.sh），args 交给它，容器里实际运行：
+# Collect step (container component): uses the data-collector image
+# command=[] means use the image's own ENTRYPOINT (docker-entrypoint.sh) and pass args to it, so the container actually runs:
 #   uv run python cli.py --config ... --dataset ... --areas ... --bucket ...
 @dsl.container_component
 def data_collector():
@@ -67,7 +61,7 @@ def data_collector():
     )
 
 
-# 打分步骤：用 data-labeler 镜像，给 datasets/<DATASET>/ 里采好的图打分
+# Label step: uses the data-labeler image, scores the images collected in datasets/<DATASET>/
 @dsl.container_component
 def data_labeler():
     return dsl.ContainerSpec(
@@ -77,7 +71,7 @@ def data_labeler():
     )
 
 
-# 处理步骤：用 data-processor 镜像，读 datasets/<DATASET>/ 里打好的分，写到 training/<TRAINING_ID>/
+# Process step: uses the data-processor image, reads the scores in datasets/<DATASET>/, writes to training/<TRAINING_ID>/
 @dsl.container_component
 def data_processor():
     return dsl.ContainerSpec(
@@ -88,13 +82,13 @@ def data_processor():
     )
 
 
-# 训练步骤定义在 model.py（Python component），这里只填这次的值
+# The training step is defined in model.py (Python component), here we only fill in this run's values
 
 
-# 步骤表：名字 → 怎么建这一步（显示名、机器大小、参数）
-# 用 lambda 包起来：步骤只能在 @dsl.pipeline 里面建，run() 用到时才调用
+# Step table: name, and how to build that step (display name, machine size, args)
+# Wrapped in lambda: steps can only be built inside @dsl.pipeline, so they're only called when run() needs them
 STEPS = {
-    # 采集：要读整州 OSM 地图，机器给大一点
+    # Collect: reads the OSM map of a whole state, so give it a bigger machine
     "collector": lambda: data_collector().set_display_name("Data Collector").set_cpu_limit("4").set_memory_limit("16G"),
     "labeler": lambda: data_labeler().set_display_name("Data Labeler"),
     "processor": lambda: data_processor().set_display_name("Data Processor"),
@@ -109,12 +103,12 @@ STEPS = {
 }
 
 
-# ---------- 第 2 层：按清单把步骤串成流程，编译，提交 ----------
+# ---------- Layer 2: chain the steps from a list into a pipeline, compile, submit ----------
 
 def run(name, steps):
     print(f"{name}: {' → '.join(steps)}")
 
-    # 定义流程：按顺序建每一步，后一步等前一步跑完才开始（.after）
+    # Define the pipeline: build each step in order, each step waits for the previous one to finish (.after)
     @dsl.pipeline(name=name.replace("_", "-"))
     def ml_pipeline():
         prev = None
@@ -124,10 +118,10 @@ def run(name, steps):
                 task.after(prev)
             prev = task
 
-    # 编译成 yaml（Vertex 看得懂的流程说明书），例如 pipeline.yaml、data_collector.yaml
+    # Compile to yaml (the pipeline spec Vertex understands), e.g. pipeline.yaml, data_collector.yaml
     compiler.Compiler().compile(ml_pipeline, package_path=f"{name}.yaml")
 
-    # 提交到 Vertex AI，以服务账号的身份运行
+    # Submit to Vertex AI, runs as the service account
     aip.init(project=GCP_PROJECT, location=GCP_REGION, staging_bucket=BUCKET_URI)
 
     job_id = generate_uuid()
@@ -135,15 +129,15 @@ def run(name, steps):
     job = aip.PipelineJob(
         display_name=DISPLAY_NAME,
         template_path=f"{name}.yaml",
-        pipeline_root=PIPELINE_ROOT, #每次运行的中间记录放gs://<bucket>/pipeline_root/root
-        enable_caching=False,        #True打开缓存的话，Vertex 发现某一步的输入和上次一样就直接跳过、沿用上次的结果。目前False关掉以后每次都真的重跑
+        pipeline_root=PIPELINE_ROOT, #intermediate records of each run go to gs://<bucket>/pipeline_root/root
+        enable_caching=False,        #with True (cache on), if Vertex sees a step has the same inputs as last time it skips it and reuses the last result. now False turns it off so every run really reruns
     )
 
     job.run(service_account=GCS_SERVICE_ACCOUNT)
 
 
-# ---------- 第 3 层：每个开关 = 一张"跑哪几步"的清单 ----------
-# 加新组合只要在这里加一行，命令行开关 --<名字> 会自动出现
+# ---------- Layer 3: each flag = a list of "which steps to run" ----------
+# To add a new combo just add a line here, the command line flag --<name> shows up automatically
 PIPELINES = {
     "pipeline": ["collector", "labeler", "processor", "training"],
     "data_pipeline": ["collector", "labeler", "processor"],
@@ -157,14 +151,14 @@ PIPELINES = {
 def main(args=None):
     print("CLI Arguments:", args)
 
-    # 打开了哪个开关，就跑对应的清单
+    # Run the list for whichever flag is on
     for name, steps in PIPELINES.items():
         if getattr(args, name):
             run(name, steps)
 
 
 if __name__ == "__main__":
-    # 运行 python cli.py --help 可以看到下面这些开关（按 PIPELINES 自动生成）
+    # python cli.py --help shows these flags (generated from PIPELINES)
     parser = argparse.ArgumentParser(description="GreenPath Workflow CLI")
 
     for name, steps in PIPELINES.items():

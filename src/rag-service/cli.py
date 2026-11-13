@@ -1,11 +1,9 @@
 """
-GreenPath RAG 小样例（建索引这一侧）：MD 资料 → 切块 → 转向量 → 存进 ChromaDB → 试着检索。
-结构照课程 llm-rag 教程：一个 cli.py，用开关分步跑。支持 --query 检索和 --chat 基于检索内容生成回答。
-
-用法（在 docker-shell.sh 打开的容器里，--chunk_type 四步要一致）：
-  python cli.py --chunk --chunk_type markdown-split      切块，结果在 outputs/chunks-*.jsonl（不调 API）
-  python cli.py --embed --chunk_type markdown-split      每块转成向量（调 Gemini embedding）
-  python cli.py --load  --chunk_type markdown-split      写进 ChromaDB
+GreenPath RAG sample (indexing side): MD sources are chunked, embedded and stored in ChromaDB, then searched (--query) or used to answer (--chat).
+Run step by step inside the docker-shell.sh container, with the same --chunk_type in each step:
+  python cli.py --chunk --chunk_type markdown-split      chunk, output in outputs/chunks-*.jsonl (no API calls)
+  python cli.py --embed --chunk_type markdown-split      turn each chunk into a vector (calls Gemini embedding)
+  python cli.py --load  --chunk_type markdown-split      write into ChromaDB
   python cli.py --query --chunk_type markdown-split --question "Can I ride a bike on the sidewalk?"
 """
 import os
@@ -22,7 +20,7 @@ from google import genai
 from google.genai import types, errors
 from langchain_text_splitters import CharacterTextSplitter, RecursiveCharacterTextSplitter, MarkdownHeaderTextSplitter
 
-# 设置
+# Settings
 GCP_LOCATION = os.environ.get("GCP_LOCATION", "global")
 EMBEDDING_MODEL = "gemini-embedding-001"
 EMBEDDING_DIMENSION = 256
@@ -41,18 +39,18 @@ CHROMADB_HOST = os.environ.get("CHROMADB_HOST", "chromadb")
 CHROMADB_PORT = int(os.environ.get("CHROMADB_PORT", "8000"))
 CHROMADB_SSL = os.environ.get("CHROMADB_SSL", "false").lower() == "true"
 
-# 每块约 1000 字符，相邻两块重叠 100 字符（免得一句话被切断后两边都不完整）
+# Each chunk is about 1000 characters, neighbouring chunks overlap by 100 characters (so a sentence that gets cut is not broken on both sides)
 CHUNK_SIZE = 1000
 CHUNK_OVERLAP = 100
 
-# MD 开头的 YAML 信息头里，挑这几项存成每一块的 metadata（检索时可以过滤、回答时可以附来源）
+# From the YAML header at the top of each MD, keep these fields as metadata on every chunk (can filter on them when searching, can cite the source when answering)
 META_KEYS = ["source_id", "title", "publisher", "source_url", "region", "question_ids", "jurisdiction", "content_scope", "source_sha256", "scope_note", "attribution", "license_type", "license_url", "retrieved_at"]
 
-# 按标题切时认哪几级标题
+# Which heading levels to split on
 HEADERS = [("#", "h1"), ("##", "h2"), ("###", "h3"), ("####", "h4")]
 
 
-# Gemini client：第一次用到才建，所以 --chunk 不需要 GCP 凭证
+# Gemini client: only created the first time it's needed, so --chunk doesn't need GCP credentials
 _client = None
 def llm_client():
     global _client
@@ -64,7 +62,7 @@ def llm_client():
     return _client
 
 
-# 读一个 MD：拆成 (信息头 dict, 正文)。信息头不当正文切，否则会被检索出来当成内容
+# Read one MD: split into (header dict, body). The header is not chunked as body, otherwise it would come back in search results as content
 def read_md(path):
     text = Path(path).read_text(encoding="utf-8-sig")
     meta = {}
@@ -84,22 +82,22 @@ def read_md(path):
     return meta, text.strip()
 
 
-# 把正文切成块，返回 [(所属标题, 块文字), ...]
+# Split the body into chunks, returns [(heading it belongs to, chunk text), ...]
 def split_text(text, method):
     recursive = RecursiveCharacterTextSplitter(chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP)
 
-    # 对照组：固定字数硬切，不管句子和段落
+    # Control group: hard cut at a fixed number of characters, ignores sentences and paragraphs
     if method == "char-split":
         splitter = CharacterTextSplitter(chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP,
                                          separator="", strip_whitespace=False)
         return [("", c) for c in splitter.split_text(text)]
 
-    # 先按段落切，太长再按换行、句子、空格切
+    # Split by paragraph first, if still too long then by newline, sentence, space
     if method == "recursive-split":
         return [("", c) for c in recursive.split_text(text)]
 
-    # 先按 # / ## / ### 标题切成一节一节，每块记下所属标题；某节太长再用 recursive 切
-    # 没有标题的文件整篇算一节，效果等于 recursive-split
+    # First split by # / ## / ### headings into sections, each chunk keeps its heading; if a section is too long, split it again with recursive
+    # A file with no headings is one section, same result as recursive-split
     if method == "markdown-split":
         sections = MarkdownHeaderTextSplitter(HEADERS, strip_headers=False).split_text(text)
         out = []
@@ -111,7 +109,7 @@ def split_text(text, method):
     raise ValueError(f"unknown chunk_type: {method}")
 
 
-# Vertex gemini-embedding-001 每次请求一个文本；文档与问题使用不同 task_type。
+# Vertex gemini-embedding-001 takes one text per request; documents and questions use different task_type.
 def generate_embeddings(texts, task_type, max_retries=5, retry_delay=2):
     embeddings = []
     for text in texts:
@@ -197,7 +195,7 @@ def chunk(method):
     files = sorted(Path(INPUT_FOLDER).rglob("*.md"))
     if not files:
         raise ValueError(f"No Markdown files in {INPUT_FOLDER}")
-    # 先校验全部输入，避免遇到重复 source_id 时覆盖另一个文件。
+    # Check all inputs first, so a duplicate source_id can't overwrite another file.
     sources = [(p, *read_md(p)) for p in files]
     ids = [meta["source_id"] for _, meta, _ in sources]
     if len(ids) != len(set(ids)):
@@ -216,7 +214,7 @@ def chunk(method):
             rows.append({"chunk": content, "section": section, **meta,
                          "source_file": str(path.relative_to(INPUT_FOLDER)),
                          "chunk_id": f"{prefix}-{i}", "chunk_index": i, "input_sha256": digest(path)})
-        # 文件名使用 hash，source_id 不参与拼路径。
+        # File names use a hash, source_id is not used to build the path.
         filename = f"chunks-{method}-{hashlib.sha256(meta['source_id'].encode()).hexdigest()[:16]}.jsonl"
         target = Path(OUTPUT_FOLDER) / filename
         write_jsonl(target, rows)
@@ -243,7 +241,7 @@ def embed(method):
     print("embed()")
     manifest = checked_manifest(method)
     manifest.pop("embeddings", None)
-    save_manifest(method, manifest)  # 中途中断不能 load 上一轮结果
+    save_manifest(method, manifest)  # if it stops halfway, --load can't pick up the previous round's results
     hashes = {}
     for filename in manifest["chunks"]:
         rows = read_jsonl(Path(OUTPUT_FOLDER) / filename)
@@ -407,7 +405,7 @@ def main(args=None):
 
 
 if __name__ == "__main__":
-    # 运行 python cli.py --help 可以看到下面这些开关
+    # Run python cli.py --help to see the flags below
     parser = argparse.ArgumentParser(description="GreenPath vector-db CLI")
 
     parser.add_argument("--chunk", action="store_true", help="切块")

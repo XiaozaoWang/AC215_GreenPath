@@ -27,12 +27,13 @@ def transport(monkeypatch):
     return install
 
 
-@pytest.mark.parametrize("size", [0, 1, 31, 60000])
-def test_balanced_batches(size):
+@pytest.mark.parametrize("size,count", [(0, 0), (1, 1), (31, 4), (100, 10), (300, 30), (700, 30), (2098, 30), (60000, 30)])
+def test_balanced_batches(size, count):
+    # At most 30 batches, at least 10 cells each: 300+ cells always get 30 batches, a tiny area is not cut into 1-cell batches.
     tiles = [Tile(h3_index=str(i)) for i in range(size)]
     parts = model_client.split_batches(tiles)
     assert [tile for part in parts for tile in part] == tiles
-    assert len(parts) == min(size, 30)
+    assert len(parts) == count
     if parts:
         lengths = [len(part) for part in parts]
         assert max(lengths) <= 2000 and max(lengths) - min(lengths) <= 1
@@ -43,6 +44,7 @@ def test_balanced_batches(size):
 
 def test_order_duplicates_missing_cells_and_shared_concurrency(transport, monkeypatch):
     # Two simultaneous score calls must share the same outgoing request limit.
+    monkeypatch.setattr(model_client, "MIN_BATCH_SIZE", 1)
     monkeypatch.setattr(model_client, "MAX_CONCURRENCY", 2)
     monkeypatch.setattr(model_client, "_request_slots", threading.BoundedSemaphore(2))
     lock, started, release = threading.Lock(), threading.Event(), threading.Event()
@@ -85,7 +87,8 @@ def test_invalid_results(transport, results):
 @pytest.mark.parametrize("failure,expected", [(503, model_client.ModelServiceError),
     (httpx.ConnectError("offline"), model_client.ModelServiceError),
     (httpx.ReadTimeout("slow"), model_client.ModelTimeoutError), ("bad json", model_client.ModelServiceError)])
-def test_upstream_failures(transport, failure, expected):
+def test_upstream_failures(transport, monkeypatch, failure, expected):
+    monkeypatch.setattr(model_client, "RETRY_WAITS", ())      # no retries: the failure must surface at once
     def handler(request):
         if isinstance(failure, Exception):
             raise failure
@@ -111,7 +114,8 @@ def test_https_authentication_and_failure(transport, monkeypatch):
         model_client.predict([Tile(h3_index="a")])
 
 
-def test_on_batch_reports_every_batch_and_the_result_keeps_input_order(transport):
+def test_on_batch_reports_every_batch_and_the_result_keeps_input_order(transport, monkeypatch):
+    monkeypatch.setattr(model_client, "MIN_BATCH_SIZE", 1)
     def handler(request):
         ids = json.loads(request.content)["h3_indices"]
         return httpx.Response(200, json={"results": [row(i) for i in ids]})
@@ -122,3 +126,41 @@ def test_on_batch_reports_every_batch_and_the_result_keeps_input_order(transport
     result = model_client.predict(tiles, on_batch=seen.append)
     assert [r.h3_index for r in result] == [t.h3_index for t in tiles]
     assert len(seen) == 30 and sum(len(batch) for batch in seen) == 70
+
+
+def test_cold_start_errors_are_retried_until_the_instance_is_up(transport, monkeypatch):
+    # 11-11: a cold Model Service answered some batches with 500 "aborted after waiting too long for an available
+    # instance" and the whole scoring failed. Those answers are now retried with backoff.
+    waits = []
+    monkeypatch.setattr(model_client, "_sleep", waits.append)
+    answers = iter([500, 429, 503, 200])
+    def handler(request):
+        status = next(answers)
+        ids = json.loads(request.content)["h3_indices"]
+        return httpx.Response(status, json={"results": [row(i) for i in ids]} if status == 200 else {})
+    transport(handler)
+    assert model_client.predict([Tile(h3_index="a")])[0].status == "ok"
+    assert waits == [2.0, 4.0, 8.0]
+
+
+def test_retries_stop_after_the_last_wait(transport, monkeypatch):
+    # Only our own waits count: on 11-13 a batch waited 129 s in Cloud Run's queue before its 500, and a limit on
+    # total time left it no retry. The waits add up to 89 s, enough to outlast a cold start even when every try
+    # is rejected at once (11-11).
+    waits = []
+    monkeypatch.setattr(model_client, "_sleep", waits.append)
+    calls = []
+    def handler(request):
+        calls.append(1)
+        return httpx.Response(500)
+    transport(handler)
+    with pytest.raises(model_client.ModelServiceError):
+        model_client.predict([Tile(h3_index="a")])
+    assert len(calls) == 9 and waits == [2, 4, 8, 15, 15, 15, 15, 15] and sum(waits) == 89
+
+
+def test_client_errors_are_not_retried(transport, monkeypatch):
+    monkeypatch.setattr(model_client, "_sleep", Mock(side_effect=AssertionError("must not wait")))
+    transport(lambda request: httpx.Response(422))
+    with pytest.raises(model_client.ModelServiceError):
+        model_client.predict([Tile(h3_index="a")])

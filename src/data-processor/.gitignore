@@ -1,4 +1,4 @@
-# 本地结果和缓存：不提交
+# Local results and caches, not committed
 outputs/
 .venv/
 __pycache__/

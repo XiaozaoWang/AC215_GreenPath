@@ -1,4 +1,4 @@
-/* 页面：白底，正中一部 iPhone 16（屏幕 393 × 852 pt，边框 12 pt → 整机 417 × 876） */
+/* Page: white background, an iPhone 16 in the middle (screen 393 x 852 pt, 12 pt bezel, so 417 x 876 for the whole phone) */
 * { box-sizing: border-box; }
 
 html, body {
@@ -19,7 +19,7 @@ html, body {
     place-items: center;
 }
 
-/* 手机随窗口高度缩放；里面所有尺寸都用 --u = 手机宽度的 1/417 */
+/* The phone scales with the window height. All sizes inside use --u, which is 1/417 of the phone width */
 .phone {
     container-type: inline-size;
     --u: calc(100cqw / 417);
@@ -39,7 +39,7 @@ html, body {
     background: #8a8a8a;
 }
 
-/* 地图铺满屏幕；isolate 让 Leaflet 的图层待在灵动岛和输入框下面 */
+/* The map fills the screen. isolate keeps the Leaflet layers below the Dynamic Island and the input box */
 .map {
     position: absolute;
     inset: 0;
@@ -53,7 +53,7 @@ html, body {
     margin-bottom: calc(var(--u) * 18);
 }
 
-/* 灵动岛 */
+/* Dynamic Island */
 .island {
     position: absolute;
     top: calc(var(--u) * 11);
@@ -66,7 +66,7 @@ html, body {
     z-index: 1;
 }
 
-/* 输入框：灵动岛下面一条悬浮的胶囊 */
+/* Input box: a floating pill under the Dynamic Island */
 .prompt {
     position: absolute;
     top: calc(var(--u) * 60);
@@ -252,7 +252,7 @@ html, body {
 }
 @media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
 
-/* 底部横条 */
+/* Home bar at the bottom */
 .home-bar {
     position: absolute;
     bottom: calc(var(--u) * 8);

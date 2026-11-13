@@ -1,28 +1,28 @@
-# 模型服务要装的 Python 包；具体版本由 `uv lock` 锁进 uv.lock，build 镜像时按 uv.lock 原样安装
-# 改了这里要重新运行一次 `uv lock`
+# Python packages the Model Service needs; exact versions are locked into uv.lock by `uv lock`, building the image installs exactly what uv.lock says
+# Run `uv lock` again after changing this
 [project]
 name = "greenpath-model-service"
 version = "0.1.0"
 description = "GreenPath model service: H3 cells (or one aerial tile) in, 15 scenery scores out"
 requires-python = ">=3.12,<3.13"
 dependencies = [
-    "fastapi>=0.115,<1",           # 网页接口
-    "uvicorn>=0.30,<1",            # 运行 FastAPI 的服务器
-    "python-multipart>=0.0.9",     # /predict_image 接收上传的图片
-    "torch>=2.14,<2.15",           # 和训练时同一个大版本（config.json 里记着 torch 2.14.1），CPU 版，见下面
-    "torchvision>=0.29,<0.30",     # timm 要用
-    "timm==1.0.31",                # 和训练时完全一样，DINOv2 和预处理才一致
-    "pillow>=11",                  # 读图片
-    "gcsfs>=2025.1,<2027",         # 读 bucket：格子索引和航拍图
+    "fastapi>=0.115,<1",           # web API
+    "uvicorn>=0.30,<1",            # server that runs FastAPI
+    "python-multipart>=0.0.9",     # /predict_image receives the uploaded image
+    "torch>=2.14,<2.15",           # same major version as training (config.json records torch 2.14.1), CPU build, see below
+    "torchvision>=0.29,<0.30",     # needed by timm
+    "timm==1.0.31",                # exactly the same as training, so DINOv2 and preprocessing match
+    "pillow>=11",                  # read images
+    "gcsfs>=2025.1,<2027",         # read the bucket: cell index and aerial tiles
     "pandas>=2.2,<3",
-    "pyarrow>=19,<24",             # 读 Parquet
+    "pyarrow>=19,<24",             # read Parquet
 ]
 
 [tool.uv]
-# 只在 Docker 里（Linux）安装，不在 Mac 上直接装
+# Only installed inside Docker (Linux), not directly on the Mac
 environments = ["sys_platform == 'linux'"]
 
-# torch 用 CPU 版：Cloud Run 上没有 GPU，CPU 版比默认的 CUDA 版小几个 GB，镜像小、启动快
+# Use the CPU build of torch: Cloud Run has no GPU, the CPU build is several GB smaller than the default CUDA build, so smaller image and faster startup
 [tool.uv.sources]
 torch = { index = "pytorch-cpu" }
 torchvision = { index = "pytorch-cpu" }

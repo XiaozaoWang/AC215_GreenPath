@@ -1,25 +1,21 @@
 """
-模型的"设计图"：模型怎么搭、图片怎么处理、权重怎么存和装。训练（task.py）和部署（API）都用这一份。
-
-best_model.pt 只存了训练过的部分（最后 2 块 + 线性层），不是完整的模型。用它要两步：
-先 build_model 搭出完整的模型，再 load_weights 把训练好的部分换上去。
-
-部署时这样用（不训练，只打分）：
+The model's "blueprint": how to build the model, preprocess images, save and load weights. Training (task.py) and deployment (the API) both use this one file.
+best_model.pt only stores the trained part (last 2 blocks + linear layer), so first build_model, then load_weights. In deployment (scoring only):
     tf = eval_transform()
     model = build_model(15); load_weights(model, "best_model.pt"); model.eval()
-    scores = model(tf(Image.open("tile.png").convert("RGB")).unsqueeze(0))[0]     # 15 个 0–1 的分数
+    scores = model(tf(Image.open("tile.png").convert("RGB")).unsqueeze(0))[0]     # 15 scores, each 0 to 1
 """
 import timm
 import torch
 from torch import nn
 
 BACKBONE = "dinov2_s"
-SOURCE = "vit_small_patch14_dinov2.lvd142m"      # 预训练模型 DINOv2-S 的名字（第一次用时自动下载，约 90 MB）
-IMG_SIZE = 224                                    # 模型看的图片尺寸：256×256 的原图缩到 224×224
-PREPROCESSING = "resize 224, timm mean/std"      # 记进 config.json
+SOURCE = "vit_small_patch14_dinov2.lvd142m"      # name of the pretrained model DINOv2-S (downloaded automatically the first time, about 90 MB)
+IMG_SIZE = 224                                    # image size the model sees: the 256x256 original is resized to 224x224
+PREPROCESSING = "resize 224, timm mean/std"      # saved in config.json
 
 
-# 模型本身：输入一张图 → 编码器把图变成 384 个特征 → 线性层算出 15 个分数 → sigmoid 压到 0–1
+# The model itself: an image goes in, the encoder turns it into 384 features, the linear layer computes 15 scores, sigmoid squashes them to 0-1
 class Regressor(nn.Module):
 
     def __init__(self, encoder, head):
@@ -30,44 +26,44 @@ class Regressor(nn.Module):
         return torch.sigmoid(self.head(self.encoder(x)))
 
 
-# 搭模型。n_outputs = 模型要输出几个分数（我们是 15），返回搭好的模型
-# 编码器用原厂预训练好的 DINOv2-S（12 块），再接一个新的线性层
-# 冻住 / 解冻只影响训练：训练时只改最后 2 块和线性层，前 10 块不动。部署时不训练，这几行没有作用
+# Build the model. n_outputs = how many scores the model outputs (15 for us), returns the built model
+# The encoder is the original pretrained DINOv2-S (12 blocks), then a new linear layer on top
+# Freezing / unfreezing only matters for training: training only changes the last 2 blocks and the linear layer, the first 10 blocks stay put. Deployment doesn't train, so these lines do nothing there
 def build_model(n_outputs, unfreeze_blocks=2):
-    enc = timm.create_model(SOURCE, pretrained=True, num_classes=0, img_size=IMG_SIZE)   # 原厂权重；不要它原来的分类头
+    enc = timm.create_model(SOURCE, pretrained=True, num_classes=0, img_size=IMG_SIZE)   # original pretrained weights; drop its own classification head
     for p in enc.parameters():
-        p.requires_grad = False                                                       # 全部冻住
+        p.requires_grad = False                                                       # freeze everything
     for p in [*enc.blocks[-unfreeze_blocks:].parameters(), *enc.norm.parameters()]:
-        p.requires_grad = True                                                        # 解冻最后 2 块
+        p.requires_grad = True                                                        # unfreeze the last 2 blocks
     return Regressor(enc, nn.Linear(enc.num_features, n_outputs))
 
 
-# 图片预处理：缩到 224×224 → 转成数字 → 标准化（减均值、除标准差）
-# 训练和部署必须完全一样，否则分数会悄悄变差
+# Image preprocessing: resize to 224x224, turn into numbers, normalize (subtract mean, divide by std)
+# Training and deployment must be exactly the same, otherwise scores quietly get worse
 def eval_transform():
-    enc = timm.create_model(SOURCE, pretrained=False, num_classes=0, img_size=IMG_SIZE)  # 只为读出 DINOv2 自带的预处理设置
+    enc = timm.create_model(SOURCE, pretrained=False, num_classes=0, img_size=IMG_SIZE)  # only to read the preprocessing settings that come with DINOv2
     cfg = timm.data.resolve_data_config({}, model=enc)
-    cfg["crop_pct"] = 1.0                            # 不裁剪
-    cfg["input_size"] = (3, IMG_SIZE, IMG_SIZE)     # 默认 518，改成 224（RGB 3 个通道）
+    cfg["crop_pct"] = 1.0                            # no cropping
+    cfg["input_size"] = (3, IMG_SIZE, IMG_SIZE)     # default is 518, change to 224 (3 RGB channels)
     return timm.data.create_transform(**cfg, is_training=False)
 
 
-# 参数 = 模型里的数字（共约 2,163 万个），按层分成 176 个矩阵，每个矩阵有个名字，例如 head.weight（15×384）
-# 这个函数列出训练时要改的那些矩阵的名字：最后 2 块 + 线性层，共 32 个（约 356 万个数）
+# Params = the numbers in the model (about 21.63 million in total), grouped by layer into 176 matrices, each matrix has a name, e.g. head.weight (15x384)
+# This function lists the names of the matrices that training changes: last 2 blocks + linear layer, 32 in total (about 3.56 million numbers)
 def trainable_names(model):
     return {n for n, p in model.named_parameters() if p.requires_grad}
 
 
-# 取出要存的那部分权重（上面那 32 个矩阵），本身不存文件：task.py 第 4 步用它，再由 torch.save 写进 best_model.pt
-# 前 10 块训练时没动过，和原厂一样，所以不用存
+# Picks out the part of the weights to save (the 32 matrices above), doesn't write a file itself: task.py step 4 uses it, then torch.save writes it into best_model.pt
+# The first 10 blocks were not touched in training, same as the original, so no need to save them
 def trained_weights(model, names):
     return {k: v.cpu() for k, v in model.state_dict().items() if k in names}
 
 
-# 把 best_model.pt 换到搭好的模型上，并检查训练过的部分一个不缺
+# Put best_model.pt onto the built model, and check that none of the trained parts are missing
 def load_weights(model, path):
     ck = torch.load(path, map_location="cpu", weights_only=False)
-    res = model.load_state_dict(ck["weights"], strict=False)       # strict=False：前 10 块不在文件里，用原厂的
+    res = model.load_state_dict(ck["weights"], strict=False)       # strict=False: the first 10 blocks are not in the file, use the original ones
     assert not res.unexpected_keys, f"the weights do not fit the model: {res.unexpected_keys[:3]}"
     frozen = {n for n, _ in model.named_parameters() if n not in ck["weights"]}
     assert set(res.missing_keys) == frozen and all(not n.startswith("head") for n in frozen), "a trained layer is missing from the saved weights"

@@ -4,7 +4,7 @@ set -e
 
 export IMAGE_NAME="smartpath-frontend"
 
-# 建 docker 网络（已经有了就跳过），和 docker-compose.yml 用同一张网
+# Create the docker network (skip if it already exists), same network as docker-compose.yml
 docker network inspect smartpath-network >/dev/null 2>&1 || docker network create smartpath-network
 
 # Build the image based on the Dockerfile

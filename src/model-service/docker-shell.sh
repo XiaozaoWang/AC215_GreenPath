@@ -1,31 +1,31 @@
 #!/bin/bash
-# 本地用：build 镜像，像在 Cloud Run 上一样启动模型服务，部署前先在自己电脑上试
-#   sh docker-shell.sh          → 启动服务，浏览器打开 http://localhost:8080/docs 试用；Ctrl+C 停止
-#   sh docker-shell.sh bash     → 不启动服务，进容器终端
+# For local use: build the image, start the Model Service like on Cloud Run, try it on your own computer before deploying
+#   sh docker-shell.sh          start the service, open http://localhost:8080/docs in the browser to try it; Ctrl+C to stop
+#   sh docker-shell.sh bash     don't start the service, open a terminal in the container
 #
-# 先在 model-deployment 里运行 python cli.py --prepare，把模型放进 artifacts/
-# 代码不挂进容器：跑的就是要部署的那个镜像，本地试通了，上云也一样
-# 和 Cloud Run 上唯一的区别是身份：本地用你的 gcloud 登录（只读挂进来）读 bucket，云上用服务账号
+# First run python cli.py --prepare in src/deployment to put the model into artifacts/
+# Code is not mounted into the container: what runs is the same image that gets deployed, so if it works locally it works in the cloud too
+# The only difference from Cloud Run is identity: locally it reads the bucket with your gcloud login (mounted read-only), in the cloud with the service account
 
-# 任何一步出错就停
+# Stop if any step fails
 set -e
 
 export IMAGE_NAME="greenpath-model-service"
-export ENV_FILE=$(pwd)/../../.env          # 仓库根目录的 .env（不进 git），里面有 GREENPATH_BUCKET
+export ENV_FILE=$(pwd)/../../.env          # .env in the repo root (not in git), it has GREENPATH_BUCKET
 
-# 能打分的区域（collector 采集过的数据集，逗号分隔）；云上的在 model-deployment/cli.py 的 DATASETS 里设
+# Areas that can be scored (datasets the collector collected, comma separated); for the cloud it is set by DATASETS in src/deployment/cli.py
 export DATASETS="${DATASETS:-1026_Full_data}"
 
-# 没准备模型就停
+# Stop if the model isn't prepared
 if [ ! -f artifacts/best_model.pt ]; then
-    echo "artifacts/ is empty: run 'python cli.py --prepare' in model-deployment first"
+    echo "artifacts/ is empty: run 'python cli.py --prepare' in src/deployment first"
     exit 1
 fi
 
-# build 镜像（本机架构）
+# Build the image (this machine's architecture)
 docker build -t $IMAGE_NAME -f Dockerfile .
 
-# 启动容器：8080 端口接到你电脑的 8080；gcloud 凭证只读挂到容器用户的家目录，Google 的库会自动找到它
+# Start the container: port 8080 maps to 8080 on your computer; gcloud credentials are mounted read-only into the container user's home folder, Google's libraries find them automatically
 docker run --rm --name $IMAGE_NAME -ti \
 -p 8080:8080 \
 -v "$HOME/.config/gcloud":/home/app/.config/gcloud:ro \

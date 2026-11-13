@@ -1,14 +1,14 @@
-# 这个容器要装的 Python 包；具体版本由 `uv lock` 锁进 uv.lock，build 镜像时按 uv.lock 原样安装
-# 改了这里要重新运行一次 `uv lock`
+# Python packages this container needs; exact versions are locked into uv.lock by `uv lock`, and the image build installs exactly what's in uv.lock
+# If you change this, run `uv lock` again
 [project]
 name = "greenpath-data-processor"
 version = "0.1.0"
 description = "GreenPath data processor: detect exclusion candidates and prepare the F1 training dataset"
 requires-python = ">=3.12,<3.15"
 dependencies = [
-    "gcsfs>=2025.1,<2027",     # 读写 bucket
-    "h3>=4.2,<5",              # 六边形格子：邻居、上一级大格子
+    "gcsfs>=2025.1,<2027",     # read/write the bucket
+    "h3>=4.2,<5",              # hexagon cells: neighbors, the bigger parent cell one level up
     "numpy>=2,<3",
     "pandas>=2.2,<3",
-    "pyarrow>=19,<24",         # 读写 Parquet
+    "pyarrow>=19,<24",         # read/write Parquet
 ]

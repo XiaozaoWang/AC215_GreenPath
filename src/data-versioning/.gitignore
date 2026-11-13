@@ -1,2 +1,2 @@
-# 真实数据不进 git：git 里只放 greenpath_dataset.dvc 这张纸条，数据由 DVC 推到 bucket 的 dvc_store/
+# Real data stays out of git: git only keeps the small greenpath_dataset.dvc file, DVC pushes the data to dvc_store/ in the bucket
 /greenpath_dataset

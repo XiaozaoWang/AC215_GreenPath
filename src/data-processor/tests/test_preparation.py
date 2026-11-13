@@ -9,7 +9,7 @@ import h3
 import numpy as np
 import pandas as pd
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # 让测试找到上一层的 cli.py
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # so the tests can find cli.py one folder up
 from cli import (
     PreparationConfig, assign_splits, quantile_map, write_prepared,
 )
@@ -42,7 +42,7 @@ class PreparationChecks(unittest.TestCase):
                               "h3_index": [h3.latlng_to_cell(42., -72., 10)]})
         with self.assertRaisesRegex(ValueError, "Unknown Test areas"):
             assign_splits(cells, PreparationConfig(test_areas=("existing", "missing")))
-        # 一个 Test 地点都不在（试跑用的小数据集）：不分 Test
+        # None of the Test places are there (small trial dataset): no Test split
         self.assertTrue(assign_splits(cells, PreparationConfig(test_areas=("missing",))).split.ne("test").all())
 
     def test_prepared_outputs_never_replace_existing_directory(self):

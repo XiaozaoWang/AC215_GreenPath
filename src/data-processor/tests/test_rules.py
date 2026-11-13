@@ -8,7 +8,7 @@ import h3
 import numpy as np
 import pandas as pd
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # 让测试找到上一层的 cli.py
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # so the tests can find cli.py one folder up
 from cli import (
     SpatialConfig, aerial_candidates, classify_street, detect, spatial_candidates, street_candidates,
 )

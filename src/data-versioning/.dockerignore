@@ -1,4 +1,4 @@
-# 数据、DVC 缓存：不复制进镜像（可能有几 GB）
+# Data and DVC cache, not copied into the image (can be several GB)
 greenpath_dataset/
 .dvc/
 README.md

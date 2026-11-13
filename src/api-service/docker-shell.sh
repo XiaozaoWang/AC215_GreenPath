@@ -14,7 +14,7 @@ export MODEL_SERVICE_URL="${MODEL_SERVICE_URL:-http://host.docker.internal:8080}
 export GOOGLE_APPLICATION_CREDENTIALS="${GOOGLE_APPLICATION_CREDENTIALS_CONTAINER:-/secrets/llm-service-account.json}"
 export IMAGE_NAME="smartpath-api-service"
 
-# 建 docker 网络（已经有了就跳过），和 docker-compose.yml 用同一张网
+# Create the docker network (skip if it already exists), same network as docker-compose.yml
 docker network inspect smartpath-network >/dev/null 2>&1 || docker network create smartpath-network
 
 

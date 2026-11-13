@@ -1,12 +1,12 @@
 """
-GreenPath 数据采集（原 01 notebook）：把配置文件里的 bbox 整理成一个数据集。
-每个格子一张航拍图（NAIP）+ 地图特征（OSM + WorldCover）；城市 bbox 再配街景照片（Mapillary）。不打分（打分在 data-labeler）。
+GreenPath data collector (was the 01 notebook): turns the bboxes in a config file into a dataset.
+Per cell: one NAIP aerial tile + OSM / WorldCover map features; city bboxes also get Mapillary street photos. No scoring (that is in data-labeler).
 
-用法：
+Usage:
   python cli.py --config configs/1026_Full_data.yaml --areas city_ma_boston_big sub_ma_hadley_farm
   python cli.py --config configs/1026_Full_data.yaml --areas all --no-qc
 
-做过的会自动跳过，断了重跑会接着做。和组员分工：同一个配置文件，各自在 --areas 里写自己负责的 bbox。
+Done work is skipped, so a rerun picks up where it stopped. Teammates share one config file and each list their own bboxes in --areas.
 """
 import argparse, base64, datetime, html, io, json, os, re, shutil, subprocess, time, uuid, warnings
 from concurrent.futures import ThreadPoolExecutor
@@ -16,7 +16,7 @@ import numpy as np, pandas as pd
 import geopandas as gpd, pyrosm, planetary_computer, pystac_client, rasterio
 import folium
 import matplotlib
-matplotlib.use("Agg")                                     # 没有屏幕：图只存成文件
+matplotlib.use("Agg")                                     # no screen, figures are only saved to files
 import matplotlib.pyplot as plt
 from matplotlib.collections import PolyCollection
 from matplotlib.colors import to_hex
@@ -34,21 +34,21 @@ warnings.filterwarnings("ignore")
 STAC_URL = "https://planetarycomputer.microsoft.com/api/stac/v1"
 CONFIG_KEYS = ["h3_res", "min_year", "exclude_months", "min_images_per_cell", "max_images_per_cell",
                "tile_px", "ground_m", "naip_min_year", "worldcover_year"]
-MAX_NODATA = 0.05                                         # 航拍图黑色空白像素不超过 5% 才算能用
-CROP_WORKERS = 8                                          # 同时裁几张航拍图
+MAX_NODATA = 0.05                                         # an aerial tile is usable only if at most 5% of it is black empty pixels
+CROP_WORKERS = 8                                          # how many aerial tiles to crop at the same time
 
 fs = gcsfs.GCSFileSystem()
-gs = lambda rel: f"gs://{BUCKET}/{rel}"                   # bucket 里的相对路径 → 完整 gs:// 路径
+gs = lambda rel: f"gs://{BUCKET}/{rel}"                   # relative path in the bucket to full gs:// path
 now = lambda: datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds")
 
 
-# ==================== 状态记录 ====================
-# 每个 bbox 每一步只有三种结果：complete（做完）/ incomplete（网络等暂时问题没做完，要重跑）/ not needed（不适用，比如郊区不找街景）
-# “本来就没有”（没人拍过、没有 NAIP 覆盖……）不算 incomplete，写在每个格子的 tile_reason / street_reason 里
-STEPS = {}                                                # {area_id: {step: {"status": ..., "reason": ..., 其他明细}}}
+# ==================== Status records ====================
+# Each step of each bbox has only three results: complete (done) / incomplete (not done because of a temporary problem like network, rerun it) / not needed (does not apply, e.g. no street view for suburbs)
+# "Data just isn't there" (nobody took photos, no NAIP coverage...) is not incomplete, it goes in each cell's tile_reason / street_reason
+STEPS = {}                                                # {area_id: {step: {"status": ..., "reason": ..., other details}}}
 
 class Incomplete(Exception):
-    pass                                                  # 代码自己判断“没做完”时用：Incomplete(原因, 明细)
+    pass                                                  # used when the code itself decides a step is not done: Incomplete(reason, details)
 
 def mark(area_id, step, status, reason="", **detail):
     STEPS.setdefault(area_id, {})[step] = {"status": status, **({"reason": reason} if reason else {}), **detail}
@@ -59,7 +59,7 @@ def step_status(area_id, step):
     return STEPS.get(area_id, {}).get(step, {}).get("status")
 
 def why(e):
-    # 把报错翻译成一句原因：网络 / 限流 / 服务器忙 / 没权限；其他情况给出原始报错（多半是代码问题）
+    # turn an error into a one-line reason: network / rate limit / server busy / no permission; otherwise give the raw error (most likely a code bug)
     if isinstance(e, Incomplete):
         return e.args[0]
     code = getattr(getattr(e, "response", None), "status_code", None)
@@ -77,7 +77,7 @@ def why(e):
         return f"could not read the NAIP image (network?): {str(e)[:150]}"
     return f"error: {repr(e)[:200]}"
 
-# 计时：每个大步骤结束时打印这一步和总共用了几分钟
+# Timing: at the end of each big step, print how many minutes this step and the whole run took
 T0 = T_LAST = time.time()
 TIMES = {}
 def tick(step):
@@ -87,9 +87,9 @@ def tick(step):
     print(f"⏱ {step}: {TIMES[step]:.1f} min (total {(T_LAST - T0) / 60:.1f} min)")
 
 
-# ==================== 1. 配置 + 连接 bucket ====================
+# ==================== 1. Config + connect to bucket ====================
 def mapillary_token():
-    # 本地：.env（或 docker --env-file）里的 MAPILLARY_TOKEN；云上：从 group project 的 Secret Manager 取 mapillary-token
+    # local: MAPILLARY_TOKEN from .env (or docker --env-file); cloud: get mapillary-token from the group project's Secret Manager
     if os.environ.get("MAPILLARY_TOKEN"):
         return os.environ["MAPILLARY_TOKEN"]
     import google.auth
@@ -100,29 +100,29 @@ def mapillary_token():
 
 def setup(args):
     global CONFIG, AREAS, RUN, BUCKET, DS, TOKEN, TILE_DIR, QC_DIR, catalog
-    # 读配置文件（本地路径或 gs:// 都行）；参数变成全局常量 H3_RES、GROUND_M……，和 notebook 里的写法一样
+    # read the config file (local path or gs:// both work); params become global constants H3_RES, GROUND_M..., same as in the notebook
     with fsspec.open(args.config) as f:
         cfg = yaml.safe_load(f)
     for k in CONFIG_KEYS:
         globals()[k.upper()] = cfg[k]
     AREAS = cfg["areas"]
-    cfg["dataset_id"] = args.dataset or cfg["dataset_id"]   # 数据集名：--dataset 给了就用它（workflow 传），没给就用配置文件里的
+    cfg["dataset_id"] = args.dataset or cfg["dataset_id"]   # dataset name: use --dataset if given (the workflow passes it), otherwise the one in the config file
     assert len({a["area_id"] for a in AREAS}) == len(AREAS), "two bboxes in the config share the same area_id"
-    CONFIG = json.loads(json.dumps({k: v for k, v in cfg.items() if k != "dataset_id"}))   # 和 manifest.json 里存的格式一样，方便比较
+    CONFIG = json.loads(json.dumps({k: v for k, v in cfg.items() if k != "dataset_id"}))   # same format as what is saved in manifest.json, so easy to compare
 
-    # 这次跑哪些 bbox：--areas all = 全部；名字写错直接报错
+    # which bboxes to run this time: --areas all = all of them; a wrong name raises an error right away
     by_id = {a["area_id"]: a for a in AREAS}
     missing = [x for x in args.areas if x != "all" and x not in by_id]
     assert not missing, f"these area_ids are not in the config: {missing}"
     RUN = AREAS if args.areas == ["all"] else [by_id[x] for x in args.areas]
 
     BUCKET, DS = args.bucket, f"datasets/{cfg['dataset_id']}"
-    TILE_DIR = f"cache/naip_tiles/{GROUND_M}m_{TILE_PX}px"   # 所有数据集共用：同一张 NAIP、同一个格子只裁一次
-    QC_DIR = f"qc/{datetime.datetime.now():%Y%m%d-%H%M%S}"    # 检查用的图：本地存一份，再传到 bucket 的 {DS}/qc/ 下
+    TILE_DIR = f"cache/naip_tiles/{GROUND_M}m_{TILE_PX}px"   # shared by all datasets: the same NAIP image and the same cell are only cropped once
+    QC_DIR = f"qc/{datetime.datetime.now():%Y%m%d-%H%M%S}"    # QC figures: keep a local copy, then upload to {DS}/qc/ in the bucket
     catalog = pystac_client.Client.open(STAC_URL, modifier=planetary_computer.sign_inplace)
     TOKEN = mapillary_token() if any(a["area_type"] == "city" for a in RUN) else None
 
-    # 数据集已存在：参数必须完全一样；已有的 bbox 不能改，只能在后面加新的（防止两种配置的数据混进同一个数据集）
+    # dataset already exists: params must be exactly the same; existing bboxes can't change, new ones can only be added at the end (so data from two configs doesn't mix in one dataset)
     rel = f"{DS}/manifest.json"
     if fs.exists(gs(rel)):
         manifest = json.load(fs.open(gs(rel)))
@@ -132,7 +132,7 @@ def setup(args):
         if not same or changed:
             raise SystemExit(f"Dataset {DS} already exists with a different config "
                              f"({'changed bboxes: ' + str(changed) if changed else 'parameters differ'}). Use a new dataset_id.")
-        if len(AREAS) > len(saved["areas"]):              # 加了新 bbox：记进 manifest
+        if len(AREAS) > len(saved["areas"]):              # new bboxes were added: record them in manifest
             manifest["config"] = CONFIG
             with fs.open(gs(rel), "w") as f:
                 json.dump(manifest, f, indent=2)
@@ -143,20 +143,20 @@ def setup(args):
         print(f"Created gs://{BUCKET}/{DS}/")
 
 
-# ==================== 2. 格子（含去重） ====================
+# ==================== 2. Cells (with dedup) ====================
 def full_grid(bbox):
-    # bbox 里中心点落在框内的全部 H3 格子（约 130 m 宽），不管有没有街景
+    # all H3 cells (about 130 m wide) whose centre is inside the bbox, with or without street view
     lo0, la0, lo1, la1 = bbox
     poly = h3.LatLngPoly([(la0, lo0), (la0, lo1), (la1, lo1), (la1, lo0)])
     ids = sorted(h3.polygon_to_cells(poly, H3_RES))
     return pd.DataFrame([(c, *h3.cell_to_latlng(c)) for c in ids], columns=["h3_index", "lat", "lon"])
 
 def make_cells():
-    # 去重：两个 bbox 重叠时，一个格子只归一个 bbox——城市 bbox 优先（有街景），其次配置里排在前面的
-    # 先算出配置里全部 bbox 的格子（只是计算，几秒钟），这样只跑一部分 bbox 时也能判断归属
+    # dedup: when two bboxes overlap, a cell belongs to only one bbox. City bboxes first (they have street view), then whichever comes first in the config
+    # first compute the cells of all bboxes in the config (just math, a few seconds), so ownership works even when only some bboxes are run
     grids = {a["area_id"]: full_grid(a["bbox"]) for a in AREAS}
     owner = {}
-    for a in sorted(AREAS, key=lambda a: a["area_type"] != "city"):       # 稳定排序：城市在前，同类保持配置里的顺序
+    for a in sorted(AREAS, key=lambda a: a["area_type"] != "city"):       # stable sort: cities first, same type keeps config order
         for h in grids[a["area_id"]].h3_index:
             owner.setdefault(h, a["area_id"])
     parts = []
@@ -167,14 +167,14 @@ def make_cells():
             print(f"{a['area_id']}: {(~mine).sum()} cells also in another bbox, kept there")
         parts.append(g[mine].assign(area_id=a["area_id"], area_type=a["area_type"], area_subtype=a["area_subtype"]))
     cells = pd.concat(parts, ignore_index=True)
-    cells.insert(0, "cell_id", cells.area_id + "_" + cells.h3_index)    # 一看就知道格子属于哪个 bbox
+    cells.insert(0, "cell_id", cells.area_id + "_" + cells.h3_index)    # so you can see at a glance which bbox a cell belongs to
     print(cells.groupby(["area_id", "area_type", "area_subtype"]).size().rename("cells").to_string())
     return cells
 
 
-# ==================== 3. 航拍图（NAIP） ====================
+# ==================== 3. Aerial tiles (NAIP) ====================
 year_of = lambda it: int(it.properties.get("naip:year", it.datetime.year))
-black = lambda img: img.sum(axis=-1) == 0                 # 黑色空白像素
+black = lambda img: img.sum(axis=-1) == 0                 # black empty pixels
 black_frac = lambda img: float(black(img).mean())
 
 def read_png(rel):
@@ -182,16 +182,16 @@ def read_png(rel):
         return np.asarray(Image.open(f).convert("RGB"))
 
 def write_png(rel, img):
-    # 整张 PNG 在内存里做好才写进 bucket，不会留下写了一半的图
+    # build the whole PNG in memory, then write it to the bucket, so no half-written images are left
     buf = io.BytesIO()
     Image.fromarray(img).save(buf, format="PNG")
     with fs.open(gs(rel), "wb") as f:
         f.write(buf.getvalue())
 
 def find_naip(cells):
-    # 每个格子找 NAIP_MIN_YEAR 以后、覆盖格子中心的最新一张 NAIP，记下编号、年份、拍摄日期
-    # 只查目录，不下载图片；每个 bbox 单独查（bbox 分布在好几个州时，合在一起查会查出大半个美国）
-    # 返回：用到的 NAIP {编号: item}，以及每个 bbox 附近的全部 NAIP（补接缝时要用）
+    # for each cell find the newest NAIP from NAIP_MIN_YEAR on that covers the cell centre, record its id, year, capture date
+    # only searches the catalog, no image download; each bbox is searched on its own (if bboxes are spread over several states, one combined search returns half the US)
+    # returns: the NAIP images used {id: item}, and all NAIP near each bbox (needed for patching seams)
     cells["naip_item"], cells["naip_date"] = None, None
     cells["naip_year"] = pd.array([pd.NA] * len(cells), dtype="Int64")
     items, near = {}, {}
@@ -216,13 +216,13 @@ def find_naip(cells):
     return items, near
 
 def crop_from(item, jobs):
-    # 打开一张 NAIP 一次，以格子中心裁 GROUND_M 见方、缩成 TILE_PX × TILE_PX；读图偶尔失败时等几秒再试（最多 3 次）
-    # jobs 每项 (编号, 经度, 纬度, 存放路径)：有路径就存成 PNG、返回空白比例；路径为 None 就直接返回图片（补接缝用）
+    # open a NAIP image once, crop a GROUND_M square around each cell centre, resize to TILE_PX x TILE_PX; if a read fails now and then, wait a few seconds and retry (up to 3 times)
+    # each job is (id, lon, lat, save path): with a path, save as PNG and return the empty fraction; if path is None, return the image itself (for seam patching)
     out = {}
     with rasterio.Env(GDAL_DISABLE_READDIR_ON_OPEN="EMPTY_DIR", CPL_VSIL_CURL_ALLOWED_EXTENSIONS=".tif"), \
          rasterio.open(planetary_computer.sign(item.assets["image"].href)) as src:
         to_src = Transformer.from_crs("EPSG:4326", src.crs, always_xy=True)
-        win = GROUND_M / abs(src.res[0])                  # 航拍图宽度对应多少个原图像素
+        win = GROUND_M / abs(src.res[0])                  # how many source pixels the tile width covers
         for key, lon, lat, rel in jobs:
             row, col = src.index(*to_src.transform(lon, lat))
             for k in range(3):
@@ -243,13 +243,13 @@ def crop_from(item, jobs):
     return out
 
 def patch_seams(cells, area, naip):
-    # 补接缝：格子跨在两张 NAIP 交界上时，只用一张图会有一半是黑的
-    # 用相邻的 NAIP（同一年的优先，其次越新越好）把黑的像素填上，直到黑边 ≤ 5%；补好的图存到 mosaic/{H3}.png
-    # 这种格子很少，每次都重新补（几分钟）
+    # patch seams: when a cell sits on the border of two NAIP images, using only one image leaves half of it black
+    # fill the black pixels from neighbouring NAIP (same year first, then newer is better) until black is <= 5%; patched tiles are saved to mosaic/{H3}.png
+    # these cells are rare, so they are re-patched every run (a few minutes)
     bad = cells.loc[area.index][cells.loc[area.index].nodata_frac > MAX_NODATA]
-    plan, jobs = {}, {}                                   # plan: 格子 -> 按顺序要用的 NAIP；jobs: NAIP 编号 -> 要从它裁的格子
+    plan, jobs = {}, {}                                   # plan: {cell: NAIP images to use, in order}; jobs: {NAIP id: cells to crop from it}
     for i, r in bad.iterrows():
-        sq = box(r.lon - 0.001, r.lat - 0.001, r.lon + 0.001, r.lat + 0.001)          # 约 154 m 见方
+        sq = box(r.lon - 0.001, r.lat - 0.001, r.lon + 0.001, r.lat + 0.001)          # about 154 m square
         plan[i] = sorted([it for it in naip if it.id != r.naip_item and shape(it.geometry).intersects(sq)],
                          key=lambda it: (year_of(it) != r.naip_year, -year_of(it), -it.datetime.timestamp()))
         for it in plan[i]:
@@ -275,24 +275,24 @@ def patch_seams(cells, area, naip):
     return n
 
 def crop_tiles(cells, items, near):
-    # 每个格子裁一张航拍图存进公用缓存；已经裁过的不再裁，只读回来检查空白比例
+    # crop one aerial tile per cell into the shared cache; already cropped ones are not cropped again, only read back to check the empty fraction
     cells["tile_path"], cells["nodata_frac"], cells["naip_mosaic"] = None, np.nan, None
     for a in tqdm(RUN, desc="bboxes"):
         aid = a["area_id"]
         if step_status(aid, "naip") == "incomplete":
-            continue                                      # 上面查 NAIP 就失败了
+            continue                                      # the NAIP search above already failed
         try:
             area = cells[(cells.area_id == aid) & cells.naip_item.notna()]
             n_new = 0
             for item_id, group in area.groupby("naip_item"):
-                have = set(fs.find(f"{BUCKET}/{TILE_DIR}/{item_id}"))    # 任何数据集已经裁过的
+                have = set(fs.find(f"{BUCKET}/{TILE_DIR}/{item_id}"))    # already cropped by any dataset
                 jobs = [(i, r.lon, r.lat, f"{TILE_DIR}/{item_id}/{r.h3_index}.png") for i, r in group.iterrows()]
                 cached = [j for j in jobs if f"{BUCKET}/{j[3]}" in have]
                 todo = [j for j in jobs if f"{BUCKET}/{j[3]}" not in have]
-                with ThreadPoolExecutor(16) as ex:        # 已有的：同时读回 16 张，只为算空白比例
+                with ThreadPoolExecutor(16) as ex:        # existing ones: read back 16 at a time, only to compute the empty fraction
                     for (i, _, _, rel), img in zip(cached, ex.map(read_png, [j[3] for j in cached])):
                         cells.loc[i, ["tile_path", "nodata_frac"]] = [rel, black_frac(img)]
-                if todo:                                  # 要新裁的：CROP_WORKERS 个线程各自打开一份 NAIP（同一份不能多个线程一起用）
+                if todo:                                  # new ones to crop: CROP_WORKERS threads each open their own copy of the NAIP (one copy can't be shared by threads)
                     shares = [todo[k::CROP_WORKERS] for k in range(CROP_WORKERS) if todo[k::CROP_WORKERS]]
                     rel_of = {j[0]: j[3] for j in todo}
                     with ThreadPoolExecutor(len(shares)) as ex:
@@ -304,25 +304,25 @@ def crop_tiles(cells, items, near):
             mark(aid, "naip", "complete", tiles_new=n_new, tiles_mosaic=n_mosaic)
             print(f"{aid}: {len(area)} tiles ({n_new} newly cropped, {n_mosaic} seams patched)")
         except Exception as e:
-            mark(aid, "naip", "incomplete", f"aerial tiles: {why(e)}")   # 已经裁好的图留在缓存里，重跑不会重裁
+            mark(aid, "naip", "incomplete", f"aerial tiles: {why(e)}")   # tiles already cropped stay in the cache, a rerun won't crop them again
 
-    # 每个格子写明航拍图的情况：ok / ok_mosaic（补过接缝）/ no_naip_coverage（这里没有 NAIP）/ mostly_black（大部分是空白）
+    # write each cell's aerial tile state: ok / ok_mosaic (seam patched) / no_naip_coverage (no NAIP here) / mostly_black (mostly empty)
     cells["tile_ok"] = cells.tile_path.notna() & (cells.nodata_frac <= MAX_NODATA)
     cells["tile_reason"] = np.where(cells.tile_ok, np.where(cells.naip_mosaic.notna(), "ok_mosaic", "ok"),
                                     np.where(cells.naip_item.isna(), "no_naip_coverage", "mostly_black"))
-    cells.loc[cells.area_id.map(lambda i: step_status(i, "naip") != "complete"), "tile_reason"] = None   # 没做完的 bbox 留空
+    cells.loc[cells.area_id.map(lambda i: step_status(i, "naip") != "complete"), "tile_reason"] = None   # left empty for bboxes that are not done
     print(f"{int(cells.tile_ok.sum())} / {len(cells)} usable aerial tiles")
 
 
-# ==================== 4. 街景（Mapillary，只有城市 bbox） ====================
+# ==================== 4. Street view (Mapillary, city bboxes only) ====================
 R_EARTH = 6378137.0
-M_LAT = 110574.0                                          # 每度纬度多少米
+M_LAT = 110574.0                                          # meters per degree of latitude
 META_COLS = ["image_id", "lon", "lat", "captured_at_ms", "compass_raw", "is_pano", "sequence", "quality"]
 SV_COLS = ["image_id", "cell_id", "h3_index", "area_id", "lat", "lon", "captured_at", "compass", "compass_raw",
            "heading_conf", "tier", "sequence", "image_path"]
 
 def get(url, params=None, tries=5):
-    # 请求失败自动重试，等待越来越长（2、4、8、16 秒）；断网、超时也重试
+    # retry failed requests automatically, waiting longer each time (2, 4, 8, 16 s); also retry on network errors and timeouts
     for k in range(tries):
         try:
             r = requests.get(url, params=params, timeout=60)
@@ -333,18 +333,18 @@ def get(url, params=None, tries=5):
                 raise
         if k < tries - 1:
             time.sleep(2 ** (k + 1))
-    return r                                              # 重试完还是 429 / 5xx：交给调用的地方报告
+    return r                                              # still 429 / 5xx after the retries, let the caller report it
 
-# ---- 4a. 照片清单：Mapillary 把地图切成约 2.4 km 的方块，一次请求拿到一块里全部照片的清单（还不下载照片）----
+# ---- 4a. Photo list: Mapillary cuts the map into tiles of about 2.4 km, one request gets the list of all photos in a tile (photos not downloaded yet) ----
 def fetch_tile(t):
     r = get(f"https://tiles.mapillary.com/maps/vtp/mly1_public/2/{t.z}/{t.x}/{t.y}", {"access_token": TOKEN})
-    if r.status_code in (204, 404):                       # 这块没有照片
+    if r.status_code in (204, 404):                       # no photos in this tile
         return b""
     r.raise_for_status()
     return r.content
 
 def decode_tile(content, t):
-    # 矢量方块 → 表格；方块坐标（0–4096）换算成经纬度
+    # vector tile to table; tile coords (0-4096) converted to lon/lat
     feats = []
     if content:
         layer = mapbox_vector_tile.decode(content, default_options={"y_coord_down": True}).get("image")
@@ -368,7 +368,7 @@ def decode_tile(content, t):
     })
 
 def load_metadata(bbox):
-    # bbox 碰到的每个方块：缓存里有就读，没有就下载并存进 cache/mapillary_meta/
+    # for each tile the bbox touches: read it from cache if there, otherwise download and save to cache/mapillary_meta/
     parts = []
     for t in tqdm(list(mercantile.tiles(*bbox, zooms=[14])), desc="tiles"):
         rel = f"cache/mapillary_meta/z14_{t.x}_{t.y}.parquet"
@@ -380,11 +380,11 @@ def load_metadata(bbox):
         parts.append(part)
     return pd.concat(parts, ignore_index=True)
 
-# ---- 4b. 过滤，分到格子：依次去掉 bbox 外的、太旧的、冬天的、全景图、没有方向的；“漏斗”记下每一步还剩多少张 ----
+# ---- 4b. Filter and assign to cells: drop photos outside the bbox, too old, winter, panoramas, no heading, in that order; the "funnel" records how many are left after each step ----
 def filter_photos(raw, bbox):
     min_lon, min_lat, max_lon, max_lat = bbox
     df = raw.copy()
-    df[["lat", "lon"]] = df[["lat", "lon"]].astype(float)   # 空的缓存方块把经纬度存成了文字
+    df[["lat", "lon"]] = df[["lat", "lon"]].astype(float)   # empty cached tiles stored lat/lon as text
     df["captured_at"] = pd.to_datetime(pd.to_numeric(df.captured_at_ms), unit="ms", utc=True)
     df["compass"] = pd.to_numeric(df.compass_raw)
     funnel = [("all photos in the tiles", len(df))]
@@ -402,22 +402,22 @@ def filter_photos(raw, bbox):
     df["h3_index"] = [h3.latlng_to_cell(la, lo, H3_RES) for la, lo in zip(df.lat, df.lon)]
     return df, funnel
 
-# ---- 4c. 选图规则：位置优先、方向多样（贪心 MMR + 逐级放宽）----
-USE_SFM_HEADING = True       # 向 Mapillary 要 SfM 方向：每张照片一次请求，存进缓存，所以只查一次
-SFM_DIR = "cache/mapillary_sfm"                    # 每次存一个新文件，多人同时跑不会互相覆盖
-SFM_OLD = "cache/mapillary_sfm_heading.parquet"    # 以前用的单个文件，照样读
-BETA = 0.15                  # 边缘带 = 中心到边距离的 15%（H3 res 10 约 10 m）
-LAMBDA = 0.5                 # 平衡：1 = 只看基础分，0 = 只看多样性
-DUP_M, DUP_DEG = 30, 30      # 同一 sequence + 相距 < 30 m + 方向差 < 30° = 近乎复制
-TRAVEL_FRAMES = 5            # 行进方向：往前 5 帧 → 往后 5 帧（帧之间只隔约 1 m）
-CAND_PER_DIR = 8             # 每个格子按手机罗盘分东南西北 4 组，每组只给最好的 8 张查 SfM 方向、参加选图
+# ---- 4c. Selection rules: position first, diverse headings (greedy MMR + relaxing step by step) ----
+USE_SFM_HEADING = True       # ask Mapillary for the SfM heading: one request per photo, saved to cache, so each photo is only asked once
+SFM_DIR = "cache/mapillary_sfm"                    # each save is a new file, so people running at the same time don't overwrite each other
+SFM_OLD = "cache/mapillary_sfm_heading.parquet"    # the single file used before, still read
+BETA = 0.15                  # edge band = 15% of the centre-to-edge distance (about 10 m at H3 res 10)
+LAMBDA = 0.5                 # balance: 1 = base score only, 0 = diversity only
+DUP_M, DUP_DEG = 30, 30      # same sequence + < 30 m apart + heading diff < 30° = near copy
+TRAVEL_FRAMES = 5            # travel direction: from 5 frames before to 5 frames after (frames are only about 1 m apart)
+CAND_PER_DIR = 8             # each cell is split into 4 groups (N/E/S/W) by phone compass, only the best 8 per group get an SfM heading lookup and go into selection
 
-ang = lambda a, b: np.abs((np.asarray(a, dtype=float) - b + 180) % 360 - 180)    # 两个方向之间最小的夹角，0–180°
-SFM = None                   # 所有存过的 SfM 方向；每次运行读一次，之后随时更新
+ang = lambda a, b: np.abs((np.asarray(a, dtype=float) - b + 180) % 360 - 180)    # smallest angle between two headings, 0-180°
+SFM = None                   # all saved SfM headings; read once per run, then updated as we go
 
 def sfm_headings(ids):
-    # SfM 方向：Mapillary 用多张重叠照片重新算出的方向，比手机罗盘准
-    # 返回 (每张照片的 SfM 方向, {没查到的照片: 原因})。Mapillary 明确说“照片不存在”的记为没有 SfM，不算失败
+    # SfM heading: the heading Mapillary recomputes from many overlapping photos, more accurate than the phone compass
+    # returns (SfM heading per photo, {photos not fetched: reason}). If Mapillary clearly says "photo does not exist", it counts as no SfM, not a failure
     global SFM
     if SFM is None:
         files = fs.find(f"{BUCKET}/{SFM_DIR}") + ([f"{BUCKET}/{SFM_OLD}"] if fs.exists(gs(SFM_OLD)) else [])
@@ -429,25 +429,25 @@ def sfm_headings(ids):
         try:
             r = get(f"https://graph.mapillary.com/{i}", {"access_token": TOKEN, "fields": "computed_compass_angle"})
             if r.status_code == 404 or (r.status_code == 400 and "does not exist" in r.text):
-                return np.nan                             # 照片已经不存在：没有 SfM 方向（不算失败）
+                return np.nan                             # photo no longer exists: no SfM heading (not a failure)
             r.raise_for_status()
             v = r.json().get("computed_compass_angle")
             return np.nan if v is None else float(v)
         except Exception as e:
             return "failed: " + why(e)
     failed = {}
-    for k in range(0, len(todo), 2000):                   # 每 2000 张存一次，中途停下重跑能接着查
+    for k in range(0, len(todo), 2000):                   # save every 2000 photos, so if it stops midway a rerun continues from there
         chunk = todo[k:k + 2000]
         with ThreadPoolExecutor(max_workers=16) as ex:
             got = list(tqdm(ex.map(ask, chunk), total=len(chunk), desc=f"SfM headings {k + len(chunk)}/{len(todo)}"))
         failed |= {i: v for i, v in zip(chunk, got) if isinstance(v, str)}
         new = pd.DataFrame([(i, v) for i, v in zip(chunk, got) if not isinstance(v, str)], columns=["image_id", "sfm"])
         new.to_parquet(gs(f"{SFM_DIR}/{datetime.datetime.now():%Y%m%d%H%M%S}_{uuid.uuid4().hex[:8]}.parquet"), index=False)
-        SFM = pd.concat([SFM, new], ignore_index=True)    # 失败的不存，下次再查
+        SFM = pd.concat([SFM, new], ignore_index=True)    # failed ones are not saved, they get asked again next time
     return SFM.drop_duplicates("image_id").set_index("image_id").sfm.reindex(ids).to_numpy(dtype=float), failed
 
 def add_travel(df):
-    # 行进方向：同一 sequence 里往前数 5 帧 → 往后数 5 帧的方向，移动超过 3 m 才算（要用整条 sequence，所以在挑候选之前算）
+    # travel direction: direction from 5 frames before to 5 frames after in the same sequence, only counts if it moved more than 3 m (needs the whole sequence, so it is computed before shortlisting)
     df = df.sort_values(["sequence", "captured_at"]).copy()
     x = df.lon * M_LAT * np.cos(np.radians(df.lat.mean()))
     y = df.lat * M_LAT
@@ -457,7 +457,7 @@ def add_travel(df):
     return df
 
 def shortlist(df, naip_of):
-    # 先挑候选：不看方向，按“离中心近 0.65 + 画质 0.15 + 离 NAIP 日期近 0.2”排序，每个方向只留前 CAND_PER_DIR 张（查方向的请求少很多）
+    # shortlist first: ignore heading, rank by "close to centre 0.65 + quality 0.15 + close to NAIP date 0.2", keep only the top CAND_PER_DIR per direction (far fewer heading requests)
     centre = {h: h3.cell_to_latlng(h) for h in df.h3_index.unique()}
     clat = df.h3_index.map(lambda h: centre[h][0]).astype(float)
     clon = df.h3_index.map(lambda h: centre[h][1]).astype(float)
@@ -468,13 +468,13 @@ def shortlist(df, naip_of):
               .groupby(["h3_index", "_dir"]).head(CAND_PER_DIR).drop(columns=["_pre", "_dir"]))
 
 def add_heading(df):
-    # 方向可信度：每张照片得到最可信的方向 compass 和可信度 heading_conf（原始罗盘留在 compass_raw）
+    # heading confidence: each photo gets its most trusted heading compass and a confidence heading_conf (raw compass stays in compass_raw)
     df = df.copy()
     df["compass_raw"] = df.compass
     sfm, failed = sfm_headings(df.image_id.tolist()) if USE_SFM_HEADING else (np.full(len(df), np.nan), {})
     has_sfm = ~np.isnan(sfm)
-    agree = ang(df.compass_raw, df.travel) < 30           # 罗盘和行进方向一致 = 朝前拍，可信
-    # 优先级：SfM 角度(1.0) > 和行进方向一致的罗盘(0.7) > 行进方向(0.4) > 原始罗盘(0.4)
+    agree = ang(df.compass_raw, df.travel) < 30           # compass agrees with travel direction = shot facing forward, trusted
+    # priority: SfM angle (1.0) > compass that agrees with travel direction (0.7) > travel direction (0.4) > raw compass (0.4)
     df["compass"] = np.select([has_sfm, agree, df.travel.notna()], [sfm % 360, df.compass_raw, df.travel], df.compass_raw)
     df["heading_conf"] = np.select([has_sfm, agree], [1.0, 0.7], 0.4)
     return df, failed
@@ -483,37 +483,37 @@ def pick_by_position(g, k, naip_date):
     cell = g.h3_index.iloc[0]
     clat, clon = h3.cell_to_latlng(cell)
     to_xy = lambda la, lo: np.c_[(np.asarray(lo) - clon) * M_LAT * np.cos(np.radians(clat)), (np.asarray(la) - clat) * M_LAT]
-    hexagon = Polygon(to_xy(*zip(*h3.cell_to_boundary(cell))))       # 单位米，格子中心在 (0, 0)
-    r_c = hexagon.exterior.distance(Point(0, 0))                     # 中心 → 边，约 66 m
-    R_c = np.hypot(*hexagon.exterior.coords[0])                      # 中心 → 角，约 76 m
+    hexagon = Polygon(to_xy(*zip(*h3.cell_to_boundary(cell))))       # in meters, cell centre at (0, 0)
+    r_c = hexagon.exterior.distance(Point(0, 0))                     # centre to edge, about 66 m
+    R_c = np.hypot(*hexagon.exterior.coords[0])                      # centre to corner, about 76 m
     P = to_xy(g.lat, g.lon)
     g = g.assign(x=P[:, 0], y=P[:, 1], d=np.hypot(P[:, 0], P[:, 1]),
-                 core=[hexagon.exterior.distance(Point(p)) >= BETA * r_c for p in P],   # 中心区 = 不在边缘带
-                 out=ang(g.compass, np.degrees(np.arctan2(-P[:, 0], -P[:, 1])) % 360) > 90)  # 背对格子中心
+                 core=[hexagon.exterior.distance(Point(p)) >= BETA * r_c for p in P],   # core = not in the edge band
+                 out=ang(g.compass, np.degrees(np.arctan2(-P[:, 0], -P[:, 1])) % 360) > 90)  # facing away from the cell centre
 
-    # 硬性规则 H1：在边缘带、且方向可信地朝外 = 拍的是隔壁格子，永远不选
+    # hard rule H1: in the edge band and confidently facing out = shooting the next cell, never pick
     g = g[~(~g.core & g.out & (g.heading_conf >= 0.7))]
 
-    # 第 1 步 基础分：离中心越近越好（主要），其次是画质、离 NAIP 拍摄日近；边缘且方向不确定再扣一点
-    #   时间分：和 NAIP 同一天 = 1，差 2 年 = 0.5，差 4 年及以上 = 0（格子没有 NAIP 时都按 0 算）
+    # step 1 base score: closer to centre is better (main part), then quality and closeness to the NAIP date; minus a bit for edge photos with unsure heading
+    #   time score: same day as NAIP = 1, 2 years apart = 0.5, 4+ years apart = 0 (all 0 when the cell has no NAIP)
     years = (g.captured_at - pd.Timestamp(naip_date, tz="UTC")).abs().dt.days / 365.25 if isinstance(naip_date, str) else 4
     base = (0.65 * (1 - g.d / R_c) + 0.15 * pd.to_numeric(g.quality, errors="coerce").fillna(0.5)
             + 0.2 * (1 - np.minimum(years / 4, 1)) - 0.2 * ~g.core * (1 - g.heading_conf)).to_numpy()
 
     X, Y, H, C, S, core = (g[c].to_numpy() for c in ["x", "y", "compass", "heading_conf", "sequence", "core"])
     def sim(j):
-        # 和已选照片 j 有多像：方向 0.6 + 同一 sequence 0.3 + 位置 0.1。方向不可信时按“同方向”算，不白拿多样性分
+        # how similar to picked photo j: heading 0.6 + same sequence 0.3 + position 0.1. Untrusted headings count as "same heading", so they don't get free diversity points
         return (0.6 * (1 - np.minimum(C, C[j]) * ang(H, H[j]) / 180) + 0.3 * (S == S[j])
                 + 0.1 * np.clip(1 - np.hypot(X - X[j], Y - Y[j]) / 60, 0, None))
     def near_copy(j):
-        # 硬性规则 H2：同一 sequence、相距 < 30 m、方向差 < 30° = 近乎复制，不能和 j 同时选
+        # hard rule H2: same sequence, < 30 m apart, heading diff < 30° = near copy, can't be picked together with j
         return (S == S[j]) & (np.hypot(X - X[j], Y - Y[j]) < DUP_M) & (ang(H, H[j]) < DUP_DEG)
 
-    # 第 3 步 逐级放宽：候选池从严到松，A 不够才开 B，B 不够才开 C；已选的照片保留
-    #   A：只用中心区，每个 sequence 最多 1 张                       → 没风险
-    #   B：仍只用中心区，同一 sequence 可以再选（但不能近乎复制）       → 只是独立性下降
-    #   C：放开边缘带（朝内或方向不确定的照片）                       → 可能拍到隔壁，所以最后才开
-    #   D：选完还不到 MIN_IMAGES_PER_CELL 张 → 这个格子不要街景（格子本身保留，只有航拍图），不硬凑
+    # step 3 relax step by step: candidate pools go from strict to loose, open B only if A is not enough, C only if B is not enough; photos already picked stay
+    #   A: core only, max 1 photo per sequence. No risk.
+    #   B: still core only, the same sequence can be picked again (but no near copies). Only less independent.
+    #   C: open the edge band (photos facing in or with unsure heading). Might show the next cell, so it is opened last.
+    #   D: still fewer than MIN_IMAGES_PER_CELL after picking, so this cell gets no street view (the cell stays, aerial tile only). Don't force it.
     chosen, tiers = [], []
     blocked, max_sim = np.zeros(len(g), bool), np.zeros(len(g))
     for tier, pool in [("A", core), ("B", core), ("C", np.ones(len(g), bool))]:
@@ -523,18 +523,18 @@ def pick_by_position(g, k, naip_date):
                 ok &= ~np.isin(S, S[chosen])
             if not ok.any():
                 break
-            # 第 2 步 MMR：选“基础分高、又和已选照片中最像的那张差得最远”的照片
+            # step 2 MMR: pick the photo with "high base score and most different from the picked photo it is most similar to"
             j = int(np.argmax(np.where(ok, LAMBDA * base - (1 - LAMBDA) * max_sim, -np.inf)))
             chosen.append(j); tiers.append(tier)
-            blocked |= near_copy(j)                       # 也会挡住 j 自己
+            blocked |= near_copy(j)                       # also blocks j itself
             max_sim = np.maximum(max_sim, sim(j))
     return g.iloc[chosen].assign(tier=tiers).drop(columns=["x", "y", "d", "core", "out"])
 
-# ---- 4d. 选图 → 下载照片 → 存盘 ----
+# ---- 4d. Pick photos, download, save ----
 def download_image(image_id):
-    # 结果三种："ok" 下好了（或缓存里已有）；"deleted" Mapillary 明确说照片不存在（数据本身没有，补选下一张）；
-    # "failed: 原因" 网络 / 限流等暂时问题（这个 bbox 标成未完成，重跑时只补下这些）
-    # 整张图先下载到内存、确认能完整打开，才存进 bucket，所以不会留下空文件或错误页面
+    # three results: "ok" downloaded (or already in cache); "deleted" Mapillary clearly says the photo does not exist (the data just isn't there, pick the next one);
+    # "failed: reason" temporary problem like network / rate limit (this bbox is marked incomplete, a rerun only downloads these)
+    # the whole image is downloaded into memory and checked that it opens fully before it goes into the bucket, so no empty files or error pages are left
     path = f"cache/mapillary_images/{image_id}.jpg"
     if fs.exists(gs(path)):
         return "ok"
@@ -545,10 +545,10 @@ def download_image(image_id):
         info.raise_for_status()
         url = info.json().get("thumb_1024_url")
         if not url:
-            return "deleted"                              # 这张照片没有可下载的版本
-        img = get(url)                                    # 图片链接会过期，所以每次都重新要
+            return "deleted"                              # this photo has no downloadable version
+        img = get(url)                                    # image links expire, so ask for a new one every time
         img.raise_for_status()
-        Image.open(io.BytesIO(img.content)).load()        # 完整解码一遍：错误页面或下了一半的文件会在这里失败
+        Image.open(io.BytesIO(img.content)).load()        # fully decode once: error pages or half-downloaded files fail here
         with fs.open(gs(path), "wb") as f:
             f.write(img.content)
         return "ok"
@@ -556,22 +556,22 @@ def download_image(image_id):
         return "failed: " + why(e)
 
 def street_view(cells):
-    # 每个城市 bbox：照片清单 → 过滤 → 挑候选 → 查方向 → 选图 → 下载 → 存 streetview/{area_id}.parquet
-    # 一个 bbox 做完立即存盘；已经做完的直接读回，不再选图和下载
-    sv_list, funnels, street_reason = [], {}, {}          # street_reason: cell_id -> 这个格子为什么有 / 没有街景
+    # for each city bbox: photo list, filter, shortlist, get headings, pick, download, save streetview/{area_id}.parquet
+    # each bbox is saved as soon as it's done; finished ones are just read back, no picking or downloading again
+    sv_list, funnels, street_reason = [], {}, {}          # street_reason: {cell_id: why this cell has / has no street view}
     for a in RUN:
         aid = a["area_id"]
         area = cells[cells.area_id == aid]
-        if a["area_type"] != "city":                      # 郊区不需要街景
+        if a["area_type"] != "city":                      # suburbs don't need street view
             mark(aid, "street_view", "not needed")
             street_reason |= dict.fromkeys(area.cell_id, "suburb")
             continue
-        if step_status(aid, "naip") != "complete":        # 选图要用 NAIP 日期，航拍图没做完就先不做
+        if step_status(aid, "naip") != "complete":        # picking needs the NAIP date, so skip for now if aerial tiles are not done
             mark(aid, "street_view", "incomplete", "waiting: aerial tiles are not complete for this bbox")
             continue
         rel, old_cells = f"{DS}/streetview/{aid}.parquet", f"{DS}/cells/{aid}.parquet"
         try:
-            if fs.exists(gs(rel)) and fs.exists(gs(old_cells)):      # 之前做完了：读回照片和原因
+            if fs.exists(gs(rel)) and fs.exists(gs(old_cells)):      # done before: read back photos and reasons
                 old = pd.read_parquet(gs(old_cells))
                 if "street_reason" in old:
                     sv_list.append(pd.read_parquet(gs(rel)))
@@ -583,13 +583,13 @@ def street_view(cells):
             print(f"\n{aid}: filter funnel")
             for name, n in funnels[aid]:
                 print(f"  {name:<28}{n:>10,}")
-            df = df[df.h3_index.isin(area.h3_index)]      # 只要这个 bbox 的格子（去重后归别的 bbox 的格子也不要）
+            df = df[df.h3_index.isin(area.h3_index)]      # only this bbox's cells (cells given to another bbox by dedup are dropped too)
             naip_of = area.set_index("h3_index").naip_date
             df, sfm_failed = add_heading(shortlist(add_travel(df), naip_of))
-            if sfm_failed:                                # 有照片方向没查到（网络）：不选图、不定稿
+            if sfm_failed:                                # some photo headings were not fetched (network): don't pick, don't finalize
                 raise Incomplete(f"{len(sfm_failed)} photo headings could not be fetched, e.g. {next(iter(sfm_failed.values()))}")
 
-            # 选图 → 下载。Mapillary 说已经不存在的照片，去掉后给那个格子重新选（最多 3 轮）
+            # pick, then download. Photos Mapillary says no longer exist are dropped and that cell is picked again (up to 3 rounds)
             groups = dict(list(df.groupby("h3_index")))
             gone, result = set(), {}                      # result: image_id -> "ok" / "deleted" / "failed: ..."
             for _ in range(3):
@@ -604,7 +604,7 @@ def street_view(cells):
                     break
                 gone |= newly_gone
 
-            # 有照片没下载成功（网络）：这个 bbox 不存，记下是哪些照片、哪些格子
+            # some photos failed to download (network): don't save this bbox, record which photos and which cells
             failed = [dict(image_id=i, cell_id=f"{aid}_{h}", error=result[i])
                       for i, h in zip(p.image_id, p.h3_index) if result[i].startswith("failed")]
             if failed:
@@ -613,30 +613,30 @@ def street_view(cells):
 
             p = p[p.image_id.map(result) == "ok"]
             p = p.assign(area_id=aid, cell_id=aid + "_" + p.h3_index.astype(str), image_path="cache/mapillary_images/" + p.image_id.astype(str) + ".jpg")
-            p = p[p.groupby("cell_id").image_id.transform("size") >= MIN_IMAGES_PER_CELL]   # 照片太少：这个格子不要街景
+            p = p[p.groupby("cell_id").image_id.transform("size") >= MIN_IMAGES_PER_CELL]   # too few photos: no street view for this cell
             p["captured_at"] = p.captured_at.dt.strftime("%Y-%m-%dT%H:%M:%SZ")
             p = p[SV_COLS].sort_values(["cell_id", "image_id"]).reset_index(drop=True)
             p.to_parquet(gs(rel), index=False)
             sv_list.append(p)
 
-            # 每个格子写明街景情况：has_photos / no_photos（筛选后一张都没有）/ too_few_photos（不够 MIN_IMAGES_PER_CELL 张）/ photos_deleted（照片被作者删了，补选后还是不够）
+            # write each cell's street view state: has_photos / no_photos (none left after filtering) / too_few_photos (fewer than MIN_IMAGES_PER_CELL) / photos_deleted (photos deleted by their author, still not enough after re-picking)
             has, lost = set(p.cell_id), set(df.h3_index[df.image_id.isin(gone)])
             for c, h in zip(area.cell_id, area.h3_index):
                 street_reason[c] = ("has_photos" if c in has else "photos_deleted" if h in lost
                                     else "too_few_photos" if h in groups else "no_photos")
             mark(aid, "street_view", "complete", photos=len(p), photos_deleted_on_mapillary=len(gone))
             print(f"  {p.cell_id.nunique()} of {len(area)} cells have street photos ({len(p)} photos)")
-        except Exception as e:                            # 这个 bbox 出错：标成未完成（失败照片的明细存进状态文件），继续下一个
+        except Exception as e:                            # this bbox failed: mark incomplete (details of failed photos go into the status file), go on to the next
             mark(aid, "street_view", "incomplete", why(e), **({"failed": e.args[1]} if isinstance(e, Incomplete) and len(e.args) > 1 else {}))
 
     sv = pd.concat(sv_list, ignore_index=True) if sv_list else pd.DataFrame(columns=SV_COLS)
-    cells["street_reason"] = cells.cell_id.map(street_reason)   # 没做完的城市 bbox 留空
+    cells["street_reason"] = cells.cell_id.map(street_reason)   # left empty for city bboxes that are not done
     print(f"\nStreet photos: {len(sv)} in {sv.cell_id.nunique()} cells")
     return sv, funnels
 
 
-# ==================== 5. 地图特征（OpenStreetMap + WorldCover） ====================
-# 每个格子和航拍图同一块 GROUND_M 见方：各级道路长度、自行车道、路口数、POI 数、水 / 绿地 / 建筑占比、WorldCover 各类土地占比
+# ==================== 5. Map features (OpenStreetMap + WorldCover) ====================
+# per cell, on the same GROUND_M square as the aerial tile: road length by class, bike lanes, intersection count, POI count, water / green / building share, WorldCover land class shares
 CLASSES = {
     "major": ["motorway", "motorway_link", "trunk", "trunk_link", "primary", "primary_link"],
     "secondary": ["secondary", "secondary_link", "tertiary", "tertiary_link"],
@@ -649,8 +649,8 @@ WC = {10: "tree", 20: "shrub", 30: "grass", 40: "crop", 50: "built", 60: "bare",
       70: "snow", 80: "water", 90: "wetland", 95: "mangrove", 100: "moss"}
 
 def get_pbf(url):
-    # 返回整州 OSM 地图的本地副本（pyrosm 只能读本地文件）；正本存在 bucket 的 cache/osm/
-    # 先写成 .part，完整了再改名：中途停下不会留下半个文件
+    # returns a local copy of the whole-state OSM map (pyrosm can only read local files); the master copy is in cache/osm/ in the bucket
+    # write to .part first, rename when complete, so stopping midway won't leave half a file
     name = url.rsplit("/", 1)[-1]
     local = os.path.join("tmp", name)
     os.makedirs("tmp", exist_ok=True)
@@ -675,7 +675,7 @@ def get_pbf(url):
     return local
 
 def clip_pbf(pbf, w, s, e, n):
-    # 用 osmium 把整州地图剪成格子附近一小块（几秒），pyrosm 就不用把整州文件扫 5 遍；没装 osmium 就读整个文件（慢，结果一样）
+    # use osmium to clip the state map to a small piece around the cells (a few seconds), so pyrosm doesn't scan the whole state file 5 times; without osmium, read the whole file (slow, same result)
     if not shutil.which("osmium"):
         return pbf
     out = f"{pbf[:-len('.osm.pbf')]}_{w:.3f}_{s:.3f}_{e:.3f}_{n:.3f}.osm.pbf"
@@ -686,7 +686,7 @@ def clip_pbf(pbf, w, s, e, n):
     return out
 
 def area_frac(layer, fp):
-    # 一层多边形盖住了方块的多少比例（重叠的只算一次）
+    # what fraction of the square a polygon layer covers (overlaps counted once)
     if layer.empty:
         return 0.0
     near = layer.iloc[layer.sindex.query(fp, predicate="intersects")]
@@ -700,7 +700,7 @@ def osm_features_for(area_cells, pbf_url):
     bounds = [w - 0.004, s - 0.004, e + 0.004, n + 0.004]
     osm = pyrosm.OSM(clip_pbf(get_pbf(pbf_url), *bounds), bounding_box=bounds)
 
-    # 道路：在每个路口断开，才能数路口
+    # roads: split at every intersection, so intersections can be counted
     nodes, edges = osm.get_network(network_type="all", nodes=True,
                                    extra_attributes=["cycleway", "cycleway:left", "cycleway:right", "cycleway:both"])
     edges = edges.to_crs(utm).reset_index(drop=True)
@@ -708,7 +708,7 @@ def osm_features_for(area_cells, pbf_url):
     edges["bike"] = False
     for c in [c for c in edges.columns if c.startswith("cycleway")]:
         edges["bike"] |= edges[c].notna() & ~edges[c].isin(NO_BIKE_LANE)
-    degree = pd.concat([edges.u, edges.v]).value_counts()           # 每个节点连着几段路
+    degree = pd.concat([edges.u, edges.v]).value_counts()           # how many road segments each node connects to
     nodes = nodes.to_crs(utm)
     junctions = nodes[nodes.id.map(degree).fillna(0) >= 3].reset_index(drop=True)
 
@@ -717,7 +717,7 @@ def osm_features_for(area_cells, pbf_url):
         if g is None or len(g) == 0:
             return gpd.GeoDataFrame(geometry=[], crs=utm)
         g = g[["geometry"]].reset_index(drop=True).to_crs(utm)
-        g["geometry"] = g.geometry.make_valid()          # 修复 OSM 里自相交等坏掉的多边形，否则算面积会报 TopologyException
+        g["geometry"] = g.geometry.make_valid()          # fix broken OSM polygons like self-intersections, otherwise the area calc throws TopologyException
         return g
     water = layer({"natural": ["water", "wetland"], "waterway": ["riverbank", "dock"], "landuse": ["reservoir", "basin"]})
     green = layer({"leisure": ["park", "garden", "playground", "recreation_ground", "nature_reserve", "golf_course"],
@@ -726,13 +726,13 @@ def osm_features_for(area_cells, pbf_url):
     buildings = layer({"building": True})
     pois = osm.get_pois(custom_filter={"amenity": True, "shop": True, "tourism": True})
     pois = pois[["geometry"]].to_crs(utm).reset_index(drop=True) if pois is not None and len(pois) else gpd.GeoDataFrame(geometry=[], crs=utm)
-    pois["geometry"] = pois.geometry.representative_point()         # 面状 POI（比如商场）只算一次
+    pois["geometry"] = pois.geometry.representative_point()         # area POIs (like a mall) only count once
     print(f"  OSM: {len(edges):,} road segments, {len(junctions):,} intersections, {len(buildings):,} buildings, {len(pois):,} POIs")
 
     rows = []
     for cid, fp in tqdm(list(zip(area_cells.cell_id, foot)), desc="cells"):
         near = edges.iloc[edges.sindex.query(fp, predicate="intersects")]
-        length = near.geometry.intersection(fp).length               # 每条路在方块里的长度（米）
+        length = near.geometry.intersection(fp).length               # length of each road inside the square (m)
         row = {"cell_id": cid}
         for k in [*CLASSES, "other"]:
             row[f"road_{k}_m"] = float(length[near.rclass == k].sum())
@@ -746,7 +746,7 @@ def osm_features_for(area_cells, pbf_url):
         rows.append(row)
     feat = pd.DataFrame(rows)
 
-    # WorldCover：方块里 10 m 土地覆盖像素，各类别占比
+    # WorldCover: share of each class among the 10 m land cover pixels in the square
     wc_items = list(catalog.search(collections=["esa-worldcover"], bbox=(w, s, e, n),
                                    datetime=f"{WORLDCOVER_YEAR}-01-01/{WORLDCOVER_YEAR}-12-31").items())
     foot_ll = foot.to_crs(4326)
@@ -761,13 +761,13 @@ def osm_features_for(area_cells, pbf_url):
                 r0, c0 = src.index(x0, y1); r1, c1 = src.index(x1, y0)
                 arr = src.read(1, window=Window(c0, r0, max(c1 - c0 + 1, 1), max(r1 - r0 + 1, 1)))
                 counts = np.bincount(arr.ravel(), minlength=101)
-                valid = sum(counts[c] for c in WC)                    # 不算 NoData（类别 0）
+                valid = sum(counts[c] for c in WC)                    # NoData (class 0) not counted
                 wc_rows[cid] = {"cell_id": cid, **{f"wc_{name}_frac": (float(counts[c] / valid) if valid else np.nan) for c, name in WC.items()}}
     wc = pd.DataFrame(list(wc_rows.values()), columns=["cell_id", *[f"wc_{n}_frac" for n in WC.values()]])
     return feat.merge(wc, on="cell_id", how="left")
 
 def url_exists(url):
-    # 问 Geofabrik 这个文件在不在：在 = True；明确不在 = False；重试 4 次都没回应 = None（不报错，交给下面换年份）
+    # ask Geofabrik if this file exists: yes = True; clearly not = False; no answer after 4 tries = None (no error, the caller tries another year)
     for k in range(4):
         try:
             code = requests.head(url, timeout=60, allow_redirects=True).status_code
@@ -780,10 +780,10 @@ def url_exists(url):
     return None
 
 def osm_snapshot_url(latest_url, naip_day):
-    # 选用哪一年的 OSM 快照（Geofabrik 每年 1 月 1 日给每个州存一份）：
-    # 1) bucket 里已经有、和 NAIP 拍摄日相差 2 年以内的 → 直接用其中离 NAIP 最近的那份，不联网
-    # 2) 没有 → 去 Geofabrik 按“离 NAIP 最近 → 更老 → 更新”的顺序找，第一个确认存在的就用
-    # 3) 都不行 → 返回 None：这个 bbox 标成未完成
+    # which year's OSM snapshot to use (Geofabrik keeps one per state every Jan 1):
+    # 1) already in the bucket and within 2 years of the NAIP date: use the one closest to NAIP, no network
+    # 2) none: look on Geofabrik in the order "closest to NAIP, then older, then newer", use the first one that exists
+    # 3) nothing works: return None, this bbox is marked incomplete
     region = latest_url.rsplit("/", 1)[-1][:-len("-latest.osm.pbf")]
     snap = lambda d: latest_url.replace("-latest.osm.pbf", f"-{d:%y%m%d}.osm.pbf")
     cached = [pd.Timestamp(datetime.datetime.strptime(m[1], "%y%m%d")) for p in fs.find(f"{BUCKET}/cache/osm")
@@ -799,7 +799,7 @@ def osm_snapshot_url(latest_url, naip_day):
     return None
 
 def map_features(cells):
-    # Geofabrik 的区域目录（各州边界 + 下载地址），用来判断 bbox 在哪个州；bucket 里有就直接用，没有才下载一次
+    # Geofabrik's region index (state borders + download URLs), used to find which state a bbox is in; use the bucket copy if there, download it once otherwise
     idx = "cache/osm/geofabrik_index.json"
     if not fs.exists(gs(idx)):
         with fs.open(gs(idx), "w") as f:
@@ -807,18 +807,18 @@ def map_features(cells):
     regions = [(shape(f["geometry"]), f["properties"]["urls"]["pbf"]) for f in json.load(fs.open(gs(idx)))["features"]
                if "/north-america/us/" in f["properties"]["urls"].get("pbf", "")]
 
-    # 每个 bbox 一个文件；之前算完的直接读回，不重算
+    # one file per bbox; ones computed before are just read back, not recomputed
     feat_list = []
     cells["osm_url"] = None
     for a in RUN:
         aid = a["area_id"]
         area = cells[cells.area_id == aid]
         rel = f"{DS}/osm_features/{aid}.parquet"
-        if step_status(aid, "naip") != "complete":        # 选快照要用 NAIP 日期，航拍图没做完就先不做
+        if step_status(aid, "naip") != "complete":        # picking a snapshot needs the NAIP date, so skip for now if aerial tiles are not done
             mark(aid, "osm", "incomplete", "waiting: aerial tiles are not complete for this bbox")
             continue
         try:
-            # bbox 中心点所在的最小区域（一般是州，加州细分到南加 / 北加）
+            # smallest region containing the bbox centre (usually a state, California is split into SoCal / NorCal)
             centre = Point((a["bbox"][0] + a["bbox"][2]) / 2, (a["bbox"][1] + a["bbox"][3]) / 2)
             hits = [(g.area, url) for g, url in regions if g.contains(centre)]
             assert hits, f"no Geofabrik region contains {a['bbox']} (NAIP and this lookup only cover the US)"
@@ -829,7 +829,7 @@ def map_features(cells):
                 if cells.loc[area.index, "osm_url"].isna().any():
                     raise Incomplete("no OSM snapshot could be found, or Geofabrik did not answer")
                 parts = []
-                for url, group in cells.loc[area.index].groupby("osm_url"):     # 一般一个 bbox 只用一份快照
+                for url, group in cells.loc[area.index].groupby("osm_url"):     # usually one bbox uses only one snapshot
                     print(f"{aid}: {len(group)} cells use {url.rsplit('/', 1)[-1]}")
                     parts.append(osm_features_for(group.reset_index(drop=True), url))
                 f = pd.concat(parts, ignore_index=True)
@@ -846,21 +846,21 @@ def map_features(cells):
         print(feats.describe().T[["mean", "min", "50%", "max"]].round(2).to_string())
 
 
-# ==================== 6. 保存 + 汇总 ====================
+# ==================== 6. Save + summary ====================
 def read_all(sub):
-    # 读 bucket 里全部 bbox 的文件（谁跑的都算），同时读 16 个
+    # read the files of all bboxes in the bucket (no matter who ran them), 16 at a time
     with ThreadPoolExecutor(16) as ex:
         parts = list(ex.map(lambda p: pd.read_parquet(f"gs://{p}"), fs.find(f"{BUCKET}/{DS}/{sub}")))
     return pd.concat(parts, ignore_index=True) if parts else None
 
 def save(cells, sv, funnels):
-    # 每个 bbox 一个 cells 文件；只存航拍图那一步做完的 bbox（格子表里的航拍图信息要完整）
+    # one cells file per bbox; only save bboxes whose aerial tile step is done (aerial info in the cell table must be complete)
     cells["updated_at"] = now()
     for area_id, part in cells.groupby("area_id"):
         if step_status(area_id, "naip") == "complete":
             part.to_parquet(gs(f"{DS}/cells/{area_id}.parquet"), index=False)
 
-    # 每个 bbox 的状态存进 status/{area_id}.json：之前的记录保留，这次跑过的步骤用新结果覆盖
+    # save each bbox's status to status/{area_id}.json: old records are kept, steps run this time are overwritten with the new results
     for a in RUN:
         srel = f"{DS}/status/{a['area_id']}.json"
         old = json.load(fs.open(gs(srel))) if fs.exists(gs(srel)) else {"steps": {}}
@@ -868,8 +868,8 @@ def save(cells, sv, funnels):
             json.dump({"area_id": a["area_id"], "updated_at": now(), "steps": {**old["steps"], **STEPS.get(a["area_id"], {})}},
                       f, indent=2, ensure_ascii=False, default=str)
 
-    # 汇总整个数据集（读 bucket 里全部 bbox，不只是这次跑的，所以谁最后运行，汇总都是完整的）
-    fs.invalidate_cache()                                 # 清掉文件列表的缓存，刚写的文件才列得出来
+    # summarize the whole dataset (reads all bboxes in the bucket, not just this run, so whoever runs last gets a complete summary)
+    fs.invalidate_cache()                                 # clear the file listing cache so files just written show up
     cells_all = read_all("cells")
     cells_all = cells.iloc[:0] if cells_all is None else cells_all
     sv_all = read_all("streetview")
@@ -877,14 +877,14 @@ def save(cells, sv, funnels):
     with ThreadPoolExecutor(16) as ex:
         status_all = {s["area_id"]: s["steps"] for s in ex.map(lambda p: json.load(fs.open(p)), fs.find(f"{BUCKET}/{DS}/status"))}
     def bbox_state(area_id):
-        # complete / incomplete（附原因）/ not run yet
+        # complete / incomplete (with reason) / not run yet
         steps = status_all.get(area_id)
         if steps is None:
             return "not run yet", ""
         bad = {k: v.get("reason", "") for k, v in steps.items() if v["status"] == "incomplete"}
         return ("incomplete", "; ".join(f"{k}: {r}" for k, r in bad.items())) if bad else ("complete", "")
 
-    # areas.parquet：配置里每个 bbox 一行——状态、格子数、航拍图数、街景数、各种“本来就没有”的格子数、用的 NAIP 日期和 OSM
+    # areas.parquet: one row per bbox in the config: status, cell count, aerial tile count, street view count, counts of each kind of "data just isn't there" cell, NAIP dates and OSM used
     join_unique = lambda s: ", ".join(sorted(s.dropna().unique()))
     areas = pd.DataFrame([dict(area_id=a["area_id"], area_type=a["area_type"], area_subtype=a["area_subtype"], bbox=str(a["bbox"])) for a in AREAS])
     areas["status"], areas["incomplete_reason"] = zip(*[bbox_state(i) for i in areas.area_id])
@@ -898,7 +898,7 @@ def save(cells, sv, funnels):
     areas[num] = areas[num].fillna(0).astype(int)
     areas.to_parquet(gs(f"{DS}/areas.parquet"), index=False)
 
-    # manifest.json：进度、总数、数据来源
+    # manifest.json: progress, totals, data sources
     osm_meta = lambda url: f"cache/osm/{url.rsplit('/', 1)[-1]}.json"
     osm_sources = [json.load(fs.open(gs(osm_meta(u)))) if fs.exists(gs(osm_meta(u))) else {"url": u} for u in sorted(cells_all.osm_url.dropna().unique())]
     manifest = json.load(fs.open(gs(f"{DS}/manifest.json")))
@@ -919,7 +919,7 @@ def save(cells, sv, funnels):
         print(f"  {sub + '/':<16}{len(fs.find(f'{BUCKET}/{DS}/{sub}')):>6} files")
     print("\n" + areas.drop(columns=["bbox"]).to_string(index=False))
 
-    # 未完成清单：网络等问题没做完的 bbox，附原因和可以直接复制的重跑参数
+    # incomplete list: bboxes not done because of network etc., with reasons and rerun args you can copy
     bad = areas[areas.status == "incomplete"]
     if len(bad):
         print(f"\n!!! {len(bad)} bbox(es) NOT complete (rerun them; finished parts are not redone):")
@@ -933,9 +933,9 @@ def save(cells, sv, funnels):
         print(f"Not run yet (maybe a teammate's): {waiting}")
 
 
-# ==================== 7. 检查用的图（存到本地 qc/ 和 bucket 的 {DS}/qc/） ====================
+# ==================== 7. QC figures (saved to local qc/ and {DS}/qc/ in the bucket) ====================
 def thumb(path, px):
-    # 小缩略图塞进网页（bucket 是私有的，浏览器不能直接读图）
+    # small thumbnails embedded in the web page (the bucket is private, the browser can't read images directly)
     with fs.open(gs(path), "rb") as fh:
         im = Image.open(fh).convert("RGB")
     im.thumbnail((px, px)); buf = io.BytesIO(); im.save(buf, "JPEG", quality=62)
@@ -948,7 +948,7 @@ def save_fig(name):
 def qc(cells, sv):
     os.makedirs(QC_DIR, exist_ok=True)
 
-    # tiles.png：每个 bbox 看 4 张航拍图
+    # tiles.png: 4 aerial tiles per bbox
     show = cells[cells.tile_ok].groupby("area_id").head(4)
     rows = max(1, -(-len(show) // 4))
     fig, axes = plt.subplots(rows, 4, figsize=(12, 3.1 * rows), squeeze=False)
@@ -958,7 +958,7 @@ def qc(cells, sv):
         ax.set_title(f"{r.area_id} · NAIP {r.naip_date}", fontsize=8)
     save_fig("tiles.png")
 
-    # areas.png：每个 bbox 一张小图，格子按状态上色——有街景 / 城市里没有街景 / 郊区
+    # areas.png: one small map per bbox, cells colored by state: has street view / city without street view / suburb
     status = np.where(cells.cell_id.isin(sv.cell_id), 2, np.where(cells.area_type == "city", 1, 0))
     colors = np.array(["#9db4c8", "#f0b04a", "#2d8f6d"])
     names = ["suburb: aerial tile only", "city: no street photos", "has street photos"]
@@ -977,7 +977,7 @@ def qc(cells, sv):
     if sv.empty:
         print("No street photos: map skipped.")
     else:
-        # photos.png：随机看两个有街景的格子的照片
+        # photos.png: photos from two random cells that have street view
         show = sv.cell_id.drop_duplicates().sample(n=min(2, sv.cell_id.nunique()), random_state=0)
         fig, axes = plt.subplots(len(show), MAX_IMAGES_PER_CELL, figsize=(3 * MAX_IMAGES_PER_CELL, 2.4 * len(show)), squeeze=False)
         for ax in axes.ravel(): ax.axis("off")
@@ -994,17 +994,17 @@ def qc(cells, sv):
     print(f"QC files: local {QC_DIR}/ and gs://{BUCKET}/{DS}/{QC_DIR}/")
 
 def street_map(cells, sv):
-    # map.html 交互地图：底图 + bbox 边框 + 全部格子（填色 = 有街景）+ 过滤后的照片点（颜色 = 年份）+ 选中照片的拍摄方向
-    # 右上角开关图层；大 bbox 只画一部分照片点，文件才不会大到浏览器打不开
+    # map.html interactive map: basemap + bbox borders + all cells (filled = has street view) + filtered photo points (color = year) + camera direction of picked photos
+    # layer toggles in the top right; big bboxes only draw some of the photo points, so the file isn't too big for the browser to open
     ESRI = "https://server.arcgisonline.com/ArcGIS/rest/services/{}/MapServer/tile/{{z}}/{{y}}/{{x}}"
-    ARROW_M = 30                 # 箭头长度（米）
-    MAP_MAX_POINTS = 4000        # 每个 bbox 最多画多少个“过滤后的照片点”（只影响显示）
-    SAMPLE_GRID = 3              # 抽样看图：每个城市 bbox 切成 3×3 块，每块随机挑 1 个有街景的格子（最多 9 个）
-    SAMPLE_SEED = 0              # 想换一批样本就改这个数
+    ARROW_M = 30                 # arrow length (m)
+    MAP_MAX_POINTS = 4000        # max number of "filtered photo points" drawn per bbox (display only)
+    SAMPLE_GRID = 3              # sample to view: each city bbox is cut into 3x3 blocks, 1 random cell with street view per block (max 9)
+    SAMPLE_SEED = 0              # change this number to get a different sample
     corners = lambda b: [[b[1], b[0]], [b[3], b[2]]]
     rnd = lambda v: round(float(v), 6)
 
-    # 过滤后的照片（从缓存的方块重新读，不下载新东西）；大 bbox 随机抽一部分
+    # filtered photos (re-read from cached tiles, nothing new downloaded); a random subset for big bboxes
     parts, n_all = [], 0
     for a in RUN:
         if step_status(a["area_id"], "street_view") != "complete":
@@ -1016,22 +1016,22 @@ def street_map(cells, sv):
     years = sorted(kept.captured_at.dt.year.unique())
     year_color = {int(y): to_hex(plt.get_cmap("viridis")(i / max(len(years) - 1, 1))) for i, y in enumerate(years)}
 
-    # 每张选中照片朝哪边：和指向格子中心的方向比
+    # which way each picked photo faces, compared to the direction toward the cell centre
     lat0 = sv.lat.mean()
     m_lat, m_lon = 110574.0, 111320.0 * np.cos(np.radians(lat0))
     centre = {h: h3.cell_to_latlng(h) for h in sv.h3_index.unique()}
     dx = (sv.h3_index.map(lambda h: centre[h][1]) - sv.lon) * m_lon
     dy = (sv.h3_index.map(lambda h: centre[h][0]) - sv.lat) * m_lat
     off = np.abs((sv.compass - np.degrees(np.arctan2(dx, dy)) % 360 + 180) % 360 - 180)
-    away = (off > 90) & (np.hypot(dx, dy) >= 15)          # 离中心 15 m 以内，朝哪都算朝里
+    away = (off > 90) & (np.hypot(dx, dy) >= 15)          # within 15 m of the centre, any direction counts as facing in
     print(f"{int(away.sum())} of {len(sv)} selected photos ({away.mean():.0%}) point away from their cell centre "
           f"(random directions would give about 50%)")
 
-    m = folium.Map(tiles=None, prefer_canvas=True)        # canvas 画一万多个图形也不卡
+    m = folium.Map(tiles=None, prefer_canvas=True)        # canvas can draw 10k+ shapes without lag
     folium.TileLayer(ESRI.format("World_Imagery"), attr="Esri", name="Basemap: satellite", overlay=True, show=True).add_to(m)
     folium.TileLayer(ESRI.format("World_Street_Map"), attr="Esri", name="Basemap: street map", overlay=True, show=False).add_to(m)
 
-    # 格子（最底层）：没街景的格子透明但仍“有填充”，鼠标停在格子里任何地方都能看到提示
+    # cells (bottom layer): cells without street view are transparent but still "filled", so hovering anywhere in a cell shows the tooltip
     def hex_ring(h):
         ring = [[rnd(lo), rnd(la)] for la, lo in h3.cell_to_boundary(h)]
         return [ring + [ring[0]]]
@@ -1045,14 +1045,14 @@ def street_map(cells, sv):
                    highlight_function=lambda f: {"weight": 3, "color": "#ffea00"},
                    tooltip=folium.GeoJsonTooltip(["cell", "photos"], aliases=["cell", "street photos"])).add_to(m)
 
-    # bbox 边框用线画（用矩形会挡住里面格子的鼠标提示）
+    # bbox borders drawn as lines (a rectangle would block the tooltips of the cells inside)
     area_layer = folium.FeatureGroup(name="Areas (red = city, blue = suburb)").add_to(m)
     for a in RUN:
         lo0, la0, lo1, la1 = a["bbox"]
         folium.PolyLine([(la0, lo0), (la0, lo1), (la1, lo1), (la1, lo0), (la0, lo0)], color="#d1342a" if a["area_type"] == "city" else "#2f6f9f",
                         weight=2, tooltip=f"{a['area_id']} · {a['area_subtype']}").add_to(area_layer)
 
-    # 过滤后的照片：一层点，颜色 = 年份
+    # filtered photos: one layer of points, color = year
     points = {"type": "FeatureCollection", "features": [
         {"type": "Feature", "geometry": {"type": "Point", "coordinates": [rnd(lo), rnd(la)]}, "properties": {"year": int(y)}}
         for lo, la, y in zip(kept.lon, kept.lat, kept.captured_at.dt.year)]}
@@ -1060,7 +1060,7 @@ def street_map(cells, sv):
                    marker=folium.CircleMarker(radius=2, weight=0, fill=True, fill_opacity=0.7),
                    style_function=lambda f: {"fillColor": year_color[f["properties"]["year"]]}).add_to(m)
 
-    # 选中的照片：箭头 + 带提示的点（绿 = 朝格子里面，红 = 朝外）
+    # picked photos: arrows + points with tooltips (green = facing into the cell, red = facing out)
     arrow_f, dot_f = [], []
     for r, is_away in zip(sv.itertuples(), away):
         color = "#d1342a" if is_away else "#1b9e5a"
@@ -1080,7 +1080,7 @@ def street_map(cells, sv):
                    style_function=lambda f: {"color": f["properties"]["c"], "fillColor": f["properties"]["c"]},
                    tooltip=folium.GeoJsonTooltip(["info"], labels=False)).add_to(sel)
 
-    # 抽样格子：每个城市 bbox 切成 3×3 块，每块随机挑 1 个有街景的格子；点开弹出它的航拍图和选中的街景
+    # sample cells: each city bbox is cut into 3x3 blocks, 1 random cell with street view per block; click one to pop up its aerial tile and picked street photos
     tile_of = cells.set_index("cell_id")
     rng = np.random.default_rng(SAMPLE_SEED); samples = []
     for a in RUN:
@@ -1111,7 +1111,7 @@ def street_map(cells, sv):
                        tooltip=f"{r.cell_id} · 点开看图", popup=folium.Popup(body, max_width=860)).add_to(smp)
     print(f"Sample cells with pictures: {len(samples)} in {samples.area_id.nunique()} city bboxes")
 
-    # 左上角下拉框：选一个 bbox，视野直接跳过去
+    # dropdown in the top left: pick a bbox and the view jumps there
     bounds = {a["area_id"]: corners(a["bbox"]) for a in RUN}
     opts = "".join(f'<option value="{a["area_id"]}">{a["area_id"]}</option>' for a in sorted(RUN, key=lambda a: (a["area_type"] != "city", a["area_id"])))
     m.get_root().html.add_child(folium.Element(
@@ -1133,9 +1133,9 @@ def street_map(cells, sv):
     print(f"Map saved: {QC_DIR}/map.html ({os.path.getsize(f'{QC_DIR}/map.html') / 1e6:.1f} MB). Open it in Chrome / Safari.")
 
 
-# ==================== 入口 ====================
+# ==================== Entry point ====================
 def main():
-    load_dotenv(find_dotenv(usecwd=True))                 # 本地读 .env；容器里用 --env-file 传，没有 .env 也没关系
+    load_dotenv(find_dotenv(usecwd=True))                 # locally reads .env; in the container it's passed with --env-file, fine if there's no .env
     p = argparse.ArgumentParser(description="GreenPath data collector")
     p.add_argument("--config", required=True, help="配置文件：本地路径或 gs://")
     p.add_argument("--areas", nargs="+", required=True, help="这次跑哪些 bbox（area_id，可以写多个），或 all")

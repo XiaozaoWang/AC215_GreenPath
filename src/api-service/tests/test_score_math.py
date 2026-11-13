@@ -1,5 +1,5 @@
-# 自动检查 score_math.py 的打分数学有没有算错。它造几个小例子，比如 4 个格子、水分分别是 0、0.2、0.8、0.4，再断言结果应该怎样，比如"水最多的那格总分最高"。
-# score_math.py 的单元测试：纯数学，不调 Gemini、不花钱。
+# Checks that the scoring math in score_math.py is right. It builds a few small examples, e.g. 4 cells with water scores 0, 0.2, 0.8, 0.4, then asserts what the result should be, e.g. "the cell with the most water has the highest total".
+# Unit tests for score_math.py: pure math, no Gemini calls, no cost.
 import pytest
 from pydantic import ValidationError
 
@@ -8,7 +8,7 @@ from api.dimensions import DIMENSION_NAMES
 from api.schemas import TileScore
 
 
-# 造 N 个格子的小区域：指定几维的分数，其余维一律 0.5 分（分数量程 0-1）
+# Build a small area of N cells: set scores for a few dimensions, all other dimensions get 0.5 (scores range 0-1)
 def make_tiles(**dims: list[float]) -> list[TileScore]:
     n = len(next(iter(dims.values())))
     return [
@@ -17,38 +17,38 @@ def make_tiles(**dims: list[float]) -> list[TileScore]:
     ]
 
 
-# combine 返回的就是每个格子的总分列表（和输入顺序一致）
+# combine returns the list of total scores per cell (same order as the input)
 def first_row(values):
     return values
 
 
-# 权重全 0 → 每格总分都是 0（没有偏好就没有高低）
+# All weights 0, so every cell's total is 0 (no preference means no high or low)
 def test_zero_weights_give_flat_map():
     heatmap, _ = score_math.combine(make_tiles(water_access=[0, 0.2, 0.8, 0.4]), weights={})
     assert first_row(heatmap) == [0, 0, 0, 0]
 
 
-# 想要水 → 水分越高的格子总分越高
+# Want water, so the higher a cell's water score, the higher its total
 def test_wanted_dimension_ranks_highest():
     row = first_row(score_math.combine(make_tiles(water_access=[0, 0.2, 0.8, 0.4]), {"water_access": 1})[0])
     assert row.index(max(row)) == 2
     assert row[2] > row[3] > row[1] > row[0]
 
 
-# 不想要宽马路 → 排名反过来，路最宽的格子总分最低
+# Don't want wide roads, so the ranking flips and the cell with the widest road gets the lowest total
 def test_negative_weight_flips_ranking():
     row = first_row(score_math.combine(make_tiles(road_width=[0, 0.2, 0.8, 0.4]), {"road_width": -1})[0])
     assert row.index(min(row)) == 2
 
 
-# 均值整体平移不影响结果：z-score 只看"比平均高多少"
+# Shifting the whole mean doesn't change the result: z-score only looks at "how far above average"
 def test_mean_shift_does_not_change_result():
     a = first_row(score_math.combine(make_tiles(water_access=[0, 0.2, 0.8, 0.4]), {"water_access": 1})[0])
     b = first_row(score_math.combine(make_tiles(water_access=[0.1, 0.3, 0.9, 0.5]), {"water_access": 1})[0])
     assert a == pytest.approx(b)
 
 
-# σ 地板：几乎一样的分数（差异 < 模型误差）不会被放大成大差异
+# Sigma floor: nearly equal scores (difference < model error) don't get blown up into big differences
 def test_sigma_floor_stops_noise_amplification():
     tiles = make_tiles(water_access=[0.5, 0.505, 0.495, 0.5])
     with_floor = first_row(score_math.combine(tiles, {"water_access": 1})[0])
@@ -57,13 +57,13 @@ def test_sigma_floor_stops_noise_amplification():
     assert max(abs(v) for v in without_floor) > 1.0
 
 
-# 截断：一个极端格子的 Z 最多到 ±3
+# Clipping: the Z of one extreme cell goes up to +/-3 at most
 def test_z_is_clipped():
     row = first_row(score_math.combine(make_tiles(water_access=[0] * 99 + [1.0]), {"water_access": 1})[0])
     assert max(row) == pytest.approx(score_math.Z_CLIP)
 
 
-# must_have：原始分没到门槛的格子出局（None），并被计数
+# must_have: cells whose raw score is below the threshold are out (None) and get counted
 def test_must_have_excludes_tiles():
     heatmap, stats = score_math.combine(
         make_tiles(water_access=[0, 0.05, 0.15, 0.3]), {"water_access": 1}, must_have=["water_access"]
@@ -73,14 +73,14 @@ def test_must_have_excludes_tiles():
     assert stats.n_excluded == 2
 
 
-# 结果顺序：第几个格子的总分就在第几个位置
+# Result order: the total for the n-th cell is at the n-th position
 def test_values_follow_input_order():
     values, _ = score_math.combine(make_tiles(water_access=[0, 0, 1.0, 0, 0]), {"water_access": 1})
     assert len(values) == 5
     assert values.index(max(values)) == 2
 
 
-# 量程检查：模型交回来的分数超出 0-1（比如还按 0-100 给的 1.5、80）会被拦下
+# Range check: scores from the model outside 0-1 (e.g. 1.5 or 80 from a model still on a 0-100 scale) get rejected
 @pytest.mark.parametrize("bad", [1.5, 80.0, -0.1])
 def test_scores_outside_range_rejected(bad):
     with pytest.raises(ValidationError):

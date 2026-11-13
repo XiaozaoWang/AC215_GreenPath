@@ -1,23 +1,23 @@
 #!/bin/bash
-# 本地用：build 流程工具的镜像，进入容器终端，在里面运行 python cli.py --pipeline 等
+# For local use: build the pipeline tool image, open a shell in the container, and run python cli.py --pipeline etc. there
 #
-# 身份（不进镜像，只在运行时交给容器）：
-#   - 提交流程用你的 Google 账号：把 gcloud 登录凭证（ADC）只读挂进容器。你是 group project 的 Owner，
-#     可以提交 Vertex 流程，也可以让流程以服务账号 greenpath-ml-workflow 的身份运行。不需要服务账号 key 文件。
-#   - .env 里的 GOOGLE_CLOUD_PROJECT、GOOGLE_CLOUD_LOCATION、GREENPATH_BUCKET：用 `--env-file` 传进容器。
-#   - 流程在云上运行时用 greenpath-ml-workflow 服务账号；Mapillary token 由采集步骤自己从 Secret Manager 取，这里用不到。
+# Identity (not in the image, only given to the container at run time):
+#   - Submitting the pipeline uses your Google account: the gcloud login credentials (ADC) are mounted read-only. You are an Owner of the group project,
+#     so you can submit Vertex pipelines and also let them run as the greenpath-ml-workflow service account. No service account key file needed.
+#   - GOOGLE_CLOUD_PROJECT, GOOGLE_CLOUD_LOCATION, GREENPATH_BUCKET from .env: passed into the container with `--env-file`.
+#   - In the cloud the pipeline runs as the greenpath-ml-workflow service account; the collect step gets the Mapillary token from Secret Manager itself, not needed here.
 
-# 任何一步出错就停
+# Stop if any step fails
 set -e
 
 export IMAGE_NAME="greenpath-workflow"
 export BASE_DIR=$(pwd)
-export ENV_FILE=$(pwd)/../../.env          # 仓库根目录的 .env（不进 git）
+export ENV_FILE=$(pwd)/../../.env          # .env in the repo root (not in git)
 
-# build 镜像（本机架构）
+# Build the image (host architecture)
 docker build -t $IMAGE_NAME -f Dockerfile .
 
-# 启动容器：代码目录挂到 /app（编译出的 yaml 也会出现在这里）；gcloud 凭证只读挂进去
+# Start the container: code folder mounted at /app (the compiled yaml shows up here too); gcloud credentials mounted read-only
 docker run --rm --name $IMAGE_NAME -ti \
 -v "$BASE_DIR":/app \
 -v "$HOME/.config/gcloud":/home/app/.config/gcloud:ro \

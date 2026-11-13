@@ -1,13 +1,8 @@
 """
-模型服务的"后厨"：启动时把模型和格子索引准备好，之后收到格子或图片就打分。main.py 只负责收请求、回结果。
-
-启动时（import 这个文件时，只做一次，约 10–20 秒）：
-    1. 读 artifacts/config.json：这是哪个模型（run_id）、15 个分数的名字和顺序
-    2. 搭模型、装上训练好的权重。用的是训练时的 network.py（--prepare 复制进 artifacts/），预处理和训练完全一样
-    3. 建格子索引：读 DATASETS 里每个数据集的 cells/*.parquet（collector 写的），记下每个 H3 格子对应 bucket 里哪张航拍图
-
-artifacts/ 里的 3 个文件由 model-deployment 的 `python cli.py --prepare` 准备，build 时打进镜像：
-    best_model.pt   训练好的权重     config.json   模型信息     network.py   搭模型、预处理的代码
+The Model Service's "kitchen": at startup it gets the model and the cell index ready, then scores cells or images as they come in. main.py only takes requests and returns results.
+At startup (on import, once, about 10-20 s): read artifacts/config.json (run_id, names and order of the 15 scores), build the model and load the trained weights
+with the training network.py, then build the cell index from cells/*.parquet of each dataset in DATASETS (which aerial tile in the bucket belongs to each H3 cell).
+The 3 files in artifacts/ (best_model.pt, config.json, network.py) are prepared by `python cli.py --prepare` in src/deployment and baked into the image at build time.
 """
 import io
 import json
@@ -18,39 +13,39 @@ import pandas as pd
 import torch
 from PIL import Image
 
-from artifacts import network as N    # 训练用的同一份 network.py：搭模型、预处理、装权重
+from artifacts import network as N    # the same network.py used in training: build model, preprocess, load weights
 
 BUCKET = os.environ["GREENPATH_BUCKET"]
-DATASETS = os.environ["DATASETS"].split(",")      # 能打分的区域 = 这些数据集里下载好航拍图的格子，例如 1026_Full_data
-BATCH_SIZE = 64                                   # 一次让模型算几张图
+DATASETS = os.environ["DATASETS"].split(",")      # areas that can be scored = cells in these datasets with downloaded aerial tiles, e.g. 1026_Full_data
+BATCH_SIZE = 64                                   # how many images the model computes at once
 
-# 用几个 CPU 线程算：Cloud Run 上由 --deploy 设成这个实例分到的 CPU 数；本地不设，用 torch 的默认
+# How many CPU threads to use: on Cloud Run --deploy sets it to the number of CPUs this instance gets; not set locally, so torch's default
 if os.environ.get("TORCH_THREADS"):
     torch.set_num_threads(int(os.environ["TORCH_THREADS"]))
 
-# 第 1 步：模型信息
+# Step 1: model info
 CONFIG = json.load(open("artifacts/config.json"))
-RUN_ID = CONFIG["run_id"]                         # 例如 dinov2_s-linear-seed42-ebcc811f
-TRAINING_ID = CONFIG["settings"]["training_id"]   # 用哪个训练集训练的，例如 full_v2
-TARGETS = CONFIG["targets"]                       # 15 个分数的名字，顺序 = 模型输出的顺序
+RUN_ID = CONFIG["run_id"]                         # e.g. dinov2_s-linear-seed42-ebcc811f
+TRAINING_ID = CONFIG["settings"]["training_id"]   # which training set it was trained on, e.g. full_v2
+TARGETS = CONFIG["targets"]                       # names of the 15 scores, order = the order of the model outputs
 
-# 第 2 步：模型。先搭出完整的 DINOv2 + 线性层，再换上训练过的部分；eval() = 只打分、不训练
+# Step 2: the model. First build the full DINOv2 + linear layer, then swap in the trained part; eval() = score only, no training
 MODEL = N.build_model(len(TARGETS))
 N.load_weights(MODEL, "artifacts/best_model.pt")
 MODEL.eval()
-TRANSFORM = N.eval_transform()                    # 预处理：缩到 224×224、标准化
+TRANSFORM = N.eval_transform()                    # preprocessing: resize to 224x224, normalize
 
-# 读写 bucket 的工具。身份：本地 = 挂进来的 gcloud 登录；Cloud Run = 服务挂的服务账号
+# Tool to read/write the bucket. Identity: locally = the mounted gcloud login; Cloud Run = the service account attached to the service
 FS = gcsfs.GCSFileSystem(token="google_default")
 
 
-# 第 3 步：格子索引。输出一张表：行 = H3 格子，列 = tile_path（航拍图在 bucket 里的路径）、tile_ok（图能不能用）、tile_reason（为什么不能用）
+# Step 3: cell index. Outputs one table: rows = H3 cells, columns = tile_path (path of the aerial tile in the bucket), tile_ok (can the image be used), tile_reason (why it can't)
 def load_index():
-    files = [f for d in DATASETS for f in FS.glob(f"{BUCKET}/datasets/{d}/cells/*.parquet")]   # 每个区域一个文件
+    files = [f for d in DATASETS for f in FS.glob(f"{BUCKET}/datasets/{d}/cells/*.parquet")]   # one file per area
     assert files, f"no cells found in gs://{BUCKET}/datasets/{{{','.join(DATASETS)}}}/cells/"
-    data = FS.cat(files)                                          # 并行下载这些小文件：{路径: 文件字节}
+    data = FS.cat(files)                                          # download these small files in parallel: {path: file bytes}
     cells = pd.concat(pd.read_parquet(io.BytesIO(b), columns=["h3_index", "tile_path", "tile_ok", "tile_reason"]) for b in data.values())
-    # 同一个格子出现在两个数据集里时，留能用的那张图
+    # When the same cell is in two datasets, keep the image that can be used
     return cells.sort_values("tile_ok", ascending=False).drop_duplicates("h3_index").set_index("h3_index")
 
 
@@ -58,9 +53,9 @@ INDEX = load_index()
 print(f"model {RUN_ID} ready · {len(TARGETS)} scores · {len(INDEX):,} cells from {DATASETS}", flush=True)
 
 
-# 一批图片（PNG 文件的原始字节）→ 每张图一组分数 {分数名: 0–1}
-# 和训练时一样：打开图片 → 转 RGB → 预处理 → 模型；每 64 张算一次
-@torch.inference_mode()                           # 只打分：不记梯度，更快更省内存
+# A batch of images (raw bytes of PNG files), one set of scores per image {score name: 0-1}
+# Same as in training: open image, convert to RGB, preprocess, model; 64 images at a time
+@torch.inference_mode()                           # scoring only: no gradients, faster and less memory
 def score_images(images):
     rows = []
     for i in range(0, len(images), BATCH_SIZE):
@@ -69,15 +64,15 @@ def score_images(images):
     return [dict(zip(TARGETS, (round(v, 4) for v in row))) for row in rows]
 
 
-# 一批 H3 格子 → 每个格子一条结果，顺序和请求一样：{"h3_index", "status", "scores"}
-# status：ok = 打了分；not_downloaded = 不在 DATASETS 的格子里；
-#         no_naip_coverage / mostly_black = collector 判定这格的航拍图不能用（没有 NAIP / 大部分是黑的），不打分，scores 为 null
+# A batch of H3 cells, one result per cell, same order as the request: {"h3_index", "status", "scores"}
+# status: ok = scored; not_downloaded = not among the cells of DATASETS;
+#         no_naip_coverage / mostly_black = the collector decided this cell's aerial tile can't be used (no NAIP / mostly black), not scored, scores is null
 def score_cells(h3_indices):
-    found = INDEX.reindex(h3_indices)                             # 按请求的顺序查索引；查不到的格子整行为空
-    usable = found.tile_ok.eq(True).to_numpy()                    # 有图、图能用
+    found = INDEX.reindex(h3_indices)                             # look up the index in request order; cells not found get an empty row
+    usable = found.tile_ok.eq(True).to_numpy()                    # has an image, and the image can be used
     status = found.tile_reason.fillna("not_downloaded").where(~usable, "ok")
     paths = [f"{BUCKET}/{p}" for p in found.tile_path[usable]]
-    images = FS.cat(paths)                                        # 从 bucket 并行下载这些图：{路径: 图片字节}
+    images = FS.cat(paths)                                        # download these images from the bucket in parallel: {path: image bytes}
     scores = iter(score_images([images[p] for p in paths]))
     return [{"h3_index": h, "status": s, "scores": next(scores) if u else None}
             for h, s, u in zip(h3_indices, status, usable)]

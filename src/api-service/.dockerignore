@@ -1,25 +1,25 @@
-# build 镜像时不打包进去的东西（作用类似 .gitignore，但管的是 Docker）。
-# 背景：Dockerfile 里 ADD . /app 会把整个 api-service 文件夹装进镜像；
-#       下面这些是本机运行时自动生成的缓存或系统文件，镜像里用不到，排除掉让镜像更干净、build 更快。
-# 注意：开发时 docker-compose 会把代码挂载进容器，挂载不受这个文件影响，只影响 build 出来的镜像。
+# Things left out of the image at build time (works like .gitignore, but for Docker).
+# Background: ADD . /app in the Dockerfile puts the whole api-service folder into the image.
+#             The files below are caches or system files made automatically when running locally. The image doesn't need them, so leaving them out keeps the image cleaner and the build faster.
+# During development docker-compose mounts the code into the container. The mount is not affected by this file, only the built image is.
 
-# Python 运行时自动生成的缓存
+# Caches Python makes automatically at runtime
 __pycache__/
 **/__pycache__/
 *.pyc
 
-# pytest、ruff 跑完留下的缓存
+# Caches left behind by pytest and ruff
 .pytest_cache/
 .ruff_cache/
 
-# 本机的虚拟环境（镜像里有自己的 /.venv，不能用 Mac 上的）
+# Local virtual env (the image has its own /.venv, the one from the Mac can't be used)
 .venv/
 
-# Mac 自动生成的文件
+# Files the Mac makes automatically
 .DS_Store
 **/.DS_Store
 
-# 安全网：万一有人把 key 放进了这个文件夹，也不会被打包进镜像
+# Safety net: if someone ever puts a key in this folder, it still won't be packed into the image
 secrets/
 *service-account*.json
 
